@@ -4,6 +4,7 @@
 
 SLANG_KEY(STRUCT,    "struct")
 SLANG_KEY(PRECISION, "precision")
+SLANG_KEY(DISCARD,   "discard")
 
 // Special keyword to indicate that it is not recognized as a keyword
 #ifndef SLANG_KEY_UNKNOWN
@@ -19,8 +20,18 @@ SLANG_KEY_UNKNOWN(UNKNOWN, "unknown")
 #define SLANG_KEY_FLOW(key, str) SLANG_KEY(key, str)
 #endif
 
-SLANG_KEY_FLOW(FOR,   "for")
-SLANG_KEY_FLOW(WHILE, "while")
+SLANG_KEY_FLOW(FOR,    "for")
+SLANG_KEY_FLOW(WHILE,  "while")
+SLANG_KEY_FLOW(DO,     "do")
+
+SLANG_KEY_FLOW(BREAK,    "break")
+SLANG_KEY_FLOW(CONTINUE, "continue")
+SLANG_KEY_FLOW(RETURN,   "return")
+
+SLANG_KEY_FLOW(SWITCH,  "switch")
+SLANG_KEY_FLOW(CASE,    "case")
+SLANG_KEY_FLOW(DEFAULT, "default")
+
 SLANG_KEY_FLOW(IF,    "if")
 SLANG_KEY_FLOW(ELSE,  "else")
 

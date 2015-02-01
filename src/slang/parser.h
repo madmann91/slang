@@ -89,6 +89,8 @@ private:
     ast::Expr* parse_cond_expr(ast::Expr*);
     ast::Expr* parse_assign_expr();
 
+    ast::List* parse_compound_statement();
+
     Lexer lexer_;
     Environment env_;
     Token lookup_[3];

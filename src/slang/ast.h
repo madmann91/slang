@@ -2,6 +2,7 @@
 #define SLANG_AST_H
 
 #include <vector>
+#include <memory>
 #include <string>
 #include <ostream>
 
@@ -12,6 +13,42 @@
 namespace slang {
 
 namespace ast {
+
+template <typename T>
+using Ptr = std::unique_ptr<T>;
+
+template <typename T>
+class PtrVector : private std::vector<T*> {
+public:
+    typedef std::vector<T*> Vector;
+
+    ~PtrVector() {
+        for (auto p : *this) delete p;
+    }
+
+    using Vector::begin;
+    using Vector::end;
+    using Vector::push_back;
+    using Vector::size;
+    using Vector::operator [];
+};
+
+template <typename U, typename V>
+class PtrMap : private std::unordered_map<U, V*> {
+public:
+    typedef std::unordered_map<U, V*> Map;
+
+    ~PtrMap() {
+        for (auto p : *this) delete p.second;
+    }
+
+    using Map::begin;
+    using Map::end;
+    using Map::emplace;
+    using Map::size;
+    using Map::operator [];
+    using Map::find;
+};
 
 class Node {
 public:
@@ -43,37 +80,34 @@ protected:
 /// Nodes that have an environment bound
 class HasEnv {
 public:
-    HasEnv(Environment* env = nullptr) : env_(env) {}
-    virtual ~HasEnv() { delete env_; }
+    virtual ~HasEnv() {}
 
-    void set_env(Environment* env) { env_ = env; }
-    Environment* env() { return env_; }
-    const Environment* env() const { return env_; }
+    void set_env(Environment* env) { env_.reset(env); }
+    Environment* env() { return env_.get(); }
+    const Environment* env() const { return env_.get(); }
 
 protected:
-    Environment* env_;
+    Ptr<Environment> env_;
 };
 
 /// A list of nodes with an associated environment.
 /// Can represent the root node and scopes (function bodies, if/else, ...).
 class List : public Node, public HasEnv {
 public:
-    virtual ~List() {
-        for (auto n : nodes_) delete n;
-    }
-
-    const std::vector<Node*>& nodes() const { return nodes_; }
+    const PtrVector<Node>& nodes() const { return nodes_; }
     void push_node(Node* n) { nodes_.push_back(n); }
     int num_nodes() const { return nodes_.size(); }
 
     void print(std::ostream&) const;
 
 private:
-    std::vector<Node*> nodes_;
+    PtrVector<Node> nodes_;
 };
 
 /// Base class for expressions
 class Expr : public Node {
+public:
+    virtual ~Expr() {}
 };
 
 /// An expression that the parser could not parse
@@ -103,12 +137,9 @@ public:
 /// A field selection expression
 class FieldExpr : public Expr {
 public:
-    FieldExpr() : left_(nullptr) {}
-    virtual ~FieldExpr() { delete left_; }
-
-    Expr* left() { return left_; }
-    const Expr* left() const { return left_; }
-    void set_left(Expr* left) { left_ = left; }
+    Expr* left() { return left_.get(); }
+    const Expr* left() const { return left_.get(); }
+    void set_left(Expr* left) { left_.reset(left); }
 
     const std::string& field_name() const { return field_name_; }
     void set_field_name(const std::string& field_name) { field_name_ = field_name; }
@@ -117,32 +148,24 @@ public:
 
 private:
     std::string field_name_;
-    Expr* left_;
+    Ptr<Expr> left_;
 };
 
 /// A array index expression
 class IndexExpr : public Expr {
 public:
-    IndexExpr() : left_(nullptr), index_(nullptr) {}
+    Expr* left() { return left_.get(); }
+    const Expr* left() const { return left_.get(); }
+    void set_left(Expr* left) { left_.reset(left); }
 
-    virtual ~IndexExpr() {
-        delete left_;
-        delete index_;
-    }
-
-    Expr* left() { return left_; }
-    const Expr* left() const { return left_; }
-    void set_left(Expr* left) { left_ = left; }
-
-    Expr* index() { return index_; }
-    const Expr* index() const { return index_; }
-    void set_index(Expr* index) { index_ = index; }
+    Expr* index() { return index_.get(); }
+    const Expr* index() const { return index_.get(); }
+    void set_index(Expr* index) { index_.reset(index); }
 
     void print(std::ostream&) const;
 
 private:
-    Expr* left_;
-    Expr* index_;
+    Ptr<Expr> left_, index_;
 };
 
 /// An unary operation expression
@@ -160,52 +183,41 @@ public:
         UNOP_UNKNOWN
     };
 
-    UnOpExpr() : type_(UNOP_UNKNOWN), op_(nullptr) {}
-    virtual ~UnOpExpr() { delete op_; }
+    UnOpExpr() : type_(UNOP_UNKNOWN) {}
 
-    const Expr* operand() const { return op_; }
-    Expr* operand() { return op_; }
+    const Expr* operand() const { return op_.get(); }
+    Expr* operand() { return op_.get(); }
+    void set_operand(Expr* op) { op_.reset(op); }
     
     Type type() const { return type_; }
-
-    void set_operand(Expr* op) { op_ = op; }
     void set_type(Type type) { type_ = type; }
 
     void print(std::ostream&) const;
 
 private:
     Type type_;
-    Expr* op_;
+    Ptr<Expr> op_;
 };
 
 /// A conditional expression (a ? b : c)
 class CondExpr : public Expr {
 public:
-    CondExpr() : cond_(nullptr), if_true_(nullptr), if_false_(nullptr) {}
-    virtual ~CondExpr() {
-        delete cond_;
-        delete if_true_;
-        delete if_false_;
-    }
+    Expr* cond() { return cond_.get(); }
+    const Expr* cond() const { return cond_.get(); }
+    void set_cond(Expr* cond) { cond_.reset(cond); }
 
-    Expr* cond() { return cond_; }
-    const Expr* cond() const { return cond_; }
-    void set_cond(Expr* cond) { cond_ = cond; }
+    Expr* if_true() { return if_true_.get(); }
+    const Expr* if_true() const { return if_true_.get(); }
+    void set_if_true(Expr* if_true) { if_true_.reset(if_true); }
 
-    Expr* if_true() { return if_true_; }
-    const Expr* if_true() const { return if_true_; }
-    void set_if_true(Expr* if_true) { if_true_ = if_true; }
-
-    Expr* if_false() { return if_false_; }
-    const Expr* if_false() const { return if_false_; }
-    void set_if_false(Expr* if_false) { if_false_ = if_false; }
+    Expr* if_false() { return if_false_.get(); }
+    const Expr* if_false() const { return if_false_.get(); }
+    void set_if_false(Expr* if_false) { if_false_.reset(if_false); }
 
     void print(std::ostream&) const;
 
 private:
-    Expr* cond_;
-    Expr* if_true_;
-    Expr* if_false_;
+    Ptr<Expr> cond_, if_true_, if_false_;
 };
 
 /// An assignment expression (=, +=, -=, ...)
@@ -226,29 +238,24 @@ public:
         ASSIGN_UNKNOWN
     };
 
-    AssignOpExpr() : left_(nullptr), right_(nullptr), type_(ASSIGN_UNKNOWN) {}
-    virtual ~AssignOpExpr() {
-        delete left_;
-        delete right_;
-    }
+    AssignOpExpr() : type_(ASSIGN_UNKNOWN) {}
 
     Type type() const { return type_; }
     void set_type(Type type) { type_ = type; }
 
-    Expr* left() { return left_; }
-    const Expr* left() const { return left_; }
-    void set_left(Expr* left) { left_ = left; }
+    Expr* left() { return left_.get(); }
+    const Expr* left() const { return left_.get(); }
+    void set_left(Expr* left) { left_.reset(left); }
 
-    Expr* right() { return right_; }
-    const Expr* right() const { return right_; }
-    void set_right(Expr* left) { right_ = left; }
+    Expr* right() { return right_.get(); }
+    const Expr* right() const { return right_.get(); }
+    void set_right(Expr* right) { right_.reset(right); }
 
     void print(std::ostream&) const;
 
 private:
-    Expr* left_;
-    Expr* right_;
     Type type_;
+    Ptr<Expr> left_, right_;
 };
 
 /// A binary operation expression
@@ -276,30 +283,24 @@ public:
         BINOP_UNKNOWN
     };
 
-    BinOpExpr() : left_(nullptr), right_(nullptr), type_(BINOP_UNKNOWN) {}
-    virtual ~BinOpExpr() {
-        delete left_;
-        delete right_;
-    }
+    BinOpExpr() : type_(BINOP_UNKNOWN) {}
 
-    Expr* left() { return left_; }
-    const Expr* left() const { return left_; }
+    Expr* left() { return left_.get(); }
+    const Expr* left() const { return left_.get(); }
+    void set_left(Expr* left) { left_.reset(left); }
 
-    Expr* right() { return right_; }
-    const Expr* right() const { return right_; }
+    Expr* right() { return right_.get(); }
+    const Expr* right() const { return right_.get(); }
+    void set_right(Expr* right) { right_.reset(right); }
 
     Type type() const { return type_; }
-
-    void set_left(Expr* left) { left_ = left; }
-    void set_right(Expr* left) { right_ = left; }
     void set_type(Type type) { type_ = type; }
 
     void print(std::ostream&) const;
 
 private:
-    Expr* left_;
-    Expr* right_;
     Type type_;
+    Ptr<Expr> left_, right_;
 };
 
 /// Type qualifier, base class
@@ -374,11 +375,7 @@ protected:
 /// Layout qualifier (contains a map from identifiers to values)
 class LayoutQualifier : public TypeQualifier {
 public:
-    virtual ~LayoutQualifier() {
-        for (auto l : layouts_) delete l.second;
-    }
-
-    const std::unordered_map<std::string, Expr*>& layouts() const { return layouts_; }
+    const PtrMap<std::string, Expr>& layouts() const { return layouts_; }
     void push_layout(const std::string& name, Expr* expr) {
         assert(layouts_.find(name) == layouts_.end());
         layouts_.emplace(name, expr);
@@ -387,69 +384,59 @@ public:
     void print(std::ostream&) const;
 
 private:
-    std::unordered_map<std::string, Expr*> layouts_;
+    PtrMap<std::string, Expr> layouts_;
 };
 
 /// Array specifier, can have several dimensions
 class ArraySpecifier : public Node {
 public:
-    virtual ~ArraySpecifier() {
-        for (auto d : dims_) delete d;
-    }
-
-    const std::vector<Expr*>& dims() const { return dims_; }
+    const PtrVector<Expr>& dims() const { return dims_; }
     void push_dim(Expr* dim) { dims_.push_back(dim); }
+    int num_dims() const { return dims_.size(); }
 
     void print(std::ostream& out) const;
 
 private:
-    std::vector<Expr*> dims_;
+    PtrVector<Expr> dims_;
 };
 
 /// Nodes that have an array specifier
 class HasArraySpecifier {
 public:
-    HasArraySpecifier() : array_spec_(nullptr) {}
-    virtual ~HasArraySpecifier() {
-        delete array_spec_;
-    }
+    virtual ~HasArraySpecifier() {}
 
-    const ArraySpecifier* array_specifier() const { return array_spec_; }
-    ArraySpecifier* array_specifier() { return array_spec_; }
-    void set_array_specifier(ArraySpecifier* array_spec) { array_spec_ = array_spec; }
+    const ArraySpecifier* array_specifier() const { return array_spec_.get(); }
+    ArraySpecifier* array_specifier() { return array_spec_.get(); }
+    void set_array_specifier(ArraySpecifier* array_spec) { array_spec_.reset(array_spec); }
 
 protected:
-    ArraySpecifier* array_spec_;
+    Ptr<ArraySpecifier> array_spec_;
 };
 
 /// Base class for types
 class Type : public Node, public HasArraySpecifier {
 public:
-    virtual ~Type() {
-        for (auto q : quals_) delete q;
-    }
-
     bool has_qualifier() const { return quals_.size() != 0; }
 
-    const std::vector<TypeQualifier*>& qualifiers() const { return quals_; }
+    const PtrVector<TypeQualifier>& qualifiers() const { return quals_; }
     void push_qualifier(TypeQualifier* qual) { quals_.push_back(qual); }
+    int num_qualifers() const { return quals_.size(); }
 
 protected:
-    std::vector<TypeQualifier*> quals_;
+    PtrVector<TypeQualifier> quals_;
 };
 
 /// Nodes that have a type
 class HasType {
 public:
-    HasType(Type* type = nullptr) : type_(type) {}
-    virtual ~HasType() { delete type_; }
+    virtual ~HasType() {}
 
-    void set_type(Type* type) { type_ = type; }
-    Type* type() { return type_; }
-    const Type* type() const { return type_; }
+    void set_type(Type* type) { type_.reset(type); }
+    Type* type() { return type_.get(); }
+    const Type* type() const { return type_.get(); }
 
 protected:
-    Type* type_;
+    Ptr<Type> type_;
 };
 
 /// Primitive type
@@ -474,79 +461,65 @@ public:
     void print(std::ostream&) const;
 };
 
+/// Base class for declarations
+class Decl : public Node {
+};
+
 /// A default precision declaration
-class PrecisionDecl : public Node {
+class PrecisionDecl : public Decl {
 public:
-    PrecisionDecl() : prim_(nullptr), prec_(nullptr) {}
+    PrimType* prim() { return prim_.get(); }
+    const PrimType* prim() const { return prim_.get(); }
+    void set_prim(PrimType* prim) { prim_.reset(prim); }
 
-    virtual ~PrecisionDecl() {
-        delete prim_;
-        delete prec_;
-    }
-
-    void set_precision(PrecisionQualifier* prec) { prec_ = prec; }
-    void set_prim(PrimType* prim) { prim_ = prim; }
-
-    const PrimType* prim() const { return prim_; }
-    const PrecisionQualifier* precision() const { return prec_; }
+    PrecisionQualifier* precision() { return prec_.get(); }
+    const PrecisionQualifier* precision() const { return prec_.get(); }
+    void set_precision(PrecisionQualifier* prec) { prec_.reset(prec); }
 
     void print(std::ostream&) const;
 
 private:
-    PrimType* prim_;
-    PrecisionQualifier* prec_;
+    Ptr<PrimType> prim_;
+    Ptr<PrecisionQualifier> prec_;
 };
 
 /// A variable declaration
 class Variable : public Node, public HasName, public HasArraySpecifier {
 public:
-    Variable() : init_(nullptr) {}
-
-    virtual ~Variable() {
-        delete init_;
-    }
-
-    const Expr* initializer() const { return init_; }
-    void set_initializer(Expr* init) { init_ = init; }
+    Expr* init() { return init_.get(); }
+    const Expr* init() const { return init_.get(); }
+    void set_init(Expr* init) { init_.reset(init); }
 
     void print(std::ostream&) const;
 
 private:
-    Expr* init_;
+    Ptr<Expr> init_;
 };
 
 /// A list of variable declarations
-class VariableDecl : public Node, public HasType {
+class VariableDecl : public Decl, public HasType {
 public:
-    virtual ~VariableDecl() {
-        for (auto v : vars_) delete v;
-    }
-
-    const std::vector<Variable*>& vars() const { return vars_; }
-    int num_vars() const { return vars_.size(); }
+    const PtrVector<Variable>& vars() const { return vars_; }
     void push_var(Variable* var) { vars_.push_back(var); }
+    int num_vars() const { return vars_.size(); }
 
     void print(std::ostream&) const;
 
 private:
-    std::vector<Variable*> vars_;
+    PtrVector<Variable> vars_;
 };
 
 /// Structure type
 class StructType : public Type, public HasName {
 public:
-    virtual ~StructType() {
-        for (auto f : fields_) delete f;
-    }
-
-    const std::vector<VariableDecl*>& fields() const { return fields_; }
-    int num_fields() const { return fields_.size(); }
+    const PtrVector<VariableDecl>& fields() const { return fields_; }
     void push_field(VariableDecl* field) { fields_.push_back(field); }
+    int num_fields() const { return fields_.size(); }
 
     void print(std::ostream&) const;
 
 private:
-    std::vector<VariableDecl*> fields_;
+    PtrVector<VariableDecl> fields_;
 };
 
 /// Function argument
@@ -556,25 +529,170 @@ public:
 };
 
 /// Function prototype of function definition
-class FunctionDecl : public Node, public HasType, public HasName {
+class FunctionDecl : public Decl, public HasType, public HasName {
 public:
-    FunctionDecl(List* body = nullptr) { body_ = body; }
-    virtual ~FunctionDecl() { delete body_; }
+    bool is_prototype() const { return static_cast<bool>(body_); }
 
-    bool is_prototype() const { return body_ == nullptr; }
-    List* body() { return body_; }
-    const List* body() const { return body_; }
-    void set_body(List* body) { body_ = body; }
+    List* body() { return body_.get(); }
+    const List* body() const { return body_.get(); }
+    void set_body(List* body) { body_.reset(body); }
 
-    const std::vector<Arg*>& args() { return args_; }
-    int num_args() const { return args_.size(); }
+    const PtrVector<Arg>& args() { return args_; }
     void push_arg(Arg* arg) { args_.push_back(arg); }
+    int num_args() const { return args_.size(); }
 
     void print(std::ostream&) const;
 
 private:
-    std::vector<Arg*> args_;
-    List* body_;
+    PtrVector<Arg> args_;
+    Ptr<List> body_;
+};
+
+/// Base class for statements
+class Stmt : public Node {
+public:
+    virtual ~Stmt() {}
+};
+
+/// List of statements
+class CompoundStmt : public Stmt {
+public:
+    const PtrVector<Stmt>& stmts() const { return stmts_; }
+    void push_stmt(Stmt* stmt) { stmts_.push_back(stmt); }
+    int num_stmts() const { return stmts_.size(); }
+
+    void print(std::ostream&) const;
+
+private:
+    PtrVector<Stmt> stmts_;
+};
+
+/// A declaration statement
+class DeclStmt : public Stmt {
+public:
+    Decl* decl() { return decl_.get(); }
+    const Decl* decl() const { return decl_.get(); }
+    void set_decl(Decl* decl) { decl_.reset(decl); }
+
+    void print(std::ostream&) const;
+
+private:
+    Ptr<Decl> decl_;
+};
+
+/// A declaration statement
+class ExprStmt : public Stmt {
+public:
+    Expr* expr() { return expr_.get(); }
+    const Expr* expr() const { return expr_.get(); }
+    void set_expr(Expr* expr) { expr_.reset(expr); }
+
+    void print(std::ostream&) const;
+
+private:
+    Ptr<Expr> expr_;
+};
+
+/// If-else statement
+class IfStmt : public Stmt {
+public:
+    Expr* cond() { return cond_.get(); }
+    const Expr* cond() const { return cond_.get(); }
+    void set_cond(Expr* cond) { cond_.reset(cond); }
+
+    Stmt* if_true() { return if_true_.get(); }
+    const Stmt* if_true() const { return if_true_.get(); }
+    void set_if_true(Stmt* if_true) { if_true_.reset(if_true); }
+
+    Stmt* if_false() { return if_false_.get(); }
+    const Stmt* if_false() const { return if_false_.get(); }
+    void set_if_false(Stmt* if_false) { if_false_.reset(if_false); }
+
+    void print(std::ostream&) const;
+
+private:
+    Ptr<Expr> cond_;
+    Ptr<Stmt> if_true_, if_false_;
+};
+
+/// Switch statement
+class SwitchStmt : public Stmt {
+public:
+    Expr* expr() { return expr_.get(); }
+    const Expr* expr() const { return expr_.get(); }
+    void expr(Expr* expr) { expr_.reset(expr); }
+
+    const PtrVector<Stmt>& stmts() const { return stmts_; }
+    void push_stmt(Stmt* stmt) { stmts_.push_back(stmt); }
+
+    void print(std::ostream&) const;
+
+private:
+    PtrVector<Stmt> stmts_;
+    Ptr<Expr> expr_;
+};
+
+/// Case label statement
+class CaseLabelStmt : public Stmt {
+public:
+    Expr* expr() { return expr_.get(); }
+    const Expr* expr() const { return expr_.get(); }
+    void expr(Expr* expr) { expr_.reset(expr); }
+
+    bool is_default() const { return static_cast<bool>(expr_); }
+
+    void print(std::ostream&) const;
+
+private:
+    Ptr<Expr> expr_;
+};
+
+/// Base class for loop statements
+class LoopStmt : public Stmt {
+public:
+    virtual ~LoopStmt() {}
+
+    Expr* cond() { return cond_.get(); }
+    const Expr* cond() const { return cond_.get(); }
+    void set_cond(Expr* cond) { cond_.reset(cond); }
+
+    Stmt* body() { return body_.get(); }
+    const Stmt* body() const { return body_.get(); }
+    void set_body(Stmt* body) { body_.reset(body); }
+
+private:
+    Ptr<Expr> cond_;
+    Ptr<Stmt> body_;
+};
+
+/// For loop statement
+class ForLoopStmt : public LoopStmt {
+public:
+    Stmt* init() { return init_.get(); }
+    const Stmt* init() const { return init_.get(); }
+    void set_init(Stmt* init) { init_.reset(init); }
+
+    Expr* iter() { return iter_.get(); }
+    const Expr* iter() const { return iter_.get(); }
+    void set_iter(Expr* iter) { iter_.reset(iter); }
+
+    void print(std::ostream&) const;
+
+private:
+    Ptr<Stmt> init_;
+    Ptr<Expr> iter_;
+};
+
+/// While loop statement
+class WhileLoopStmt : public LoopStmt {
+public:
+    void print(std::ostream&) const;
+};
+
+/// Do-While loop statement
+class DoWhileLoopStmt : public LoopStmt {
+public:
+    void print(std::ostream&) const;
 };
 
 } // namespace ast

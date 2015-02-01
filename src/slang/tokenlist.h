@@ -51,9 +51,9 @@ SLANG_TOK(ASSIGN_AND, "&=")
 SLANG_TOK(ASSIGN_XOR, "^=")
 SLANG_TOK(ASSIGN_OR,  "|=")
 
-SLANG_TOK(IDENT,   "ident")
-SLANG_TOK(LIT,     "literal")
-SLANG_TOK(UNKNOWN, "unknown")
+SLANG_TOK(IDENT,   "<ident>")
+SLANG_TOK(LIT,     "<lit>")
+SLANG_TOK(UNKNOWN, "<unknown>")
 
 SLANG_TOK(LBRACE, "{")
 SLANG_TOK(RBRACE, "}")

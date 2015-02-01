@@ -263,7 +263,7 @@ ast::Variable* Parser::parse_variable() {
     // Optional initializer
     if (lookup_[0].isa(Token::TOK_ASSIGN)) {
         eat(Token::TOK_ASSIGN);
-        var->set_initializer(parse_expr());
+        var->set_init(parse_expr());
     }
 
     return var.node();
@@ -709,6 +709,16 @@ ast::Expr* Parser::parse_assign_expr() {
     }
 
     return parse_cond_expr(left);
+}
+
+ast::List* Parser::parse_compound_statement() {
+    auto list = new_node<ast::List>();
+    eat(Token::TOK_LBRACE);
+    /*while (!lookup_[0].isa(Token::TOK_LBRACE)) {
+        list->push_node(parse_statement());
+    }*/
+    expect(Token::TOK_LBRACE);
+    return list.node();
 }
 
 } // namespace slang
