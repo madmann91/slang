@@ -417,7 +417,6 @@ static ast::UnOpExpr::Type token_to_pre_unop(Token tok) {
         case Token::TOK_SUB:    return ast::UnOpExpr::UNOP_MINUS;
         case Token::TOK_NEG:    return ast::UnOpExpr::UNOP_BIT_NOT;
         case Token::TOK_NOT:    return ast::UnOpExpr::UNOP_NOT;
-        
         default: break;
     }
     return ast::UnOpExpr::UNOP_UNKNOWN;
@@ -427,7 +426,6 @@ static ast::UnOpExpr::Type token_to_post_unop(Token tok) {
     switch (tok.type()) {
         case Token::TOK_INC:    return ast::UnOpExpr::UNOP_POST_INC;
         case Token::TOK_DEC:    return ast::UnOpExpr::UNOP_POST_DEC;
-        
         default: break;
     }
     return ast::UnOpExpr::UNOP_UNKNOWN;
@@ -453,7 +451,6 @@ static ast::BinOpExpr::Type token_to_binop(Token tok) {
         case Token::TOK_OR:     return ast::BinOpExpr::BINOP_OR;
         case Token::TOK_ANDAND: return ast::BinOpExpr::BINOP_ANDAND;
         case Token::TOK_OROR:   return ast::BinOpExpr::BINOP_OROR;
-        
         default: break;
     }
     return ast::BinOpExpr::BINOP_UNKNOWN;
@@ -515,8 +512,25 @@ static bool left_associative(ast::BinOpExpr::Type type) {
     return true;
 }
 
+static ast::AssignOpExpr::Type token_to_assignop(Token tok) {
+    switch (tok.type()) {
+        case Token::TOK_ASSIGN_MUL:    return ast::AssignOpExpr::ASSIGN_MUL;
+        case Token::TOK_ASSIGN_DIV:    return ast::AssignOpExpr::ASSIGN_DIV;
+        case Token::TOK_ASSIGN_MOD:    return ast::AssignOpExpr::ASSIGN_MOD;
+        case Token::TOK_ASSIGN_ADD:    return ast::AssignOpExpr::ASSIGN_ADD;
+        case Token::TOK_ASSIGN_SUB:    return ast::AssignOpExpr::ASSIGN_SUB;
+        case Token::TOK_ASSIGN_LSHIFT: return ast::AssignOpExpr::ASSIGN_LSHIFT;
+        case Token::TOK_ASSIGN_RSHIFT: return ast::AssignOpExpr::ASSIGN_RSHIFT;
+        case Token::TOK_ASSIGN_AND:    return ast::AssignOpExpr::ASSIGN_AND;
+        case Token::TOK_ASSIGN_XOR:    return ast::AssignOpExpr::ASSIGN_XOR;
+        case Token::TOK_ASSIGN_OR:     return ast::AssignOpExpr::ASSIGN_OR;
+        default: break;
+    }
+    return ast::AssignOpExpr::ASSIGN_UNKNOWN;
+}
+
 ast::Expr* Parser::parse_expr() {
-    return parse_binop_expr(parse_unary_expr(), max_precedence);
+    return parse_assign_expr();
 }
 
 ast::LiteralExpr* Parser::parse_literal_expr() {
@@ -536,6 +550,7 @@ ast::IdentExpr* Parser::parse_ident_expr() {
 }
 
 ast::FieldExpr* Parser::parse_field_expr(ast::Expr* left) {
+    // FieldExpr ::= UnOpExpr . ident
     auto field = new_node<ast::FieldExpr>();
     eat(Token::TOK_DOT);
     field->set_left(left);
@@ -549,6 +564,7 @@ ast::FieldExpr* Parser::parse_field_expr(ast::Expr* left) {
 }
 
 ast::IndexExpr* Parser::parse_index_expr(ast::Expr* left) {
+    // IndexExpr ::= UnOpExpr [Expr]
     auto index = new_node<ast::IndexExpr>();
     eat(Token::TOK_LBRACKET);
     index->set_left(left);
@@ -558,10 +574,16 @@ ast::IndexExpr* Parser::parse_index_expr(ast::Expr* left) {
 }
 
 ast::Expr* Parser::parse_primary_expr() {
+    // PrimExpr ::= ident | lit | (Expr)
     if (lookup_[0].isa(Token::TOK_IDENT) && lookup_[0].is_ident()) {
         return parse_ident_expr();
     } else if (lookup_[0].isa(Token::TOK_LIT)) {
         return parse_literal_expr();
+    } else if (lookup_[0].isa(Token::TOK_LPAREN)) {
+        eat(Token::TOK_LPAREN);
+        ast::Expr* expr = parse_expr();
+        expect(Token::TOK_RPAREN);
+        return expr;
     } else {
         error() << "Primary expression expected\n";
         // Return error expression
@@ -613,7 +635,7 @@ ast::Expr* Parser::parse_unary_expr() {
     return expr;
 }
 
-ast::Expr* Parser::parse_binop_expr(ast::Expr* left, int pred) {
+ast::Expr* Parser::parse_binary_expr(ast::Expr* left, int pred) {
     // BinOpExpr<precedence> ::= BinOpExpr<Precedence - 1> BinOp<precedence> BinOpExpr<Precedence>
     while (true) {
         const ast::BinOpExpr::Type type = token_to_binop(lookup_[0]);
@@ -641,7 +663,7 @@ ast::Expr* Parser::parse_binop_expr(ast::Expr* left, int pred) {
                 break;
 
             // a + (b * c * d)
-            right = parse_binop_expr(right, next_pred);
+            right = parse_binary_expr(right, next_pred);
         }
 
         // a + (a * b * d) + e
@@ -651,6 +673,42 @@ ast::Expr* Parser::parse_binop_expr(ast::Expr* left, int pred) {
 
         left = current.node();
     }
+}
+
+ast::Expr* Parser::parse_cond_expr(ast::Expr* left) {
+    // CondExpr ::= BinOpExpr ? Expr : AssignOpExpr
+    ast::Expr* binop = parse_binary_expr(left, max_precedence);
+
+    if (lookup_[0].isa(Token::TOK_QMARK)) {
+        auto cond = new_node<ast::CondExpr>();
+        eat(Token::TOK_QMARK);
+
+        cond->set_cond(binop);
+        cond->set_if_true(parse_expr());
+        expect(Token::TOK_COLON);
+        cond->set_if_false(parse_assign_expr());
+
+        return cond.node();
+    }
+
+    return binop;
+}
+
+ast::Expr* Parser::parse_assign_expr() {
+    // AssignOpExpr ::= UnaryOpExpr (=|+=|-=|*=|/=|<<=|>>=|&=|^=||=) AssignOpExpr
+    ast::Expr* left = parse_unary_expr();
+
+    ast::AssignOpExpr::Type type = token_to_assignop(lookup_[0]);
+    if (type != ast::AssignOpExpr::ASSIGN_UNKNOWN) {
+        auto assign = new_node<ast::AssignOpExpr>();
+        lex();
+        assign->set_type(type);
+        assign->set_left(left);
+        assign->set_right(parse_assign_expr());
+        return assign.node();
+    }
+
+    return parse_cond_expr(left);
 }
 
 } // namespace slang

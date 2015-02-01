@@ -85,7 +85,9 @@ private:
     ast::IndexExpr* parse_index_expr(ast::Expr*);
     ast::Expr* parse_primary_expr();
     ast::Expr* parse_unary_expr();
-    ast::Expr* parse_binop_expr(ast::Expr*, int);
+    ast::Expr* parse_binary_expr(ast::Expr*, int);
+    ast::Expr* parse_cond_expr(ast::Expr*);
+    ast::Expr* parse_assign_expr();
 
     Lexer lexer_;
     Environment env_;

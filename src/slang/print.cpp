@@ -191,10 +191,37 @@ void UnOpExpr::print(std::ostream& out) const {
             case UNOP_BIT_NOT: out << "~ ";  break;
             case UNOP_PLUS:    out << "+ ";  break;
             case UNOP_MINUS:   out << "- ";  break;
-            default: out << "unknown "; break;
+            default: out << "<unknown unop>"; break;
         }
         op_->print(out);
     }
+}
+
+void CondExpr::print(std::ostream& out) const {
+    cond_->print(out);
+    out << " ? ";
+    if_true_->print(out);
+    out << " : ";
+    if_false_->print(out);
+}
+
+void AssignOpExpr::print(std::ostream& out) const {
+    left_->print(out);
+    switch (type_) {
+        case ASSIGN_EQUAL:  out << " = ";   break;
+        case ASSIGN_ADD:    out << " += ";  break;
+        case ASSIGN_SUB:    out << " -= ";  break;
+        case ASSIGN_MUL:    out << " *= ";  break;
+        case ASSIGN_DIV:    out << " /= ";  break;
+        case ASSIGN_MOD:    out << " %= ";  break;
+        case ASSIGN_LSHIFT: out << " <<= "; break;
+        case ASSIGN_RSHIFT: out << " >>= "; break;
+        case ASSIGN_AND:    out << " &= ";  break;
+        case ASSIGN_XOR:    out << " ^= ";  break;
+        case ASSIGN_OR:     out << " |= ";  break;
+        default: out << "<unknown assignop>"; break;
+    }
+    right_->print(out);
 }
 
 void BinOpExpr::print(std::ostream& out) const {
@@ -220,7 +247,7 @@ void BinOpExpr::print(std::ostream& out) const {
         case BINOP_OR:     out << "|";  break;
         case BINOP_ANDAND: out << "&&"; break;
         case BINOP_OROR:   out << "||"; break;
-        default: out << "unknown";  break;
+        default: out << "<unknown binop>";  break;
     }
     out << " ";
     right_->print(out);

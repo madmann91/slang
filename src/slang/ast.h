@@ -178,6 +178,79 @@ private:
     Expr* op_;
 };
 
+/// A conditional expression (a ? b : c)
+class CondExpr : public Expr {
+public:
+    CondExpr() : cond_(nullptr), if_true_(nullptr), if_false_(nullptr) {}
+    virtual ~CondExpr() {
+        delete cond_;
+        delete if_true_;
+        delete if_false_;
+    }
+
+    Expr* cond() { return cond_; }
+    const Expr* cond() const { return cond_; }
+    void set_cond(Expr* cond) { cond_ = cond; }
+
+    Expr* if_true() { return if_true_; }
+    const Expr* if_true() const { return if_true_; }
+    void set_if_true(Expr* if_true) { if_true_ = if_true; }
+
+    Expr* if_false() { return if_false_; }
+    const Expr* if_false() const { return if_false_; }
+    void set_if_false(Expr* if_false) { if_false_ = if_false; }
+
+    void print(std::ostream&) const;
+
+private:
+    Expr* cond_;
+    Expr* if_true_;
+    Expr* if_false_;
+};
+
+/// An assignment expression (=, +=, -=, ...)
+class AssignOpExpr : public Expr {
+public:
+    enum Type {
+        ASSIGN_EQUAL,
+        ASSIGN_ADD,
+        ASSIGN_SUB,
+        ASSIGN_MUL,
+        ASSIGN_DIV,
+        ASSIGN_MOD,
+        ASSIGN_LSHIFT,
+        ASSIGN_RSHIFT,
+        ASSIGN_AND,
+        ASSIGN_XOR,
+        ASSIGN_OR,
+        ASSIGN_UNKNOWN
+    };
+
+    AssignOpExpr() : left_(nullptr), right_(nullptr), type_(ASSIGN_UNKNOWN) {}
+    virtual ~AssignOpExpr() {
+        delete left_;
+        delete right_;
+    }
+
+    Type type() const { return type_; }
+    void set_type(Type type) { type_ = type; }
+
+    Expr* left() { return left_; }
+    const Expr* left() const { return left_; }
+    void set_left(Expr* left) { left_ = left; }
+
+    Expr* right() { return right_; }
+    const Expr* right() const { return right_; }
+    void set_right(Expr* left) { right_ = left; }
+
+    void print(std::ostream&) const;
+
+private:
+    Expr* left_;
+    Expr* right_;
+    Type type_;
+};
+
 /// A binary operation expression
 class BinOpExpr : public Expr {
 public:
@@ -204,6 +277,10 @@ public:
     };
 
     BinOpExpr() : left_(nullptr), right_(nullptr), type_(BINOP_UNKNOWN) {}
+    virtual ~BinOpExpr() {
+        delete left_;
+        delete right_;
+    }
 
     Expr* left() { return left_; }
     const Expr* left() const { return left_; }
@@ -420,7 +497,7 @@ private:
     PrecisionQualifier* prec_;
 };
 
-/// A variable definition, a structure field or a function parameter
+/// A variable declaration
 class Variable : public Node, public HasName, public HasArraySpecifier {
 public:
     Variable() : init_(nullptr) {}

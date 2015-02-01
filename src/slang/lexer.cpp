@@ -82,9 +82,9 @@ Token Lexer::lex() {
     } \
     return make_token(tok);
 
-        case '*': MAKE_BIN_OP(Token::TOK_MUL, Token::TOK_ASSIGNMUL)
-        case '/': MAKE_BIN_OP(Token::TOK_DIV, Token::TOK_ASSIGNDIV)
-        case '%': MAKE_BIN_OP(Token::TOK_MOD, Token::TOK_ASSIGNMOD)
+        case '*': MAKE_BIN_OP(Token::TOK_MUL, Token::TOK_ASSIGN_MUL)
+        case '/': MAKE_BIN_OP(Token::TOK_DIV, Token::TOK_ASSIGN_DIV)
+        case '%': MAKE_BIN_OP(Token::TOK_MOD, Token::TOK_ASSIGN_MOD)
 
         case '!': MAKE_BIN_OP(Token::TOK_NOT, Token::TOK_NEQ)
 
@@ -102,39 +102,52 @@ Token Lexer::lex() {
     } \
     return make_token(tok);
 
-        case '+': MAKE_INC_OP(Token::TOK_ADD, Token::TOK_ASSIGNADD, Token::TOK_INC)
-        case '-': MAKE_INC_OP(Token::TOK_SUB, Token::TOK_ASSIGNSUB, Token::TOK_DEC)
+        case '+': MAKE_INC_OP(Token::TOK_ADD, Token::TOK_ASSIGN_ADD, Token::TOK_INC)
+        case '-': MAKE_INC_OP(Token::TOK_SUB, Token::TOK_ASSIGN_SUB, Token::TOK_DEC)
 
 #undef MAKE_INC_OP
 
-#define MAKE_CMP_OP(tok, tok_eq, tok_shift) \
+#define MAKE_CMP_OP(tok, tok_eq, tok_shift, tok_assign_shift) \
     if (c_ == '=') { \
         next(); \
         return make_token(tok_eq); \
     } else if (c_ == d) { \
         next(); \
+        if (c_ == '=') { \
+            next(); \
+            return make_token(tok_assign_shift); \
+        } \
         return make_token(tok_shift); \
     } \
     return make_token(tok);
 
-        case '>': MAKE_CMP_OP(Token::TOK_GT, Token::TOK_GEQ, Token::TOK_RSHIFT)
-        case '<': MAKE_CMP_OP(Token::TOK_LT, Token::TOK_LEQ, Token::TOK_LSHIFT)
+        case '>': MAKE_CMP_OP(Token::TOK_GT, Token::TOK_GEQ, Token::TOK_RSHIFT, Token::TOK_ASSIGN_RSHIFT)
+        case '<': MAKE_CMP_OP(Token::TOK_LT, Token::TOK_LEQ, Token::TOK_LSHIFT, Token::TOK_ASSIGN_LSHIFT)
 
 #undef MAKE_CMP_OP
 
-#define MAKE_BIT_OP(tok, tok_logical) \
+#define MAKE_BIT_OP(tok, tok_logical, tok_assign) \
     if (c_ == d) { \
         next(); \
         return make_token(tok_logical); \
+    } else if (c_ == '=') { \
+        next(); \
+        return make_token(tok_assign); \
     } \
     return make_token(tok);
 
-        case '&': MAKE_BIT_OP(Token::TOK_AND, Token::TOK_ANDAND)
-        case '|': MAKE_BIT_OP(Token::TOK_OR,  Token::TOK_OROR)
+
+        case '&': MAKE_BIT_OP(Token::TOK_AND, Token::TOK_ANDAND, Token::TOK_ASSIGN_AND)
+        case '|': MAKE_BIT_OP(Token::TOK_OR,  Token::TOK_OROR,   Token::TOK_ASSIGN_OR)
 
 #undef MAKE_BIT_OP
 
-        case '^': return make_token(Token::TOK_XOR);
+        case '^':
+            if (c_ == '=') {
+                next();
+                return make_token(Token::TOK_ASSIGN_XOR);
+            }
+            return make_token(Token::TOK_XOR);
 
         case '.': return make_token(Token::TOK_DOT);
 
