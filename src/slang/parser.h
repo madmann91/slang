@@ -17,7 +17,7 @@ public:
     Parser(const Lexer& lexer);
 
     /// Parses the stream and produces an AST
-    ast::List* parse();
+    ast::DeclList* parse();
 
 private:
     template <typename T>
@@ -50,12 +50,14 @@ private:
     void lex();
 
     void eat(Token::Type);
+    void eat(Key::Type);
     void expect(Token::Type);
+    void expect(Key::Type);
 
     std::ostream& error();
 
-    ast::List* parse_root();
-    ast::Node* parse_declaration();
+    ast::DeclList* parse_root();
+    ast::Decl* parse_decl();
 
     ast::Type* parse_type();
     ast::NamedType* parse_named_type();
@@ -67,7 +69,7 @@ private:
     ast::FunctionDecl* parse_function_decl(ast::Type*);
     ast::Variable* parse_variable();
     ast::Arg* parse_arg();
-    ast::List* parse_body();
+    ast::StmtList* parse_body();
 
     ast::TypeQualifier* parse_type_qualifier();
     ast::StorageQualifier* parse_storage_qualifier();
@@ -89,7 +91,18 @@ private:
     ast::Expr* parse_cond_expr(ast::Expr*);
     ast::Expr* parse_assign_expr();
 
-    ast::List* parse_compound_statement();
+    ast::LoopCond* parse_loop_cond();
+
+    ast::Stmt* parse_stmt();
+    ast::StmtList* parse_compound_stmt();
+    ast::IfStmt* parse_if_stmt();
+    ast::SwitchStmt* parse_switch_stmt();
+    ast::WhileLoopStmt* parse_while_stmt();
+    ast::ForLoopStmt* parse_for_stmt();
+    ast::DoWhileLoopStmt* parse_do_while_stmt();
+    ast::CaseLabelStmt* parse_case_stmt(bool);
+    ast::DeclStmt* parse_decl_stmt();
+    ast::ExprStmt* parse_expr_stmt();
 
     Lexer lexer_;
     Environment env_;

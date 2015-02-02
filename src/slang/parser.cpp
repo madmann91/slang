@@ -14,7 +14,7 @@ Parser::Parser(const Lexer& lexer)
     prev_ = lookup_[0].loc().start();
 }
 
-ast::List* Parser::parse() {
+ast::DeclList* Parser::parse() {
     return parse_root();
 }
 
@@ -30,9 +30,21 @@ void Parser::eat(Token::Type type) {
     lex();
 }
 
+void Parser::eat(Key::Type type) {
+    assert(lookup_[0].key().type() == type);
+    lex();
+}
+
 void Parser::expect(Token::Type type) {
     if (lookup_[0].type() != type)
         error() << "\'" << type << "\' expected\n";
+
+    lex();
+}
+
+void Parser::expect(Key::Type type) {
+    if (lookup_[0].key().type() != type)
+        error() << "\'" << Key(type) << "\' expected\n";
 
     lex();
 }
@@ -41,12 +53,12 @@ std::ostream& Parser::error() {
     return lexer_.logger().error(lookup_[0].loc().start());
 }
 
-ast::List* Parser::parse_root() {
-    auto root = new_node<ast::List>();
+ast::DeclList* Parser::parse_root() {
+    auto root = new_node<ast::DeclList>();
 
     while (!lookup_[0].is_eof()) {
         if (lookup_[0].isa(Token::TOK_IDENT)) {
-            root->push_node(parse_declaration());
+            root->push_decl(parse_decl());
         } else {
             error() << "Keyword or identifier expected\n";
             lex();
@@ -56,7 +68,7 @@ ast::List* Parser::parse_root() {
     return root.node();
 }
 
-ast::Node* Parser::parse_declaration() {
+ast::Decl* Parser::parse_decl() {
     // Declaration ::= FunctionDecl | FunctionDef | VariableDecl | PrecisionDecl
     if (lookup_[0].key().isa(Key::KEY_PRECISION)) {
         // PrecisionDecl
@@ -79,7 +91,7 @@ ast::Node* Parser::parse_declaration() {
 ast::PrecisionDecl* Parser::parse_precision_decl() {
     // PrecisionDecl ::= precision PrecisionQualifier PrimType ;
     auto decl = new_node<ast::PrecisionDecl>();
-    eat(Token::TOK_IDENT);
+    eat(Key::KEY_PRECISION);
     
     decl->set_precision(parse_precision_qualifier());
     decl->set_prim(parse_prim_type());
@@ -147,7 +159,7 @@ ast::NamedType* Parser::parse_named_type() {
 ast::StructType* Parser::parse_struct_type() {
     // StructType ::= struct (ident)? { (Type StructField(,StructField)*;)+ } )
     auto type = new_node<ast::StructType>();
-    eat(Token::TOK_IDENT);
+    eat(Key::KEY_STRUCT);
 
     // Optional structure name
     if (lookup_[0].is_ident()) {
@@ -235,7 +247,7 @@ ast::FunctionDecl* Parser::parse_function_decl(ast::Type* type) {
 
     // Optional body
     if (lookup_[0].isa(Token::TOK_LBRACE)) {
-        decl->set_body(parse_body());
+        decl->set_body(parse_compound_stmt());
     } else {
         expect(Token::TOK_SEMICOLON);
     }
@@ -288,8 +300,8 @@ ast::Arg* Parser::parse_arg() {
     return arg.node();
 }
 
-ast::List* Parser::parse_body() {
-    auto body = new_node<ast::List>();
+ast::StmtList* Parser::parse_body() {
+    auto body = new_node<ast::StmtList>();
     eat(Token::TOK_LBRACE);
     expect(Token::TOK_RBRACE);
     return body.node();
@@ -380,13 +392,13 @@ ast::InterpQualifier* Parser::parse_interp_qualifier() {
 
 ast::LayoutQualifier* Parser::parse_layout_qualifier() {
     auto layout = new_node<ast::LayoutQualifier>();
-    eat(Token::TOK_IDENT);
+    eat(Key::KEY_LAYOUT);
     return layout.node();
 }
 
 ast::SubroutineQualifier* Parser::parse_subroutine_qualifier() {
     auto subroutine = new_node<ast::SubroutineQualifier>();
-    eat(Token::TOK_IDENT);
+    eat(Key::KEY_SUBROUTINE);
     return subroutine.node();
 }
 
@@ -514,6 +526,7 @@ static bool left_associative(ast::BinOpExpr::Type type) {
 
 static ast::AssignOpExpr::Type token_to_assignop(Token tok) {
     switch (tok.type()) {
+        case Token::TOK_ASSIGN:        return ast::AssignOpExpr::ASSIGN_EQUAL;
         case Token::TOK_ASSIGN_MUL:    return ast::AssignOpExpr::ASSIGN_MUL;
         case Token::TOK_ASSIGN_DIV:    return ast::AssignOpExpr::ASSIGN_DIV;
         case Token::TOK_ASSIGN_MOD:    return ast::AssignOpExpr::ASSIGN_MOD;
@@ -711,14 +724,190 @@ ast::Expr* Parser::parse_assign_expr() {
     return parse_cond_expr(left);
 }
 
-ast::List* Parser::parse_compound_statement() {
-    auto list = new_node<ast::List>();
+ast::LoopCond* Parser::parse_loop_cond() {
+    // LoopCond ::= Type Variable | Expr
+    auto cond = new_node<ast::LoopCond>();
+
+    if (lookup_[0].is_keyword()) {
+        switch (lookup_[0].key().type()) {
+#define SLANK_KEY_DATA(key, str) case Key::KEY_##key:
+#define SLANG_KEY_QUAL(key, str) case Key::KEY_##key:
+#include "slang/keywordlist.h"
+                cond->set_var_type(parse_type());
+                cond->set_var(parse_variable());
+                break;
+            default: break;
+        }
+    } else if (lookup_[0].is_ident() && lookup_[1].is_ident()) {
+        cond->set_var_type(parse_type());
+        cond->set_var(parse_variable());
+    } else {
+        cond->set_expr(parse_expr());
+    }
+
+    return cond.node();
+}
+
+ast::Stmt* Parser::parse_stmt() {
+    // Stmt ::= IfStmt | SwitchStmt | WhileLoopStmt | ForLoopStmt | DoWhileLoopStmt
+    //        | CaseLabelStmt | DeclStmt | ExprStmt
+    if (lookup_[0].is_keyword()) {
+        switch (lookup_[0].key().type()) {
+            case Key::KEY_IF:      return parse_if_stmt();
+            case Key::KEY_SWITCH:  return parse_switch_stmt();
+
+            case Key::KEY_WHILE:   return parse_while_stmt();
+            case Key::KEY_FOR:     return parse_for_stmt();
+            case Key::KEY_DO:      return parse_do_while_stmt();
+
+            case Key::KEY_DEFAULT: return parse_case_stmt(true);
+            case Key::KEY_CASE:    return parse_case_stmt(false);
+
+#define SLANG_KEY_DATA(key, str) case Key::KEY_##key:
+#define SLANG_KEY_QUAL(key, str) case Key::KEY_##key:
+#include "slang/keywordlist.h"
+                return parse_decl_stmt();
+
+            default: break;
+        }        
+    } else if (lookup_[0].isa(Token::TOK_LBRACE)) {
+        return parse_compound_stmt();
+    } else if (lookup_[0].is_ident() && lookup_[1].is_ident()) {
+        return parse_decl_stmt();
+    }
+
+    return parse_expr_stmt();
+}
+
+ast::StmtList* Parser::parse_compound_stmt() {
+    // StmtList ::= { (Stmt)* }
+    auto list = new_node<ast::StmtList>();
     eat(Token::TOK_LBRACE);
-    /*while (!lookup_[0].isa(Token::TOK_LBRACE)) {
-        list->push_node(parse_statement());
-    }*/
-    expect(Token::TOK_LBRACE);
+    while (!lookup_[0].isa(Token::TOK_RBRACE) &&
+           !lookup_[0].isa(Token::TOK_EOF)) {
+        list->push_stmt(parse_stmt());
+    }
+    eat(Token::TOK_RBRACE);
     return list.node();
+}
+
+ast::IfStmt* Parser::parse_if_stmt() {
+    // IfStmt ::= if ( Expr ) (Stmt | Stmt else Stmt)
+    auto stmt = new_node<ast::IfStmt>();
+
+    eat(Key::KEY_IF);
+    expect(Token::TOK_LPAREN);
+    stmt->set_cond(parse_expr());
+    expect(Token::TOK_RPAREN);
+
+    stmt->set_if_true(parse_stmt());
+
+    if (lookup_[0].key().type() == Key::KEY_ELSE) {
+        eat(Key::KEY_ELSE);
+        stmt->set_if_false(parse_stmt());
+    }
+
+    return stmt.node();
+}
+
+ast::SwitchStmt* Parser::parse_switch_stmt() {
+    // SwitchStmt ::= switch ( Expr ) { (Stmt)* }
+    auto stmt = new_node<ast::SwitchStmt>();
+    
+    eat(Key::KEY_SWITCH);
+    expect(Token::TOK_LPAREN);
+    stmt->set_expr(parse_expr());
+    expect(Token::TOK_RPAREN);
+
+    stmt->set_list(parse_compound_stmt());
+
+    return stmt.node();
+}
+
+ast::WhileLoopStmt* Parser::parse_while_stmt() {
+    // WhileLoopStmt ::= while ( LoopCond ) Stmt
+    auto stmt = new_node<ast::WhileLoopStmt>();
+    eat(Key::KEY_WHILE);
+    expect(Token::TOK_LPAREN);
+    stmt->set_cond(parse_loop_cond());
+    expect(Token::TOK_RPAREN);
+    stmt->set_body(parse_stmt());
+    return stmt.node();
+}
+
+ast::ForLoopStmt* Parser::parse_for_stmt() {
+    // ForLoopStmt ::= for ( (Stmt)? ; (LoopCond)? ; (Expr)? )
+    auto stmt = new_node<ast::ForLoopStmt>();
+    eat(Key::KEY_FOR);
+    expect(Token::TOK_LPAREN);
+
+    if (lookup_[0].isa(Token::TOK_SEMICOLON)) {
+        eat(Token::TOK_SEMICOLON);
+    } else { 
+        stmt->set_init(parse_stmt());
+    }
+
+    if (lookup_[0].isa(Token::TOK_SEMICOLON)) {
+        eat(Token::TOK_SEMICOLON);
+    } else {
+        stmt->set_cond(parse_loop_cond());
+        expect(Token::TOK_SEMICOLON);
+    }
+
+    if (lookup_[0].isa(Token::TOK_RPAREN)) {
+        eat(Token::TOK_RPAREN);
+    } else { 
+        stmt->set_iter(parse_expr());
+        expect(Token::TOK_RPAREN);
+    }
+
+    stmt->set_body(parse_stmt());
+    return stmt.node();
+}
+
+ast::DoWhileLoopStmt* Parser::parse_do_while_stmt() {
+    // DoWhileLoopStmt ::= do Stmt while ( LoopCond ) ;
+    auto stmt = new_node<ast::DoWhileLoopStmt>();
+    eat(Key::KEY_DO);
+    stmt->set_body(parse_stmt());
+    expect(Key::KEY_WHILE);
+    expect(Token::TOK_LPAREN);
+    stmt->set_cond(parse_loop_cond());
+    expect(Token::TOK_RPAREN);
+    expect(Token::TOK_SEMICOLON);
+    return stmt.node();
+}
+
+ast::CaseLabelStmt* Parser::parse_case_stmt(bool def) {
+    // CaseLabelStmt ::= (case ident | default) :
+    auto stmt = new_node<ast::CaseLabelStmt>();
+    if (!def) {
+        eat(Key::KEY_CASE);
+        stmt->set_expr(parse_expr());
+    } else {
+        eat(Key::KEY_DEFAULT);
+    }
+    expect(Token::TOK_COLON);
+    return stmt.node();
+}
+
+ast::DeclStmt* Parser::parse_decl_stmt() {
+    // DeclStmt ::= Decl
+    auto stmt = new_node<ast::DeclStmt>();
+    stmt->set_decl(parse_decl());
+    return stmt.node();
+}
+
+ast::ExprStmt* Parser::parse_expr_stmt() {
+    // ExprStmt ::= Expr ;
+    auto stmt = new_node<ast::ExprStmt>();
+    if (lookup_[0].isa(Token::TOK_SEMICOLON)) {
+        eat(Token::TOK_SEMICOLON);
+    } else {
+        stmt->set_expr(parse_expr());
+        expect(Token::TOK_SEMICOLON);
+    }
+    return stmt.node();
 }
 
 } // namespace slang

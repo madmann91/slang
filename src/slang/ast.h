@@ -90,20 +90,6 @@ protected:
     Ptr<Environment> env_;
 };
 
-/// A list of nodes with an associated environment.
-/// Can represent the root node and scopes (function bodies, if/else, ...).
-class List : public Node, public HasEnv {
-public:
-    const PtrVector<Node>& nodes() const { return nodes_; }
-    void push_node(Node* n) { nodes_.push_back(n); }
-    int num_nodes() const { return nodes_.size(); }
-
-    void print(std::ostream&) const;
-
-private:
-    PtrVector<Node> nodes_;
-};
-
 /// Base class for expressions
 class Expr : public Node {
 public:
@@ -465,6 +451,38 @@ public:
 class Decl : public Node {
 };
 
+/// A list of declarations
+class DeclList : public Node, public HasEnv {
+public:
+    const PtrVector<Decl>& decls() const { return decls_; }
+    void push_decl(Decl* d) { decls_.push_back(d); }
+    int num_decls() const { return decls_.size(); }
+
+    void print(std::ostream&) const;
+
+private:
+    PtrVector<Decl> decls_;
+};
+
+/// Base class for statements
+class Stmt : public Node {
+public:
+    virtual ~Stmt() {}
+};
+
+/// A list of declarations
+class StmtList : public Stmt {
+public:
+    const PtrVector<Stmt>& stmts() const { return stmts_; }
+    void push_stmt(Stmt* s) { stmts_.push_back(s); }
+    int num_stmts() const { return stmts_.size(); }
+
+    void print(std::ostream&) const;
+
+private:
+    PtrVector<Stmt> stmts_;
+};
+
 /// A default precision declaration
 class PrecisionDecl : public Decl {
 public:
@@ -533,9 +551,9 @@ class FunctionDecl : public Decl, public HasType, public HasName {
 public:
     bool is_prototype() const { return static_cast<bool>(body_); }
 
-    List* body() { return body_.get(); }
-    const List* body() const { return body_.get(); }
-    void set_body(List* body) { body_.reset(body); }
+    StmtList* body() { return body_.get(); }
+    const StmtList* body() const { return body_.get(); }
+    void set_body(StmtList* body) { body_.reset(body); }
 
     const PtrVector<Arg>& args() { return args_; }
     void push_arg(Arg* arg) { args_.push_back(arg); }
@@ -545,26 +563,33 @@ public:
 
 private:
     PtrVector<Arg> args_;
-    Ptr<List> body_;
+    Ptr<StmtList> body_;
 };
 
-/// Base class for statements
-class Stmt : public Node {
+/// Condition in a loop clause
+class LoopCond : public Node {
 public:
-    virtual ~Stmt() {}
-};
+    bool is_expr() const { return static_cast<bool>(expr_); }
+    bool is_var() const { return static_cast<bool>(var_); }
 
-/// List of statements
-class CompoundStmt : public Stmt {
-public:
-    const PtrVector<Stmt>& stmts() const { return stmts_; }
-    void push_stmt(Stmt* stmt) { stmts_.push_back(stmt); }
-    int num_stmts() const { return stmts_.size(); }
+    Expr* expr() { return expr_.get(); }
+    const Expr* expr() const { return expr_.get(); }
+    void set_expr(Expr* expr) { expr_.reset(expr); }
+
+    Type* var_type() { return var_type_.get(); }
+    const Type* var_type() const { return var_type_.get(); }
+    void set_var_type(Type* type) { var_type_.reset(type); }
+
+    Variable* var() { return var_.get(); }
+    const Variable* var() const { return var_.get(); }
+    void set_var(Variable* var) { var_.reset(var); }
 
     void print(std::ostream&) const;
 
 private:
-    PtrVector<Stmt> stmts_;
+    Ptr<Expr> expr_;
+    Ptr<Variable> var_;
+    Ptr<Type> var_type_;
 };
 
 /// A declaration statement
@@ -620,15 +645,16 @@ class SwitchStmt : public Stmt {
 public:
     Expr* expr() { return expr_.get(); }
     const Expr* expr() const { return expr_.get(); }
-    void expr(Expr* expr) { expr_.reset(expr); }
+    void set_expr(Expr* expr) { expr_.reset(expr); }
 
-    const PtrVector<Stmt>& stmts() const { return stmts_; }
-    void push_stmt(Stmt* stmt) { stmts_.push_back(stmt); }
+    StmtList* list() { return list_.get(); }
+    const StmtList* list() const { return list_.get(); }
+    void set_list(StmtList* list) { list_.reset(list); }
 
     void print(std::ostream&) const;
 
 private:
-    PtrVector<Stmt> stmts_;
+    Ptr<StmtList> list_;
     Ptr<Expr> expr_;
 };
 
@@ -637,7 +663,7 @@ class CaseLabelStmt : public Stmt {
 public:
     Expr* expr() { return expr_.get(); }
     const Expr* expr() const { return expr_.get(); }
-    void expr(Expr* expr) { expr_.reset(expr); }
+    void set_expr(Expr* expr) { expr_.reset(expr); }
 
     bool is_default() const { return static_cast<bool>(expr_); }
 
@@ -652,16 +678,16 @@ class LoopStmt : public Stmt {
 public:
     virtual ~LoopStmt() {}
 
-    Expr* cond() { return cond_.get(); }
-    const Expr* cond() const { return cond_.get(); }
-    void set_cond(Expr* cond) { cond_.reset(cond); }
+    LoopCond* cond() { return cond_.get(); }
+    const LoopCond* cond() const { return cond_.get(); }
+    void set_cond(LoopCond* cond) { cond_.reset(cond); }
 
     Stmt* body() { return body_.get(); }
     const Stmt* body() const { return body_.get(); }
     void set_body(Stmt* body) { body_.reset(body); }
 
-private:
-    Ptr<Expr> cond_;
+protected:
+    Ptr<LoopCond> cond_;
     Ptr<Stmt> body_;
 };
 

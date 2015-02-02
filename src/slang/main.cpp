@@ -41,7 +41,7 @@ bool syntax_analysis(const std::string& filename) {
 #include "slang/keywordlist.h"
 
     Parser parser(Lexer(is, keys, Logger(filename)));
-    ast::List* root = parser.parse();
+    ast::DeclList* root = parser.parse();
     auto t1 = std::chrono::high_resolution_clock::now();
 
     std::cout << "Parsing and lexing took "
@@ -57,7 +57,7 @@ bool syntax_analysis(const std::string& filename) {
 int main(int argc, char** argv) {
     if (argc < 2) return 0;
 
-    bool do_lex = true;
+    bool do_lex = false;
     bool do_syntax = true;
     std::string filename = argv[1];
 

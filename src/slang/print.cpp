@@ -82,6 +82,7 @@ void StructType::print(std::ostream& out) const {
     for (size_t i = 0; i < fields_.size(); i++) {
         out << "    ";
         fields_[i]->print(out);
+        out << "\n";
     }
     out << "}";
 
@@ -94,7 +95,7 @@ void PrecisionDecl::print(std::ostream& out) const {
     prec_->print(out);
     out << " ";
     prim_->print(out);
-    out << ";\n";
+    out << ";";
 }
 
 void VariableDecl::print(std::ostream& out) const {
@@ -108,7 +109,7 @@ void VariableDecl::print(std::ostream& out) const {
         if (i < vars_.size() - 1)
             out << ", ";
     }
-    out << ";\n";
+    out << ";";
 }
 
 void FunctionDecl::print(std::ostream& out) const {
@@ -124,11 +125,10 @@ void FunctionDecl::print(std::ostream& out) const {
     out << ")";
     
     if (body_) {
-        out << " {\n";
+        out << " ";
         body_->print(out);
-        out << "}\n";
     } else {
-        out << ";\n";
+        out << ";";
     }
 }
 
@@ -254,10 +254,104 @@ void BinOpExpr::print(std::ostream& out) const {
     out << ")";
 }
 
-void List::print(std::ostream& out) const {
-    for (auto node : nodes_) {
-        node->print(out);
+void DeclList::print(std::ostream& out) const {
+    for (auto d : decls_) {
+        d->print(out);
+        out << "\n";
     }
+}
+
+void LoopCond::print(std::ostream& out) const {
+    if (is_var()) {
+        assert(static_cast<bool>(var_type_) && "Invalid loop condition");
+        var_type_->print(out);
+        var_->print(out);
+    } else {
+        assert(is_expr() && "Invalid loop condition");
+        expr_->print(out);
+    }
+}
+
+void StmtList::print(std::ostream& out) const {
+    out << "{\n";
+    for (auto s : stmts_) {
+        s->print(out);
+        out << "\n";
+    }
+    out << "}";
+}
+
+void DeclStmt::print(std::ostream& out) const {
+    decl_->print(out);
+}
+
+void ExprStmt::print(std::ostream& out) const {
+    if (expr_)
+        expr_->print(out);
+    out << ";";
+}
+
+void IfStmt::print(std::ostream& out) const {
+    out << "if (";
+    cond_->print(out);
+    out << ") ";
+    if_true_->print(out);
+
+    if (if_false_) {
+        out << " else ";
+        if_false_->print(out);
+    }
+}
+
+void SwitchStmt::print(std::ostream& out) const {
+    out << "switch (";
+    expr_->print(out);
+    out << ") ";
+    list_->print(out);
+}
+
+void CaseLabelStmt::print(std::ostream& out) const {
+    if (is_default()) {
+        out << "default:\n";
+    } else {
+        out << "case ";
+        expr_->print(out);
+        out << " :\n";
+    }
+}
+
+void ForLoopStmt::print(std::ostream& out) const {
+    out << "for (";
+
+    if (init_)
+        init_->print(out);
+    else
+        out << ";";
+
+    out << " ";
+
+    if (cond_) cond_->print(out);
+    out << "; ";
+
+    if (iter_) iter_->print(out);
+    out << ") ";
+
+    body_->print(out);
+}
+
+void WhileLoopStmt::print(std::ostream& out) const {
+    out << "while (";
+    cond_->print(out);
+    out << ") ";
+    body_->print(out);
+}
+
+void DoWhileLoopStmt::print(std::ostream& out) const {
+    out << "do ";
+    body_->print(out);
+    out << " while (";
+    cond_->print(out);
+    out << ");";
 }
 
 } // namespace ast
