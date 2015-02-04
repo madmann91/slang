@@ -96,6 +96,19 @@ public:
     virtual ~Expr() {}
 };
 
+/// List of expressions separated by a comma
+class ExprList : public Expr {
+public:
+    const PtrVector<Expr>& exprs() const { return exprs_; }
+    void push_expr(Expr* expr) { exprs_.push_back(expr); }
+    int num_exprs() const { return exprs_.size(); }
+
+    void print(std::ostream&) const;
+
+private:
+    PtrVector<Expr> exprs_;
+};
+
 /// An expression that the parser could not parse
 class ErrorExpr : public Expr {
 public:
@@ -152,6 +165,19 @@ public:
 
 private:
     Ptr<Expr> left_, index_;
+};
+
+/// A function call expression
+class CallExpr : public Expr, public HasName {
+public:
+    const PtrVector<Expr>& args() const { return args_; }
+    void push_arg(Expr* arg) { args_.push_back(arg); }
+    int num_args() const { return args_.size(); }
+
+    void print(std::ostream&) const;
+
+private:
+    PtrVector<Expr> args_;
 };
 
 /// An unary operation expression
@@ -289,6 +315,19 @@ private:
     Ptr<Expr> left_, right_;
 };
 
+/// Structure initializer expression
+class InitExpr : public Expr {
+public:
+    const PtrVector<Expr>& exprs() const { return exprs_; }
+    void push_expr(Expr* expr) { exprs_.push_back(expr); }
+    int num_exprs() const { return exprs_.size(); }
+
+    void print(std::ostream&) const;
+
+private:
+    PtrVector<Expr> exprs_;
+};
+
 /// Type qualifier, base class
 class TypeQualifier : public Node {
 public:
@@ -380,7 +419,7 @@ public:
     void push_dim(Expr* dim) { dims_.push_back(dim); }
     int num_dims() const { return dims_.size(); }
 
-    void print(std::ostream& out) const;
+    void print(std::ostream&) const;
 
 private:
     PtrVector<Expr> dims_;

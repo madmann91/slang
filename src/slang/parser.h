@@ -85,11 +85,13 @@ private:
     ast::IdentExpr* parse_ident_expr();
     ast::FieldExpr* parse_field_expr(ast::Expr*);
     ast::IndexExpr* parse_index_expr(ast::Expr*);
+    ast::CallExpr* parse_call_expr();
     ast::Expr* parse_primary_expr();
     ast::Expr* parse_unary_expr();
     ast::Expr* parse_binary_expr(ast::Expr*, int);
     ast::Expr* parse_cond_expr(ast::Expr*);
     ast::Expr* parse_assign_expr();
+    ast::Expr* parse_init_expr();
 
     ast::LoopCond* parse_loop_cond();
 

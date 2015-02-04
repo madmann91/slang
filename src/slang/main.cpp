@@ -1,7 +1,5 @@
 #include <iostream>
 #include <fstream>
-#include <chrono>
-#include <unordered_map>
 
 #include "slang/lexer.h"
 #include "slang/parser.h"
@@ -31,7 +29,6 @@ bool lexical_analysis(const std::string& filename) {
 }
 
 bool syntax_analysis(const std::string& filename) {
-    auto t0 = std::chrono::high_resolution_clock::now();
     std::ifstream is(filename);
     if (!is) return false;
 
@@ -42,11 +39,6 @@ bool syntax_analysis(const std::string& filename) {
 
     Parser parser(Lexer(is, keys, Logger(filename)));
     ast::DeclList* root = parser.parse();
-    auto t1 = std::chrono::high_resolution_clock::now();
-
-    std::cout << "Parsing and lexing took "
-              << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count()
-              << " ms" << std::endl;
 
     root->print(std::cout);
     delete root;

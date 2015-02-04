@@ -152,6 +152,14 @@ void Arg::print(std::ostream& out) const {
         array_spec_->print(out);
 }
 
+void ExprList::print(std::ostream& out) const {
+    for (size_t i = 0; i < exprs_.size(); i++) {
+        exprs_[i]->print(out);
+        if (i < exprs_.size() - 1)
+            out << ", ";
+    }
+}
+
 void ErrorExpr::print(std::ostream& out) const {
     out << "<error>";
 }
@@ -166,6 +174,16 @@ void IndexExpr::print(std::ostream& out) const {
     out << "[";
     index_->print(out);
     out << "]";
+}
+
+void CallExpr::print(std::ostream& out) const {
+    out << name_ << "(";
+    for (size_t i = 0; i < args_.size(); i++) {
+        args_[i]->print(out);
+        if (i < args_.size() - 1)
+            out << ", ";
+    }
+    out << ")";
 }
 
 void LiteralExpr::print(std::ostream& out) const {
@@ -252,6 +270,16 @@ void BinOpExpr::print(std::ostream& out) const {
     out << " ";
     right_->print(out);
     out << ")";
+}
+
+void InitExpr::print(std::ostream& out) const {
+    out << "{";
+    for (size_t i = 0; i < exprs_.size(); i++) {
+        exprs_[i]->print(out);
+        if (i < exprs_.size() - 1)
+            out << ", ";
+    }
+    out << "}";
 }
 
 void DeclList::print(std::ostream& out) const {

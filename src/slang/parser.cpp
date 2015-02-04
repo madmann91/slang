@@ -261,11 +261,10 @@ ast::Variable* Parser::parse_variable() {
 
     if (lookup_[0].is_ident()) {
         var->set_name(lookup_[0].ident());
+        eat(Token::TOK_IDENT);
     } else {
         error() << "Expected identifier\n";
     }
-
-    eat(Token::TOK_IDENT);
 
     // Optional array specification
     if (lookup_[0].isa(Token::TOK_LBRACKET)) {
@@ -275,7 +274,7 @@ ast::Variable* Parser::parse_variable() {
     // Optional initializer
     if (lookup_[0].isa(Token::TOK_ASSIGN)) {
         eat(Token::TOK_ASSIGN);
-        var->set_init(parse_expr());
+        var->set_init(parse_init_expr());
     }
 
     return var.node();
@@ -403,7 +402,7 @@ ast::SubroutineQualifier* Parser::parse_subroutine_qualifier() {
 }
 
 ast::ArraySpecifier* Parser::parse_array_specifier() {
-    // ArraySpecifier ::= ([(Expr)?])+
+    // ArraySpecifier ::= ([(CondExpr)?])+
     auto spec = new_node<ast::ArraySpecifier>();
 
     do {
@@ -413,7 +412,7 @@ ast::ArraySpecifier* Parser::parse_array_specifier() {
         if (lookup_[0].isa(Token::TOK_RBRACKET))
             spec->push_dim(nullptr);
         else
-            spec->push_dim(parse_expr());
+            spec->push_dim(parse_cond_expr(parse_unary_expr()));
 
         expect(Token::TOK_RBRACKET);
     } while (lookup_[0].isa(Token::TOK_LBRACKET));
@@ -543,7 +542,20 @@ static ast::AssignOpExpr::Type token_to_assignop(Token tok) {
 }
 
 ast::Expr* Parser::parse_expr() {
-    return parse_assign_expr();
+    // Expr ::= AssignExpr (, AssignExpr)*
+    ast::Expr* first = parse_assign_expr();
+    if (lookup_[0].isa(Token::TOK_COMMA)) {
+        auto list = new_node<ast::ExprList>();
+        list->push_expr(first);
+
+        do {
+            eat(Token::TOK_COMMA);
+            list->push_expr(parse_assign_expr());
+        } while (lookup_[0].isa(Token::TOK_COMMA));
+
+        return list.node();
+    }
+    return first;
 }
 
 ast::LiteralExpr* Parser::parse_literal_expr() {
@@ -586,10 +598,36 @@ ast::IndexExpr* Parser::parse_index_expr(ast::Expr* left) {
     return index.node();
 }
 
+ast::CallExpr* Parser::parse_call_expr() {
+    // CallExpr ::= ident '(' ((void)? | AssignExpr(,AssignExpr)*) ')'
+    auto call = new_node<ast::CallExpr>();
+    call->set_name(lookup_[0].ident());
+    eat(Token::TOK_IDENT);
+    expect(Token::TOK_LPAREN);
+
+    if (lookup_[0].key().isa(Key::KEY_VOID)) {
+        // No parameters
+        eat(Key::KEY_VOID);
+    } else if (!lookup_[0].isa(Token::TOK_RPAREN)) {
+        call->push_arg(parse_assign_expr());
+        while (lookup_[0].isa(Token::TOK_COMMA)) {
+            eat(Token::TOK_COMMA);
+            call->push_arg(parse_assign_expr());
+        }
+    }
+
+    expect(Token::TOK_RPAREN);
+
+    return call.node();
+}
+
 ast::Expr* Parser::parse_primary_expr() {
     // PrimExpr ::= ident | lit | (Expr)
-    if (lookup_[0].isa(Token::TOK_IDENT) && lookup_[0].is_ident()) {
-        return parse_ident_expr();
+    if (lookup_[0].isa(Token::TOK_IDENT)) {
+        if (lookup_[1].isa(Token::TOK_LPAREN))
+            return parse_call_expr();
+        else
+            return parse_ident_expr();
     } else if (lookup_[0].isa(Token::TOK_LIT)) {
         return parse_literal_expr();
     } else if (lookup_[0].isa(Token::TOK_LPAREN)) {
@@ -724,6 +762,29 @@ ast::Expr* Parser::parse_assign_expr() {
     return parse_cond_expr(left);
 }
 
+ast::Expr* Parser::parse_init_expr() {
+    // InitExpr ::= AssignExpr | { InitExpr(, InitExpr)* (,)? }
+    if (lookup_[0].isa(Token::TOK_LBRACE)) {
+        auto init = new_node<ast::InitExpr>();
+        eat(Token::TOK_LBRACE);
+        if (!lookup_[0].isa(Token::TOK_RBRACE)) {
+            init->push_expr(parse_assign_expr());
+
+            while (lookup_[0].isa(Token::TOK_COMMA) && !lookup_[1].isa(Token::TOK_RBRACE)) {
+                eat(Token::TOK_COMMA);
+                init->push_expr(parse_init_expr());
+            }
+
+            if (lookup_[0].isa(Token::TOK_COMMA))
+                eat(Token::TOK_COMMA);
+        }
+        expect(Token::TOK_RBRACE);
+        return init.node();
+    }
+
+    return parse_assign_expr();
+}
+
 ast::LoopCond* Parser::parse_loop_cond() {
     // LoopCond ::= Type Variable | Expr
     auto cond = new_node<ast::LoopCond>();
@@ -733,6 +794,7 @@ ast::LoopCond* Parser::parse_loop_cond() {
 #define SLANK_KEY_DATA(key, str) case Key::KEY_##key:
 #define SLANG_KEY_QUAL(key, str) case Key::KEY_##key:
 #include "slang/keywordlist.h"
+            case Key::KEY_STRUCT:
                 cond->set_var_type(parse_type());
                 cond->set_var(parse_variable());
                 break;
@@ -766,10 +828,11 @@ ast::Stmt* Parser::parse_stmt() {
 #define SLANG_KEY_DATA(key, str) case Key::KEY_##key:
 #define SLANG_KEY_QUAL(key, str) case Key::KEY_##key:
 #include "slang/keywordlist.h"
+            case Key::KEY_STRUCT:
                 return parse_decl_stmt();
 
             default: break;
-        }        
+        }
     } else if (lookup_[0].isa(Token::TOK_LBRACE)) {
         return parse_compound_stmt();
     } else if (lookup_[0].is_ident() && lookup_[1].is_ident()) {
@@ -783,11 +846,14 @@ ast::StmtList* Parser::parse_compound_stmt() {
     // StmtList ::= { (Stmt)* }
     auto list = new_node<ast::StmtList>();
     eat(Token::TOK_LBRACE);
-    while (!lookup_[0].isa(Token::TOK_RBRACE) &&
-           !lookup_[0].isa(Token::TOK_EOF)) {
+    while (lookup_[0].isa(Token::TOK_IDENT) ||
+           lookup_[0].isa(Token::TOK_LIT) ||
+           lookup_[0].isa(Token::TOK_LPAREN) ||
+           lookup_[0].isa(Token::TOK_LBRACE) ||
+           token_to_pre_unop(lookup_[0]) != ast::UnOpExpr::UNOP_UNKNOWN) {
         list->push_stmt(parse_stmt());
     }
-    eat(Token::TOK_RBRACE);
+    expect(Token::TOK_RBRACE);
     return list.node();
 }
 
