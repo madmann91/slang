@@ -127,7 +127,7 @@ ast::Type* Parser::parse_type() {
 
         default:
             error() << "Expected identifier or data type\n";
-            return nullptr;
+            type = new_node<ast::ErrorType>().node();
     }
 
     // Parse optional array specification
@@ -467,9 +467,27 @@ static ast::BinOpExpr::Type token_to_binop(Token tok) {
     return ast::BinOpExpr::BINOP_UNKNOWN;
 }
 
-static int max_precedence = 12;
+static ast::AssignOpExpr::Type token_to_assignop(Token tok) {
+    switch (tok.type()) {
+        case Token::TOK_ASSIGN:        return ast::AssignOpExpr::ASSIGN_EQUAL;
+        case Token::TOK_ASSIGN_MUL:    return ast::AssignOpExpr::ASSIGN_MUL;
+        case Token::TOK_ASSIGN_DIV:    return ast::AssignOpExpr::ASSIGN_DIV;
+        case Token::TOK_ASSIGN_MOD:    return ast::AssignOpExpr::ASSIGN_MOD;
+        case Token::TOK_ASSIGN_ADD:    return ast::AssignOpExpr::ASSIGN_ADD;
+        case Token::TOK_ASSIGN_SUB:    return ast::AssignOpExpr::ASSIGN_SUB;
+        case Token::TOK_ASSIGN_LSHIFT: return ast::AssignOpExpr::ASSIGN_LSHIFT;
+        case Token::TOK_ASSIGN_RSHIFT: return ast::AssignOpExpr::ASSIGN_RSHIFT;
+        case Token::TOK_ASSIGN_AND:    return ast::AssignOpExpr::ASSIGN_AND;
+        case Token::TOK_ASSIGN_XOR:    return ast::AssignOpExpr::ASSIGN_XOR;
+        case Token::TOK_ASSIGN_OR:     return ast::AssignOpExpr::ASSIGN_OR;
+        default: break;
+    }
+    return ast::AssignOpExpr::ASSIGN_UNKNOWN;
+}
 
-static int precedence(ast::BinOpExpr::Type type) {
+int max_precedence = 12;
+
+int precedence(ast::BinOpExpr::Type type) {
     // Taken from GLSL 4.0 spec
     switch (type) {
         case ast::BinOpExpr::BINOP_MUL:    return 3;
@@ -496,7 +514,7 @@ static int precedence(ast::BinOpExpr::Type type) {
     return -1;
 }
 
-static bool left_associative(ast::BinOpExpr::Type type) {
+bool left_associative(ast::BinOpExpr::Type type) {
     // Taken from GLSL 4.0 spec
     switch (type) {
         case ast::BinOpExpr::BINOP_MUL:    return true;
@@ -521,24 +539,6 @@ static bool left_associative(ast::BinOpExpr::Type type) {
     }
     assert(0 && "Unknown binary operation");
     return true;
-}
-
-static ast::AssignOpExpr::Type token_to_assignop(Token tok) {
-    switch (tok.type()) {
-        case Token::TOK_ASSIGN:        return ast::AssignOpExpr::ASSIGN_EQUAL;
-        case Token::TOK_ASSIGN_MUL:    return ast::AssignOpExpr::ASSIGN_MUL;
-        case Token::TOK_ASSIGN_DIV:    return ast::AssignOpExpr::ASSIGN_DIV;
-        case Token::TOK_ASSIGN_MOD:    return ast::AssignOpExpr::ASSIGN_MOD;
-        case Token::TOK_ASSIGN_ADD:    return ast::AssignOpExpr::ASSIGN_ADD;
-        case Token::TOK_ASSIGN_SUB:    return ast::AssignOpExpr::ASSIGN_SUB;
-        case Token::TOK_ASSIGN_LSHIFT: return ast::AssignOpExpr::ASSIGN_LSHIFT;
-        case Token::TOK_ASSIGN_RSHIFT: return ast::AssignOpExpr::ASSIGN_RSHIFT;
-        case Token::TOK_ASSIGN_AND:    return ast::AssignOpExpr::ASSIGN_AND;
-        case Token::TOK_ASSIGN_XOR:    return ast::AssignOpExpr::ASSIGN_XOR;
-        case Token::TOK_ASSIGN_OR:     return ast::AssignOpExpr::ASSIGN_OR;
-        default: break;
-    }
-    return ast::AssignOpExpr::ASSIGN_UNKNOWN;
 }
 
 ast::Expr* Parser::parse_expr() {
@@ -825,6 +825,23 @@ ast::Stmt* Parser::parse_stmt() {
             case Key::KEY_DEFAULT: return parse_case_stmt(true);
             case Key::KEY_CASE:    return parse_case_stmt(false);
 
+            case Key::KEY_RETURN:  return parse_return_stmt();
+
+#define PARSE_JUMP_STMT(Key, Stmt) \
+    case Key: \
+        { \
+            auto stmt = new_node<Stmt>(); \
+            eat(Key); \
+            expect(Token::TOK_SEMICOLON); \
+            return stmt.node(); \
+        }
+
+            PARSE_JUMP_STMT(Key::KEY_BREAK,    ast::BreakStmt)
+            PARSE_JUMP_STMT(Key::KEY_CONTINUE, ast::ContinueStmt)
+            PARSE_JUMP_STMT(Key::KEY_DISCARD,  ast::DiscardStmt)
+
+#undef PARSE_JUMP_STMT
+
 #define SLANG_KEY_DATA(key, str) case Key::KEY_##key:
 #define SLANG_KEY_QUAL(key, str) case Key::KEY_##key:
 #include "slang/keywordlist.h"
@@ -971,6 +988,19 @@ ast::ExprStmt* Parser::parse_expr_stmt() {
         eat(Token::TOK_SEMICOLON);
     } else {
         stmt->set_expr(parse_expr());
+        expect(Token::TOK_SEMICOLON);
+    }
+    return stmt.node();
+}
+
+ast::ReturnStmt* Parser::parse_return_stmt() {
+    // ReturnStmt ::= return (Expr)? ;
+    auto stmt = new_node<ast::ReturnStmt>();
+    eat(Key::KEY_RETURN);
+    if (lookup_[0].isa(Token::TOK_SEMICOLON)) {
+        eat(Token::TOK_SEMICOLON);
+    } else {
+        stmt->set_value(parse_expr());
         expect(Token::TOK_SEMICOLON);
     }
     return stmt.node();

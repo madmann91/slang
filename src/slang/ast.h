@@ -464,6 +464,12 @@ protected:
     Ptr<Type> type_;
 };
 
+/// A type that the parser cannot parse
+class ErrorType : public Type {
+public:
+    void print(std::ostream&) const;
+};
+
 /// Primitive type
 class PrimType : public Type {
 public:
@@ -704,7 +710,7 @@ public:
     const Expr* expr() const { return expr_.get(); }
     void set_expr(Expr* expr) { expr_.reset(expr); }
 
-    bool is_default() const { return static_cast<bool>(expr_); }
+    bool is_default() const { return !static_cast<bool>(expr_); }
 
     void print(std::ostream&) const;
 
@@ -758,6 +764,39 @@ public:
 class DoWhileLoopStmt : public LoopStmt {
 public:
     void print(std::ostream&) const;
+};
+
+/// Break statement
+class BreakStmt : public Stmt {
+public:
+    void print(std::ostream& out) const;
+};
+
+/// Continue statement
+class ContinueStmt : public Stmt {
+public:
+    void print(std::ostream& out) const;
+};
+
+/// Discard statement
+class DiscardStmt : public Stmt {
+public:
+    void print(std::ostream& out) const;
+};
+
+/// Return statement
+class ReturnStmt : public Stmt {
+public:
+    Expr* value() { return value_.get(); }
+    const Expr* value() const { return value_.get(); }
+    void set_value(Expr* value) { value_.reset(value); }
+
+    bool has_value() const { return static_cast<bool>(value_);}
+
+    void print(std::ostream& out) const;
+
+private:
+    Ptr<Expr> value_;
 };
 
 } // namespace ast

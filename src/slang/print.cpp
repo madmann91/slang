@@ -44,6 +44,10 @@ void ArraySpecifier::print(std::ostream& out) const {
     }
 }
 
+void ErrorType::print(std::ostream& out) const {
+    out << "<error>";
+}
+
 void PrimType::print(std::ostream& out) const {
     for (auto q : quals_) {
         q->print(out);
@@ -340,11 +344,11 @@ void SwitchStmt::print(std::ostream& out) const {
 
 void CaseLabelStmt::print(std::ostream& out) const {
     if (is_default()) {
-        out << "default:\n";
+        out << "default:";
     } else {
         out << "case ";
         expr_->print(out);
-        out << " :\n";
+        out << " :";
     }
 }
 
@@ -380,6 +384,27 @@ void DoWhileLoopStmt::print(std::ostream& out) const {
     out << " while (";
     cond_->print(out);
     out << ");";
+}
+
+void BreakStmt::print(std::ostream& out) const {
+    out << "break;";
+}
+
+void ContinueStmt::print(std::ostream& out) const {
+    out << "continue;";
+}
+
+void DiscardStmt::print(std::ostream& out) const {
+    out << "discard;";
+}
+
+void ReturnStmt::print(std::ostream& out) const {
+    out << "return";
+    if (has_value()) {
+        out << " ";
+        value_->print(out);
+    }
+    out << ";";
 }
 
 } // namespace ast

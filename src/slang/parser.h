@@ -105,6 +105,7 @@ private:
     ast::CaseLabelStmt* parse_case_stmt(bool);
     ast::DeclStmt* parse_decl_stmt();
     ast::ExprStmt* parse_expr_stmt();
+    ast::ReturnStmt* parse_return_stmt();
 
     Lexer lexer_;
     Environment env_;
