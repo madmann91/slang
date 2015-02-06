@@ -9,4 +9,4 @@ The system should be simple and lightweight, and well documented. A thorough tes
 Currently only the parser is implemented. Most of the GLSL 4.0 specification is supported. The test suite is on its way.
 
 ## License
-The code is distributed under the GPL license.
+The code is distributed under the LGPL license.
