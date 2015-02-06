@@ -30,6 +30,8 @@ private:
     Literal parse_float();
     Literal parse_literal();
     std::string parse_ident();
+
+    bool eat_suffix();
     
     Token make_literal(const Literal&) const;
     Token make_ident(const std::string&) const;

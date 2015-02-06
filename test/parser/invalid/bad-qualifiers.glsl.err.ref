@@ -1,0 +1,4 @@
+Error in parser/invalid/bad-qualifiers.glsl (1, 5) : Expected identifier
+Error in parser/invalid/bad-qualifiers.glsl (1, 5) : ';' expected
+Error in parser/invalid/bad-qualifiers.glsl (2, 18) : Expected identifier
+Error in parser/invalid/bad-qualifiers.glsl (2, 18) : ';' expected

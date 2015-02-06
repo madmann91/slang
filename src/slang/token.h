@@ -94,10 +94,10 @@ private:
 inline std::ostream& operator << (std::ostream& out, const Literal& lit) {
     switch (lit.type()) {
         case Literal::LIT_FLOAT:
-            out << lit.as_float();
+            out << std::to_string(lit.as_float());
             break;
         case Literal::LIT_DOUBLE:
-            out << lit.as_double();
+            out << std::to_string(lit.as_double()) << "lf";
             break;
         case Literal::LIT_INT:
             out << lit.as_int();

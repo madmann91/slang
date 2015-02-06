@@ -44,6 +44,7 @@ Lexer::Lexer(std::istream& stream, const Keywords& keys, const Logger& logger)
 {
     prev_ = Position(1, 0);
     cur_  = Position(1, 0);
+    c_ = 0;
     next();
 }
 
@@ -93,8 +94,14 @@ Token Lexer::lex() {
                     continue;
                 } else if (c_ == '*') {
                     // Multiline comment
-                    while (!stream_.eof()) {
+                    while (true) {
                         next();
+
+                        if (stream_.eof()) {
+                            error() << "End-of-file reached before end of multiline comment\n";
+                            break;
+                        }
+
                         if (c_ == '*') {
                             next();
                             if (c_ == '/') {
@@ -103,6 +110,7 @@ Token Lexer::lex() {
                             }
                         }
                     }
+
                     continue;
                 } else {
                     MAKE_BIN_OP(Token::TOK_DIV, Token::TOK_ASSIGN_DIV)
@@ -189,13 +197,13 @@ Token Lexer::lex() {
 }
 
 void Lexer::next() {
-    c_ = stream_.get();
     if (c_ == '\n') {
         cur_.inc_line();
         cur_.reset_col();
     } else {
         cur_.inc_col();
     }
+    c_ = stream_.get();
 }
 
 Literal Lexer::parse_int(bool octal) {
@@ -210,7 +218,10 @@ Literal Lexer::parse_int(bool octal) {
             next();
         }
     } else {
-        while (std::isalnum(c_) && is_hexa(c_)) {
+        if (!is_hexa(c_))
+            error() << "Hexadecimal numbers need at least one digit\n";
+
+        while (is_hexa(c_)) {
             sum = sum * 16 + read_hexadecimal<std::int64_t>(c_);
             next();
         }
@@ -221,14 +232,16 @@ Literal Lexer::parse_int(bool octal) {
         int d = c_;
         next();
 
-        switch (d) {
-            case 'u':
-                return Literal((unsigned)sum);
-            case 'i':
-                return Literal((int)sum);
-            default:
-                error() << "Invalid suffix on integer constant\n";
-                break;
+        if (eat_suffix()) {
+            switch (d) {
+                case 'u':
+                    return Literal((unsigned)sum);
+                case 'i':
+                    return Literal((int)sum);
+                default:
+                    error() << "Invalid suffix on integer constant\n";
+                    break;
+            }
         }
     }
 
@@ -290,20 +303,28 @@ Literal Lexer::parse_float() {
 
         switch (d) {
             case 'f':
-                return Literal((float)num);
-            case 'u': 
-                if (dot) error() << "Invalid suffix on floating point constant\n";
-                return Literal((unsigned)num);
+                if (eat_suffix()) return Literal((float)num);
+                break;
+
+            case 'u':
+                if (eat_suffix()) {
+                    if (dot) error() << "Invalid suffix on floating point constant\n";
+                    return Literal((unsigned)num);
+                }
+                break;
+
             case 'i':
-                if (dot) error() << "Invalid suffix on floating point constant\n";
-                return Literal((int)num);
+                if (eat_suffix()) {
+                    if (dot) error() << "Invalid suffix on floating point constant\n";
+                    return Literal((int)num);
+                }
+                break;
 
             case 'l':
                 if (c_ == 'f') {
                     next();
-                    return Literal(num);
+                    if (eat_suffix()) return Literal(num);
                 }
-                error() << "Invalid literal suffix\n";
                 break;
 
             default:
@@ -346,6 +367,16 @@ std::string Lexer::parse_ident() {
     }
 
     return ident;
+}
+
+bool Lexer::eat_suffix() {
+    bool ok = true;
+    while (std::isalpha(c_)) {
+        ok = false;
+        next();
+    }
+    if (!ok) error() << "Invalid literal suffix\n";
+    return ok;
 }
 
 Token Lexer::make_literal(const Literal& l) const {

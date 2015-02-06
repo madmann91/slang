@@ -50,6 +50,7 @@ public:
     using Map::find;
 };
 
+/// Base class for AST nodes
 class Node {
 public:
     Node() {}
