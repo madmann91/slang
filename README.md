@@ -6,7 +6,7 @@ Provide a simple GLSL-like shading language front-end, that is : a lexer, a pars
 The system should be simple and lightweight, and well documented. A thorough test suite should also be included.
 
 ## Status
-Currently only the parser is implemented. Most of the GLSL 4.0 specification is supported. The test suite is on its way.
+Currently only the lexer, parser and a basic test suite are implemented. Most of the GLSL 4.0 specification is supported.
 
 ## License
 The code is distributed under the LGPL license.
