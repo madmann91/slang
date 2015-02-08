@@ -1,6 +1,8 @@
 #ifndef SLANG_LOCATION_H
 #define SLANG_LOCATION_H
 
+#include <ostream>
+
 namespace slang {
 
 /// A position (line, col) in a file.

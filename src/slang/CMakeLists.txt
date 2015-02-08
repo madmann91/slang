@@ -1,5 +1,6 @@
 set(HEADER_FILES
     ast.h
+    cast.h
     environment.h
     keyword.h
     keywordlist.h
@@ -7,6 +8,7 @@ set(HEADER_FILES
     location.h
     logger.h
     parser.h
+    print.h
     token.h
     tokenlist.h)
 

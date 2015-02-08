@@ -4,13 +4,15 @@
 #include <vector>
 #include <memory>
 #include <string>
-#include <ostream>
 
 #include "slang/location.h"
 #include "slang/token.h"
 #include "slang/environment.h"
+#include "slang/cast.h"
 
 namespace slang {
+
+class Printer;
 
 namespace ast {
 
@@ -51,14 +53,14 @@ public:
 };
 
 /// Base class for AST nodes
-class Node {
+class Node : public Cast<Node> {
 public:
     Node() {}
     virtual ~Node() {}
 
     const Location& loc() const { return loc_; }
     void set_location(const Location& loc) { loc_ = loc; }
-    virtual void print(std::ostream&) const = 0;
+    virtual void print(Printer&) const = 0;
 
 private:
     Location loc_;
@@ -104,7 +106,7 @@ public:
     void push_expr(Expr* expr) { exprs_.push_back(expr); }
     int num_exprs() const { return exprs_.size(); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     PtrVector<Expr> exprs_;
@@ -113,7 +115,7 @@ private:
 /// An expression that the parser could not parse
 class ErrorExpr : public Expr {
 public:
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 };
 
 /// An expression composed of a literal
@@ -122,7 +124,7 @@ public:
     Literal lit() const { return lit_; }
     void set_literal(const Literal& lit) { lit_ = lit; }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     Literal lit_;
@@ -131,7 +133,7 @@ private:
 /// An expression composed of an identifier
 class IdentExpr : public Expr, public HasName {
 public:
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 };
 
 /// A field selection expression
@@ -144,7 +146,7 @@ public:
     const std::string& field_name() const { return field_name_; }
     void set_field_name(const std::string& field_name) { field_name_ = field_name; }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     std::string field_name_;
@@ -162,7 +164,7 @@ public:
     const Expr* index() const { return index_.get(); }
     void set_index(Expr* index) { index_.reset(index); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     Ptr<Expr> left_, index_;
@@ -175,7 +177,7 @@ public:
     void push_arg(Expr* arg) { args_.push_back(arg); }
     int num_args() const { return args_.size(); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     PtrVector<Expr> args_;
@@ -205,7 +207,7 @@ public:
     Type type() const { return type_; }
     void set_type(Type type) { type_ = type; }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     Type type_;
@@ -227,7 +229,7 @@ public:
     const Expr* if_false() const { return if_false_.get(); }
     void set_if_false(Expr* if_false) { if_false_.reset(if_false); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     Ptr<Expr> cond_, if_true_, if_false_;
@@ -264,7 +266,7 @@ public:
     const Expr* right() const { return right_.get(); }
     void set_right(Expr* right) { right_.reset(right); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     Type type_;
@@ -309,7 +311,7 @@ public:
     Type type() const { return type_; }
     void set_type(Type type) { type_ = type; }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     Type type_;
@@ -323,7 +325,7 @@ public:
     void push_expr(Expr* expr) { exprs_.push_back(expr); }
     int num_exprs() const { return exprs_.size(); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     PtrVector<Expr> exprs_;
@@ -346,7 +348,7 @@ public:
     Storage storage() const { return storage_; }
     void set_storage(Storage storage) { storage_ = storage; }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 protected:
     Storage storage_;
@@ -363,7 +365,7 @@ public:
     Precision precision() const { return prec_; }
     void set_precision(Precision prec) { prec_ = prec; }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     Precision prec_;
@@ -380,7 +382,7 @@ public:
     Interp interp() const { return interp_; }
     void set_interp(Interp interp) { interp_ = interp; }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     Interp interp_;
@@ -392,7 +394,7 @@ public:
     const std::vector<std::string>& type_names() const { return names_; }
     void push_type_name(const std::string& name) { names_.push_back(name); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 protected:
     std::vector<std::string> names_;
@@ -407,7 +409,7 @@ public:
         layouts_.emplace(name, expr);
     }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     PtrMap<std::string, Expr> layouts_;
@@ -420,7 +422,7 @@ public:
     void push_dim(Expr* dim) { dims_.push_back(dim); }
     int num_dims() const { return dims_.size(); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     PtrVector<Expr> dims_;
@@ -468,7 +470,7 @@ protected:
 /// A type that the parser cannot parse
 class ErrorType : public Type {
 public:
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 };
 
 /// Primitive type
@@ -482,7 +484,7 @@ public:
     Prim prim() const { return prim_; }
     void set_prim(Prim prim) { prim_ = prim; }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     Prim prim_;
@@ -490,7 +492,7 @@ private:
 
 class NamedType : public Type, public HasName {
 public:
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 };
 
 /// Base class for declarations
@@ -504,7 +506,7 @@ public:
     void push_decl(Decl* d) { decls_.push_back(d); }
     int num_decls() const { return decls_.size(); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     PtrVector<Decl> decls_;
@@ -523,7 +525,7 @@ public:
     void push_stmt(Stmt* s) { stmts_.push_back(s); }
     int num_stmts() const { return stmts_.size(); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     PtrVector<Stmt> stmts_;
@@ -540,7 +542,7 @@ public:
     const PrecisionQualifier* precision() const { return prec_.get(); }
     void set_precision(PrecisionQualifier* prec) { prec_.reset(prec); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     Ptr<PrimType> prim_;
@@ -554,7 +556,7 @@ public:
     const Expr* init() const { return init_.get(); }
     void set_init(Expr* init) { init_.reset(init); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     Ptr<Expr> init_;
@@ -567,7 +569,7 @@ public:
     void push_var(Variable* var) { vars_.push_back(var); }
     int num_vars() const { return vars_.size(); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     PtrVector<Variable> vars_;
@@ -580,7 +582,7 @@ public:
     void push_field(VariableDecl* field) { fields_.push_back(field); }
     int num_fields() const { return fields_.size(); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     PtrVector<VariableDecl> fields_;
@@ -589,7 +591,7 @@ private:
 /// Function argument
 class Arg : public Node, public HasName, public HasType, public HasArraySpecifier {
 public:
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 };
 
 /// Function prototype of function definition
@@ -605,7 +607,7 @@ public:
     void push_arg(Arg* arg) { args_.push_back(arg); }
     int num_args() const { return args_.size(); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     PtrVector<Arg> args_;
@@ -630,7 +632,7 @@ public:
     const Variable* var() const { return var_.get(); }
     void set_var(Variable* var) { var_.reset(var); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     Ptr<Expr> expr_;
@@ -645,7 +647,7 @@ public:
     const Decl* decl() const { return decl_.get(); }
     void set_decl(Decl* decl) { decl_.reset(decl); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     Ptr<Decl> decl_;
@@ -658,7 +660,7 @@ public:
     const Expr* expr() const { return expr_.get(); }
     void set_expr(Expr* expr) { expr_.reset(expr); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     Ptr<Expr> expr_;
@@ -679,7 +681,7 @@ public:
     const Stmt* if_false() const { return if_false_.get(); }
     void set_if_false(Stmt* if_false) { if_false_.reset(if_false); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     Ptr<Expr> cond_;
@@ -697,7 +699,7 @@ public:
     const StmtList* list() const { return list_.get(); }
     void set_list(StmtList* list) { list_.reset(list); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     Ptr<StmtList> list_;
@@ -713,7 +715,7 @@ public:
 
     bool is_default() const { return !static_cast<bool>(expr_); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     Ptr<Expr> expr_;
@@ -748,7 +750,7 @@ public:
     const Expr* iter() const { return iter_.get(); }
     void set_iter(Expr* iter) { iter_.reset(iter); }
 
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 
 private:
     Ptr<Stmt> init_;
@@ -758,31 +760,31 @@ private:
 /// While loop statement
 class WhileLoopStmt : public LoopStmt {
 public:
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 };
 
 /// Do-While loop statement
 class DoWhileLoopStmt : public LoopStmt {
 public:
-    void print(std::ostream&) const;
+    void print(Printer&) const;
 };
 
 /// Break statement
 class BreakStmt : public Stmt {
 public:
-    void print(std::ostream& out) const;
+    void print(Printer& out) const;
 };
 
 /// Continue statement
 class ContinueStmt : public Stmt {
 public:
-    void print(std::ostream& out) const;
+    void print(Printer& out) const;
 };
 
 /// Discard statement
 class DiscardStmt : public Stmt {
 public:
-    void print(std::ostream& out) const;
+    void print(Printer& out) const;
 };
 
 /// Return statement
@@ -794,7 +796,7 @@ public:
 
     bool has_value() const { return static_cast<bool>(value_);}
 
-    void print(std::ostream& out) const;
+    void print(Printer& out) const;
 
 private:
     Ptr<Expr> value_;

@@ -20,9 +20,9 @@ lowp struct s4 {
 };
 struct s5 {
     struct s6 {
-    struct s7 {
-    struct  {
-} c;
-} b;
-} a;
+        struct s7 {
+            struct  {
+            } c;
+        } b;
+    } a;
 };

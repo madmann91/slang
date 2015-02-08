@@ -5,6 +5,7 @@
 #include "slang/lexer.h"
 #include "slang/parser.h"
 #include "slang/ast.h"
+#include "slang/print.h"
 
 using namespace slang;
 
@@ -39,7 +40,8 @@ bool syntax_analysis(const std::string& filename, const Keywords& keys) {
     Parser parser(Lexer(is, keys, Logger(filename)));
     ast::DeclList* root = parser.parse();
 
-    root->print(std::cout);
+    Printer printer(std::cout);
+    root->print(printer);
     delete root;
 
     return true;

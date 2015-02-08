@@ -1,6 +1,6 @@
 int foo;
 void bar() {
-if ((foo > 3)) {
-int foobar = (1 + 2);
-}
+    if (foo > 3) {
+        int foobar = 1 + 2;
+    }
 }

@@ -1,410 +1,431 @@
 #include "ast.h"
+#include "print.h"
 
 namespace slang {
 
+// Defined in parser.cpp
+int precedence(ast::BinOpExpr::Type type);
+
 namespace ast {
 
-void StorageQualifier::print(std::ostream& out) const {
+void StorageQualifier::print(Printer& printer) const {
     switch (storage_) {
-#define SLANG_KEY_QUAL_STORAGE(key, str) case STORAGE_##key: out << str; break;
+#define SLANG_KEY_QUAL_STORAGE(key, str) case STORAGE_##key: printer << str; break;
 #include "slang/keywordlist.h"
         default: assert(0 && "Unknown storage qualifier");
     }
 }
 
-void PrecisionQualifier::print(std::ostream& out) const {
+void PrecisionQualifier::print(Printer& printer) const {
     switch (prec_) {
-#define SLANG_KEY_QUAL_PREC(key, str) case PREC_##key: out << str; break;
+#define SLANG_KEY_QUAL_PREC(key, str) case PREC_##key: printer << str; break;
 #include "slang/keywordlist.h"
         default: assert(0 && "Unknown precision qualifier");
     }
 }
 
-void InterpQualifier::print(std::ostream& out) const {
+void InterpQualifier::print(Printer& printer) const {
     switch (interp_) {
-#define SLANG_KEY_QUAL_INTERP(key, str) case INTERP_##key: out << str; break;
+#define SLANG_KEY_QUAL_INTERP(key, str) case INTERP_##key: printer << str; break;
 #include "slang/keywordlist.h"
         default: assert(0 && "Unknown interpolation qualifier");
     }
 }
 
-void SubroutineQualifier::print(std::ostream& out) const {
-    out << "subroutine";
+void SubroutineQualifier::print(Printer& printer) const {
+    printer << "subroutine";
 }
 
-void LayoutQualifier::print(std::ostream& out) const {
-    out << "layout";
+void LayoutQualifier::print(Printer& printer) const {
+    printer << "layout";
 }
 
-void ArraySpecifier::print(std::ostream& out) const {
+void ArraySpecifier::print(Printer& printer) const {
     for (auto d : dims_) {
-        out << "[";
-        if (d) d->print(out);
-        out << "]";
+        printer << "[";
+        if (d) d->print(printer);
+        printer << "]";
     }
 }
 
-void ErrorType::print(std::ostream& out) const {
-    out << "<error>";
+void ErrorType::print(Printer& printer) const {
+    printer << "<error>";
 }
 
-void PrimType::print(std::ostream& out) const {
+void PrimType::print(Printer& printer) const {
     for (auto q : quals_) {
-        q->print(out);
-        out << " ";
+        q->print(printer);
+        printer << " ";
     }
 
     switch (prim_) {
-#define SLANG_KEY_DATA(key, str) case PRIM_##key: out << str; break;
+#define SLANG_KEY_DATA(key, str) case PRIM_##key: printer << str; break;
 #include "slang/keywordlist.h"
         default: assert(0 && "Unknown primitive type");
     }
 
     if (array_spec_)
-        array_spec_->print(out);
+        array_spec_->print(printer);
 }
 
-void NamedType::print(std::ostream& out) const {
+void NamedType::print(Printer& printer) const {
     for (auto q : quals_) {
-        q->print(out);
-        out << " ";
+        q->print(printer);
+        printer << " ";
     }
 
-    out << name_;
+    printer << name_;
 
     if (array_spec_)
-        array_spec_->print(out);
+        array_spec_->print(printer);
 }
 
-void StructType::print(std::ostream& out) const {
+void StructType::print(Printer& printer) const {
     for (auto q : quals_) {
-        q->print(out);
-        out << " ";
+        q->print(printer);
+        printer << " ";
     }
 
-    out << "struct " << name_ << " {\n";
+    printer << "struct " << name_ << " {";
+    printer.indent();
     for (size_t i = 0; i < fields_.size(); i++) {
-        out << "    ";
-        fields_[i]->print(out);
-        out << "\n";
+        printer.new_line();
+        fields_[i]->print(printer);
     }
-    out << "}";
+    printer.unindent();
+    printer.new_line();
+    printer << "}";
 
     if (array_spec_)
-        array_spec_->print(out);
+        array_spec_->print(printer);
 }
 
-void PrecisionDecl::print(std::ostream& out) const {
-    out << "precision ";
-    prec_->print(out);
-    out << " ";
-    prim_->print(out);
-    out << ";";
+void PrecisionDecl::print(Printer& printer) const {
+    printer << "precision ";
+    prec_->print(printer);
+    printer << " ";
+    prim_->print(printer);
+    printer << ";";
 }
 
-void VariableDecl::print(std::ostream& out) const {
-    type_->print(out);
+void VariableDecl::print(Printer& printer) const {
+    type_->print(printer);
 
     if (vars_.size() > 0)
-        out << " ";
+        printer << " ";
 
     for (size_t i = 0; i < vars_.size(); i++) {
-        vars_[i]->print(out);
+        vars_[i]->print(printer);
         if (i < vars_.size() - 1)
-            out << ", ";
+            printer << ", ";
     }
-    out << ";";
+    printer << ";";
 }
 
-void FunctionDecl::print(std::ostream& out) const {
-    type_->print(out);
-    out << " " << name_;
+void FunctionDecl::print(Printer& printer) const {
+    type_->print(printer);
+    printer << " " << name_;
 
-    out << "(";
+    printer << "(";
     for (size_t i = 0; i < args_.size(); i++) {
-        args_[i]->print(out);
+        args_[i]->print(printer);
         if (i < args_.size() - 1)
-            out << ", ";
+            printer << ", ";
     }
-    out << ")";
+    printer << ")";
     
     if (body_) {
-        out << " ";
-        body_->print(out);
+        printer << " ";
+        body_->print(printer);
     } else {
-        out << ";";
+        printer << ";";
     }
 }
 
-void Variable::print(std::ostream& out) const {
-    out << name_;
+void Variable::print(Printer& printer) const {
+    printer << name_;
 
     if (array_spec_)
-        array_spec_->print(out);
+        array_spec_->print(printer);
 
     if (init_) {
-        out << " = ";
-        init_->print(out);
+        printer << " = ";
+        init_->print(printer);
     }
 }
 
-void Arg::print(std::ostream& out) const {
-    type_->print(out);
-    out << " ";
-    out << name_;
+void Arg::print(Printer& printer) const {
+    type_->print(printer);
+    printer << " ";
+    printer << name_;
     if (array_spec_)
-        array_spec_->print(out);
+        array_spec_->print(printer);
 }
 
-void ExprList::print(std::ostream& out) const {
+void ExprList::print(Printer& printer) const {
     for (size_t i = 0; i < exprs_.size(); i++) {
-        exprs_[i]->print(out);
+        exprs_[i]->print(printer);
         if (i < exprs_.size() - 1)
-            out << ", ";
+            printer << ", ";
     }
 }
 
-void ErrorExpr::print(std::ostream& out) const {
-    out << "<error>";
+void ErrorExpr::print(Printer& printer) const {
+    printer << "<error>";
 }
 
-void FieldExpr::print(std::ostream& out) const {
-    left_->print(out);
-    out << "." << field_name_;
+void FieldExpr::print(Printer& printer) const {
+    left_->print(printer);
+    printer << "." << field_name_;
 }
 
-void IndexExpr::print(std::ostream& out) const {
-    left_->print(out);
-    out << "[";
-    index_->print(out);
-    out << "]";
+void IndexExpr::print(Printer& printer) const {
+    left_->print(printer);
+    printer << "[";
+    index_->print(printer);
+    printer << "]";
 }
 
-void CallExpr::print(std::ostream& out) const {
-    out << name_ << "(";
+void CallExpr::print(Printer& printer) const {
+    printer << name_ << "(";
     for (size_t i = 0; i < args_.size(); i++) {
-        args_[i]->print(out);
+        args_[i]->print(printer);
         if (i < args_.size() - 1)
-            out << ", ";
+            printer << ", ";
     }
-    out << ")";
+    printer << ")";
 }
 
-void LiteralExpr::print(std::ostream& out) const {
-    out << lit_;
+void LiteralExpr::print(Printer& printer) const {
+    printer << lit_;
 }
 
-void IdentExpr::print(std::ostream& out) const {
-    out << name_;
+void IdentExpr::print(Printer& printer) const {
+    printer << name_;
 }
 
-void UnOpExpr::print(std::ostream& out) const {
+void UnOpExpr::print(Printer& printer) const {
      if (type_ == UNOP_POST_INC) {
-        op_->print(out);
-        out << "++";
+        op_->print(printer);
+        printer << "++";
     } else if (type_ == UNOP_POST_DEC) {
-        op_->print(out);
-        out << "--";
+        op_->print(printer);
+        printer << "--";
     } else {
         switch (type_) {
-            case UNOP_INC:     out << "++ "; break;
-            case UNOP_DEC:     out << "-- "; break;
-            case UNOP_NOT:     out << "! ";  break;
-            case UNOP_BIT_NOT: out << "~ ";  break;
-            case UNOP_PLUS:    out << "+ ";  break;
-            case UNOP_MINUS:   out << "- ";  break;
-            default: out << "<unknown unop>"; break;
+            case UNOP_INC:     printer << "++ "; break;
+            case UNOP_DEC:     printer << "-- "; break;
+            case UNOP_NOT:     printer << "! ";  break;
+            case UNOP_BIT_NOT: printer << "~ ";  break;
+            case UNOP_PLUS:    printer << "+ ";  break;
+            case UNOP_MINUS:   printer << "- ";  break;
+            default: printer << "<unknown unop>"; break;
         }
-        op_->print(out);
+        op_->print(printer);
     }
 }
 
-void CondExpr::print(std::ostream& out) const {
-    cond_->print(out);
-    out << " ? ";
-    if_true_->print(out);
-    out << " : ";
-    if_false_->print(out);
+void CondExpr::print(Printer& printer) const {
+    cond_->print(printer);
+    printer << " ? ";
+    if_true_->print(printer);
+    printer << " : ";
+    if_false_->print(printer);
 }
 
-void AssignOpExpr::print(std::ostream& out) const {
-    left_->print(out);
+void AssignOpExpr::print(Printer& printer) const {
+    left_->print(printer);
     switch (type_) {
-        case ASSIGN_EQUAL:  out << " = ";   break;
-        case ASSIGN_ADD:    out << " += ";  break;
-        case ASSIGN_SUB:    out << " -= ";  break;
-        case ASSIGN_MUL:    out << " *= ";  break;
-        case ASSIGN_DIV:    out << " /= ";  break;
-        case ASSIGN_MOD:    out << " %= ";  break;
-        case ASSIGN_LSHIFT: out << " <<= "; break;
-        case ASSIGN_RSHIFT: out << " >>= "; break;
-        case ASSIGN_AND:    out << " &= ";  break;
-        case ASSIGN_XOR:    out << " ^= ";  break;
-        case ASSIGN_OR:     out << " |= ";  break;
-        default: out << "<unknown assignop>"; break;
+        case ASSIGN_EQUAL:  printer << " = ";   break;
+        case ASSIGN_ADD:    printer << " += ";  break;
+        case ASSIGN_SUB:    printer << " -= ";  break;
+        case ASSIGN_MUL:    printer << " *= ";  break;
+        case ASSIGN_DIV:    printer << " /= ";  break;
+        case ASSIGN_MOD:    printer << " %= ";  break;
+        case ASSIGN_LSHIFT: printer << " <<= "; break;
+        case ASSIGN_RSHIFT: printer << " >>= "; break;
+        case ASSIGN_AND:    printer << " &= ";  break;
+        case ASSIGN_XOR:    printer << " ^= ";  break;
+        case ASSIGN_OR:     printer << " |= ";  break;
+        default: printer << "<unknown assignop>"; break;
     }
-    right_->print(out);
+    right_->print(printer);
 }
 
-void BinOpExpr::print(std::ostream& out) const {
-    out << "(";
-    left_->print(out);
-    out << " ";
+inline void print_expr(const Expr* expr, Printer& printer, int prec) {
+    if (auto bin_expr = expr->isa<BinOpExpr>()) {
+        if (printer.force_pars() || precedence(bin_expr->type()) > prec) {
+            printer << "(";
+            expr->print(printer);
+            printer << ")";
+            return;
+        }
+    }
+
+    expr->print(printer);
+}
+
+void BinOpExpr::print(Printer& printer) const {
+    int prec = precedence(type_);
+    print_expr(left_.get(), printer, prec);
+    printer << " ";
     switch (type_) {
-        case BINOP_MUL:    out << "*";  break;
-        case BINOP_DIV:    out << "/";  break;
-        case BINOP_MOD:    out << "%";  break;
-        case BINOP_ADD:    out << "+";  break;
-        case BINOP_SUB:    out << "-";  break; 
-        case BINOP_LSHIFT: out << "<<"; break;
-        case BINOP_RSHIFT: out << ">>"; break;
-        case BINOP_LT:     out << "<";  break;
-        case BINOP_GT:     out << ">";  break;
-        case BINOP_LEQ:    out << "<="; break;
-        case BINOP_GEQ:    out << ">="; break;
-        case BINOP_EQ:     out << "=="; break;
-        case BINOP_NEQ:    out << "!="; break;
-        case BINOP_AND:    out << "&";  break;
-        case BINOP_XOR:    out << "^";  break;
-        case BINOP_OR:     out << "|";  break;
-        case BINOP_ANDAND: out << "&&"; break;
-        case BINOP_OROR:   out << "||"; break;
-        default: out << "<unknown binop>";  break;
+        case BINOP_MUL:    printer << "*";  break;
+        case BINOP_DIV:    printer << "/";  break;
+        case BINOP_MOD:    printer << "%";  break;
+        case BINOP_ADD:    printer << "+";  break;
+        case BINOP_SUB:    printer << "-";  break; 
+        case BINOP_LSHIFT: printer << "<<"; break;
+        case BINOP_RSHIFT: printer << ">>"; break;
+        case BINOP_LT:     printer << "<";  break;
+        case BINOP_GT:     printer << ">";  break;
+        case BINOP_LEQ:    printer << "<="; break;
+        case BINOP_GEQ:    printer << ">="; break;
+        case BINOP_EQ:     printer << "=="; break;
+        case BINOP_NEQ:    printer << "!="; break;
+        case BINOP_AND:    printer << "&";  break;
+        case BINOP_XOR:    printer << "^";  break;
+        case BINOP_OR:     printer << "|";  break;
+        case BINOP_ANDAND: printer << "&&"; break;
+        case BINOP_OROR:   printer << "||"; break;
+        default: printer << "<unknown binop>";  break;
     }
-    out << " ";
-    right_->print(out);
-    out << ")";
+    printer << " ";
+    print_expr(right_.get(), printer, prec);
 }
 
-void InitExpr::print(std::ostream& out) const {
-    out << "{";
+void InitExpr::print(Printer& printer) const {
+    printer << "{";
     for (size_t i = 0; i < exprs_.size(); i++) {
-        exprs_[i]->print(out);
+        exprs_[i]->print(printer);
         if (i < exprs_.size() - 1)
-            out << ", ";
+            printer << ", ";
     }
-    out << "}";
+    printer << "}";
 }
 
-void DeclList::print(std::ostream& out) const {
+void DeclList::print(Printer& printer) const {
     for (auto d : decls_) {
-        d->print(out);
-        out << "\n";
+        d->print(printer);
+        printer << "\n";
     }
 }
 
-void LoopCond::print(std::ostream& out) const {
+void LoopCond::print(Printer& printer) const {
     if (is_var()) {
         assert(static_cast<bool>(var_type_) && "Invalid loop condition");
-        var_type_->print(out);
-        var_->print(out);
+        var_type_->print(printer);
+        var_->print(printer);
     } else {
         assert(is_expr() && "Invalid loop condition");
-        expr_->print(out);
+        expr_->print(printer);
     }
 }
 
-void StmtList::print(std::ostream& out) const {
-    out << "{\n";
+void StmtList::print(Printer& printer) const {
+    printer << "{";
+    printer.indent();
     for (auto s : stmts_) {
-        s->print(out);
-        out << "\n";
+        printer.new_line();
+        s->print(printer);
     }
-    out << "}";
+    printer.unindent();
+    printer.new_line();
+    printer << "}";
 }
 
-void DeclStmt::print(std::ostream& out) const {
-    decl_->print(out);
+void DeclStmt::print(Printer& printer) const {
+    decl_->print(printer);
 }
 
-void ExprStmt::print(std::ostream& out) const {
+void ExprStmt::print(Printer& printer) const {
     if (expr_)
-        expr_->print(out);
-    out << ";";
+        expr_->print(printer);
+    printer << ";";
 }
 
-void IfStmt::print(std::ostream& out) const {
-    out << "if (";
-    cond_->print(out);
-    out << ") ";
-    if_true_->print(out);
+void IfStmt::print(Printer& printer) const {
+    printer << "if (";
+    cond_->print(printer);
+    printer << ") ";
+    if_true_->print(printer);
 
     if (if_false_) {
-        out << " else ";
-        if_false_->print(out);
+        printer << " else ";
+        if_false_->print(printer);
     }
 }
 
-void SwitchStmt::print(std::ostream& out) const {
-    out << "switch (";
-    expr_->print(out);
-    out << ") ";
-    list_->print(out);
+void SwitchStmt::print(Printer& printer) const {
+    printer << "switch (";
+    expr_->print(printer);
+    printer << ") ";
+    list_->print(printer);
 }
 
-void CaseLabelStmt::print(std::ostream& out) const {
+void CaseLabelStmt::print(Printer& printer) const {
     if (is_default()) {
-        out << "default:";
+        printer << "default:";
     } else {
-        out << "case ";
-        expr_->print(out);
-        out << " :";
+        printer << "case ";
+        expr_->print(printer);
+        printer << " :";
     }
 }
 
-void ForLoopStmt::print(std::ostream& out) const {
-    out << "for (";
+void ForLoopStmt::print(Printer& printer) const {
+    printer << "for (";
 
     if (init_)
-        init_->print(out);
+        init_->print(printer);
     else
-        out << ";";
+        printer << ";";
 
-    out << " ";
+    printer << " ";
 
-    if (cond_) cond_->print(out);
-    out << "; ";
+    if (cond_) cond_->print(printer);
+    printer << "; ";
 
-    if (iter_) iter_->print(out);
-    out << ") ";
+    if (iter_) iter_->print(printer);
+    printer << ") ";
 
-    body_->print(out);
+    body_->print(printer);
 }
 
-void WhileLoopStmt::print(std::ostream& out) const {
-    out << "while (";
-    cond_->print(out);
-    out << ") ";
-    body_->print(out);
+void WhileLoopStmt::print(Printer& printer) const {
+    printer << "while (";
+    cond_->print(printer);
+    printer << ") ";
+    body_->print(printer);
 }
 
-void DoWhileLoopStmt::print(std::ostream& out) const {
-    out << "do ";
-    body_->print(out);
-    out << " while (";
-    cond_->print(out);
-    out << ");";
+void DoWhileLoopStmt::print(Printer& printer) const {
+    printer << "do ";
+    body_->print(printer);
+    printer << " while (";
+    cond_->print(printer);
+    printer << ");";
 }
 
-void BreakStmt::print(std::ostream& out) const {
-    out << "break;";
+void BreakStmt::print(Printer& printer) const {
+    printer << "break;";
 }
 
-void ContinueStmt::print(std::ostream& out) const {
-    out << "continue;";
+void ContinueStmt::print(Printer& printer) const {
+    printer << "continue;";
 }
 
-void DiscardStmt::print(std::ostream& out) const {
-    out << "discard;";
+void DiscardStmt::print(Printer& printer) const {
+    printer << "discard;";
 }
 
-void ReturnStmt::print(std::ostream& out) const {
-    out << "return";
+void ReturnStmt::print(Printer& printer) const {
+    printer << "return";
     if (has_value()) {
-        out << " ";
-        value_->print(out);
+        printer << " ";
+        value_->print(printer);
     }
-    out << ";";
+    printer << ";";
 }
 
 } // namespace ast
