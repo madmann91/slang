@@ -9,7 +9,7 @@ template <typename A, typename B>
 inline B as(A a) {
     static_assert(std::is_base_of<typename std::remove_pointer<A>::type,
                                   typename std::remove_pointer<B>::type>::value,
-                  "B is not a child of A");
+                  "B is not a derived class of A");
     assert(dynamic_cast<B>(a) != nullptr && "Invalid conversion at runtime");
     return static_cast<B>(a);
 }
@@ -18,7 +18,7 @@ template <typename A, typename B>
 inline B isa(A a) {
     static_assert(std::is_base_of<typename std::remove_pointer<A>::type,
                                   typename std::remove_pointer<B>::type>::value,
-                  "B is not a child of A");
+                  "B is not a derived class of A");
     return dynamic_cast<B>(a);
 }
 

@@ -391,8 +391,9 @@ private:
 /// Subroutine qualifier (contains a list of type names)
 class SubroutineQualifier : public TypeQualifier {
 public:
-    const std::vector<std::string>& type_names() const { return names_; }
-    void push_type_name(const std::string& name) { names_.push_back(name); }
+    const std::vector<std::string>& names() const { return names_; }
+    void push_name(const std::string& name) { names_.push_back(name); }
+    int num_names() const { return names_.size(); }
 
     void print(Printer&) const;
 

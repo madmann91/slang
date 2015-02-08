@@ -188,10 +188,13 @@ void Variable::print(Printer& printer) const {
 
 void Arg::print(Printer& printer) const {
     type_->print(printer);
-    printer << " ";
-    printer << name_;
-    if (array_spec_)
-        array_spec_->print(printer);
+    if (!name_.empty()) {
+        printer << " ";
+        printer << name_;
+
+        if (array_spec_)
+            array_spec_->print(printer);
+    }
 }
 
 void ExprList::print(Printer& printer) const {

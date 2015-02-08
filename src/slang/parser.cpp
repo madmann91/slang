@@ -429,16 +429,22 @@ ast::LayoutQualifier* Parser::parse_layout_qualifier() {
 }
 
 ast::SubroutineQualifier* Parser::parse_subroutine_qualifier() {
+    // SubroutineQualifier ::= subroutine ( (ident)+ )
     auto subroutine = new_node<ast::SubroutineQualifier>();
     eat(Key::KEY_SUBROUTINE);
     expect(Token::TOK_LPAREN);
+
     while (lookup_[0].isa(Token::TOK_IDENT)) {
-        subroutine->push_type_name(lookup_[0].ident());
+        subroutine->push_name(lookup_[0].ident());
         eat(Token::TOK_IDENT);
         if (!lookup_[0].isa(Token::TOK_COMMA))
             break;
         eat(Token::TOK_COMMA);
     }
+
+    if (subroutine->num_names() == 0)
+        error() << "Empty subroutine qualifier\n";
+
     expect(Token::TOK_RPAREN);
     return subroutine.node();
 }
