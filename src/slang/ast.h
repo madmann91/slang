@@ -408,11 +408,30 @@ public:
         assert(layouts_.find(name) == layouts_.end());
         layouts_.emplace(name, expr);
     }
+    int num_layouts() const { return layouts_.size(); }
 
     void print(Printer&) const;
 
 private:
     PtrMap<std::string, Expr> layouts_;
+};
+
+/// Invariance qualifier
+class InvariantQualifier : public TypeQualifier {
+public:
+    void print(Printer&) const;
+};
+
+/// Attribute qualifier (deprecated in GLSL 4.0)
+class AttributeQualifier : public TypeQualifier {
+public:
+    void print(Printer&) const;
+};
+
+/// Varying qualifier (deprecated in GLSL 4.0)
+class VaryingQualifier : public TypeQualifier {
+public:
+    void print(Printer&) const;
 };
 
 /// Array specifier, can have several dimensions

@@ -69,7 +69,6 @@ private:
     ast::FunctionDecl* parse_function_decl(ast::Type*);
     ast::Variable* parse_variable();
     ast::Arg* parse_arg();
-    ast::StmtList* parse_body();
 
     ast::TypeQualifier* parse_type_qualifier();
     ast::StorageQualifier* parse_storage_qualifier();

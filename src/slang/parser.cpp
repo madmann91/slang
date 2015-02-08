@@ -150,7 +150,7 @@ ast::NamedType* Parser::parse_named_type() {
         type->set_name(lookup_[0].ident());
         eat(Token::TOK_IDENT);
     } else {
-        error() << "Expected identifier\n";
+        error() << "Expected type name identifier\n";
     }
 
     return type.node();
@@ -226,7 +226,7 @@ ast::FunctionDecl* Parser::parse_function_decl(ast::Type* type) {
         decl->set_name(lookup_[0].ident());
         eat(Token::TOK_IDENT);
     } else {
-        error() << "Expected identifier\n";
+        error() << "Expected function name identifier\n";
     }
 
     decl->set_type(type);
@@ -263,7 +263,7 @@ ast::Variable* Parser::parse_variable() {
         var->set_name(lookup_[0].ident());
         eat(Token::TOK_IDENT);
     } else {
-        error() << "Expected identifier\n";
+        error() << "Expected variable name identifier\n";
     }
 
     // Optional array specification
@@ -299,13 +299,6 @@ ast::Arg* Parser::parse_arg() {
     return arg.node();
 }
 
-ast::StmtList* Parser::parse_body() {
-    auto body = new_node<ast::StmtList>();
-    eat(Token::TOK_LBRACE);
-    expect(Token::TOK_RBRACE);
-    return body.node();
-}
-
 ast::TypeQualifier* Parser::parse_type_qualifier() {
     // Qualifier ::= StorageQualifier | PrecisionQualifier | InterpolationQualifier | LayoutQualifier | SubroutineQualifier
     switch (lookup_[0].key().type()) {
@@ -326,6 +319,20 @@ ast::TypeQualifier* Parser::parse_type_qualifier() {
 
         case Key::KEY_SUBROUTINE:
             return parse_subroutine_qualifier();
+
+#define PARSE_SIMPLE_QUAL(Key, Qual) \
+        case Key: \
+            { \
+                auto qual = new_node<Qual>(); \
+                eat(Key); \
+                return qual.node(); \
+            }
+
+        PARSE_SIMPLE_QUAL(Key::KEY_INVARIANT, ast::InvariantQualifier)
+        PARSE_SIMPLE_QUAL(Key::KEY_VARYING,   ast::VaryingQualifier)
+        PARSE_SIMPLE_QUAL(Key::KEY_ATTRIBUTE, ast::AttributeQualifier)
+
+#undef PARSE_SIMPLE_QUAL
 
         default:
             assert(0 && "Unknown qualifier");
@@ -390,14 +397,49 @@ ast::InterpQualifier* Parser::parse_interp_qualifier() {
 }
 
 ast::LayoutQualifier* Parser::parse_layout_qualifier() {
+    // LayoutQualifier ::= layout ( (ident | ident = CondExpr)+ )
     auto layout = new_node<ast::LayoutQualifier>();
     eat(Key::KEY_LAYOUT);
+    expect(Token::TOK_LPAREN);
+
+    while (lookup_[0].isa(Token::TOK_IDENT)) {
+        const std::string ident = lookup_[0].ident();
+        eat(Token::TOK_IDENT);
+
+        if (lookup_[0].isa(Token::TOK_ASSIGN)) {
+            eat(Token::TOK_ASSIGN);
+            layout->push_layout(ident, parse_cond_expr(parse_unary_expr()));
+        } else {
+            // No right side
+            layout->push_layout(ident, nullptr);
+        }
+
+        if (!lookup_[0].isa(Token::TOK_COMMA))
+            break;
+
+        eat(Token::TOK_COMMA);
+    }
+
+    expect(Token::TOK_RPAREN);
+
+    if (layout->num_layouts() == 0)
+        error() << "Empty layout qualifier\n";
+
     return layout.node();
 }
 
 ast::SubroutineQualifier* Parser::parse_subroutine_qualifier() {
     auto subroutine = new_node<ast::SubroutineQualifier>();
     eat(Key::KEY_SUBROUTINE);
+    expect(Token::TOK_LPAREN);
+    while (lookup_[0].isa(Token::TOK_IDENT)) {
+        subroutine->push_type_name(lookup_[0].ident());
+        eat(Token::TOK_IDENT);
+        if (!lookup_[0].isa(Token::TOK_COMMA))
+            break;
+        eat(Token::TOK_COMMA);
+    }
+    expect(Token::TOK_RPAREN);
     return subroutine.node();
 }
 
@@ -583,7 +625,7 @@ ast::FieldExpr* Parser::parse_field_expr(ast::Expr* left) {
         field->set_field_name(lookup_[0].ident());
         eat(Token::TOK_IDENT);
     } else {
-        error() << "Identifier expected\n";
+        error() << "Identifier expected in field selection\n";
     }
     return field.node();
 }

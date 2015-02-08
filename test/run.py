@@ -7,6 +7,7 @@ import shutil
 passed = []
 failed = []
 
+# launches a test on the given directory
 def do_test(dir, opts):
     global passed
     global failed
@@ -17,18 +18,20 @@ def do_test(dir, opts):
             err_file = full_file + ".err"
             out = open(out_file, "w")
             err = open(err_file, "w")
-            cmd = "slang " + opts + " " + full_file
+            cmd = "slangc " + opts + " " + full_file
             print(cmd)
             subprocess.call(cmd, stdout = out, stderr = err)
             out.close()
             err.close()
 
             if os.path.isfile(out_file + ".ref") and os.path.isfile(err_file + ".ref"):
+                # Compare with the reference output files if they exist
                 if filecmp.cmp(out_file, out_file + ".ref") and filecmp.cmp(err_file, err_file + ".ref"):
                     passed += [full_file]
                 else:
                     failed += [full_file]
             else:
+                # If they do not exist, then create them with the result of the test
                 shutil.copy(out_file, out_file + ".ref")
                 shutil.copy(err_file, err_file + ".ref")
 

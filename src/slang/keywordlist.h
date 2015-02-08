@@ -85,6 +85,7 @@ SLANG_KEY_DATA_VOID(VOID, "void")
 #define SLANG_KEY_QUAL(key, str) SLANG_KEY(key, str)
 #endif
 
+SLANG_KEY_QUAL(INVARIANT,  "invariant")
 SLANG_KEY_QUAL(LAYOUT,     "layout")
 SLANG_KEY_QUAL(SUBROUTINE, "subroutine")
 
@@ -96,6 +97,8 @@ SLANG_KEY_QUAL(SUBROUTINE, "subroutine")
 SLANG_KEY_QUAL_PREC(LOWP,    "lowp")
 SLANG_KEY_QUAL_PREC(MEDIUMP, "mediump")
 SLANG_KEY_QUAL_PREC(HIGHP,   "highp")
+
+#undef SLANG_KEY_QUAL_PREC
 
 // Storage qualifiers
 #ifndef SLANG_KEY_QUAL_STORAGE
@@ -118,6 +121,8 @@ SLANG_KEY_QUAL_STORAGE(RESTRICT,  "restrict")
 SLANG_KEY_QUAL_STORAGE(READONLY,  "readonly")
 SLANG_KEY_QUAL_STORAGE(WRITEONLY, "writeonly")
 
+#undef SLANG_KEY_QUAL_STORAGE
+
 // Interpolation qualifiers
 #ifndef SLANG_KEY_QUAL_INTERP
 #define SLANG_KEY_QUAL_INTERP(key, str) SLANG_KEY_QUAL(key, str)
@@ -128,8 +133,15 @@ SLANG_KEY_QUAL_INTERP(NOPERSPECTIVE, "noperspective")
 SLANG_KEY_QUAL_INTERP(SMOOTH,        "smooth")
 
 #undef SLANG_KEY_QUAL_INTERP
-#undef SLANG_KEY_QUAL_STORAGE
-#undef SLANG_KEY_QUAL_PREC
+
+#ifndef SLANG_KEY_QUAL_DEPREC
+#define SLANG_KEY_QUAL_DEPREC(key, str) SLANG_KEY_QUAL(key, str)
+#endif
+
+SLANG_KEY_QUAL_DEPREC(VARYING,   "varying")
+SLANG_KEY_QUAL_DEPREC(ATTRIBUTE, "attribute")
+
+#undef SLANG_KEY_QUAL_DEPREC
 #undef SLANG_KEY_QUAL
 
 #undef SLANG_KEY

@@ -6,7 +6,7 @@
 namespace slang {
 
 template <typename A, typename B>
-B as(A a) {
+inline B as(A a) {
     static_assert(std::is_base_of<typename std::remove_pointer<A>::type,
                                   typename std::remove_pointer<B>::type>::value,
                   "B is not a child of A");
@@ -15,7 +15,7 @@ B as(A a) {
 }
 
 template <typename A, typename B>
-B isa(A a) {
+inline B isa(A a) {
     static_assert(std::is_base_of<typename std::remove_pointer<A>::type,
                                   typename std::remove_pointer<B>::type>::value,
                   "B is not a child of A");
@@ -31,6 +31,6 @@ public:
     template <typename T> const T* isa() const { return slang::isa<const Base*, const T*>(static_cast<const Base*>(this)); }
 };
 
-};
+} // namespace slang
 
 #endif // SLANG_CAST_H

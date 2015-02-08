@@ -57,7 +57,7 @@ public:
 #include "slang/tokenlist.h"
     };
 
-    Token() {}
+    Token() : type_(TOK_UNKNOWN) {}
     /// Create a token which is not an identifier nor a literal
     Token(const Location& loc, Type type)
         : loc_(loc), type_(type)

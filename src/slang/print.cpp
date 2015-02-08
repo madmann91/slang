@@ -33,11 +33,43 @@ void InterpQualifier::print(Printer& printer) const {
 }
 
 void SubroutineQualifier::print(Printer& printer) const {
-    printer << "subroutine";
+    printer << "subroutine(";
+    for (size_t i = 0; i < names_.size(); i++) {
+        printer << names_[i];
+
+        if (i != names_.size() - 1)
+            printer << ", ";
+    }
+    printer << ")";
 }
 
 void LayoutQualifier::print(Printer& printer) const {
-    printer << "layout";
+    printer << "layout(";
+    for (auto it = layouts_.begin(); it != layouts_.end();) {
+        printer << it->first;
+
+        if (it->second) {
+            printer << " = ";
+            it->second->print(printer);
+        }
+
+        it++;
+        if (it != layouts_.end())
+            printer << ", ";
+    }
+    printer << ")";
+}
+
+void InvariantQualifier::print(Printer& printer) const {
+    printer << "invariant";
+}
+
+void AttributeQualifier::print(Printer& printer) const {
+    printer << "attribute";
+}
+
+void VaryingQualifier::print(Printer& printer) const {
+    printer << "varying";
 }
 
 void ArraySpecifier::print(Printer& printer) const {

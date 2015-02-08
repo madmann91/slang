@@ -18,6 +18,7 @@ void usage() {
 }
 
 bool lexical_analysis(const std::string& filename, const Keywords& keys) {
+    // Do the lexical analysis and display the stream of tokens with their location
     std::ifstream is(filename);
     if (!is) return false;
 
@@ -34,6 +35,7 @@ bool lexical_analysis(const std::string& filename, const Keywords& keys) {
 }
 
 bool syntax_analysis(const std::string& filename, const Keywords& keys) {
+    // Do the syntax analysis and display the AST
     std::ifstream is(filename);
     if (!is) return false;
 
@@ -58,6 +60,7 @@ int main(int argc, char** argv) {
         ACTION_SYNTAX
     } action = ACTION_SYNTAX;
 
+    // Generate list of available keywords
     Keywords keys;
 #define SLANG_KEY_UNKNOWN(key, str)
 #define SLANG_KEY(key, str) keys.add_keyword(str, Key::KEY_##key);
