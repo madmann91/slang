@@ -103,17 +103,19 @@ ast::PrecisionDecl* Parser::parse_precision_decl() {
 
 ast::Type* Parser::parse_type() {
     // Type ::= Qualifier* (StructType|NamedType|PrimType) (ArraySpecifier)?
-    std::vector<std::unique_ptr<ast::TypeQualifier> > qualifiers;
+    ast::PtrVector<ast::TypeQualifier> quals;
 
     while (lookup_[0].key().is_qualifier()) {
-        ast::TypeQualifier* qual = parse_type_qualifier();
-        qualifiers.emplace_back(qual);
+        quals.push_back(parse_type_qualifier());
     }
 
     ast::Type* type = nullptr;
     switch (lookup_[0].key().type()) {
         case Key::KEY_UNKNOWN:
-            type = parse_named_type();
+            if (lookup_[1].isa(Token::TOK_LBRACE))
+                type = parse_interface_type();
+            else
+                type = parse_named_type();
             break;
 
         case Key::KEY_STRUCT:
@@ -136,8 +138,9 @@ ast::Type* Parser::parse_type() {
     }
 
     // Register qualifiers
-    for (auto& q : qualifiers)
-        type->push_qualifier(q.release());
+    for (auto& q : quals)
+        type->push_qualifier(q);
+    quals.clear();
     
     return type;
 }
@@ -165,6 +168,29 @@ ast::StructType* Parser::parse_struct_type() {
     if (lookup_[0].is_ident()) {
         type->set_name(lookup_[0].ident());
         eat(Token::TOK_IDENT);
+    }
+
+    expect(Token::TOK_LBRACE);
+    
+    while (lookup_[0].isa(Token::TOK_IDENT)) {
+        ast::Type* field_type = parse_type();
+        type->push_field(parse_variable_decl(field_type));
+    }
+
+    expect(Token::TOK_RBRACE);
+    return type.node();
+}
+
+ast::InterfaceType* Parser::parse_interface_type() {
+    // InterfaceType ::= ident { (Type InterfaceField(,InterfaceField)*;)+ } )
+    auto type = new_node<ast::InterfaceType>();
+
+    // Optional structure name
+    if (lookup_[0].is_ident()) {
+        type->set_name(lookup_[0].ident());
+        eat(Token::TOK_IDENT);
+    } else {
+        error() << "Interface block name expected\n";
     }
 
     expect(Token::TOK_LBRACE);

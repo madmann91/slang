@@ -62,6 +62,7 @@ private:
     ast::Type* parse_type();
     ast::NamedType* parse_named_type();
     ast::StructType* parse_struct_type();
+    ast::InterfaceType* parse_interface_type();
     ast::PrimType* parse_prim_type();
 
     ast::PrecisionDecl* parse_precision_decl();

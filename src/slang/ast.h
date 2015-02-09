@@ -32,6 +32,7 @@ public:
     using Vector::end;
     using Vector::push_back;
     using Vector::size;
+    using Vector::clear;
     using Vector::operator [];
 };
 
@@ -48,6 +49,7 @@ public:
     using Map::end;
     using Map::emplace;
     using Map::size;
+    using Map::clear;
     using Map::operator [];
     using Map::find;
 };
@@ -595,17 +597,27 @@ private:
     PtrVector<Variable> vars_;
 };
 
-/// Structure type
-class StructType : public Type, public HasName {
+/// Compound type : structure or interface block
+class CompoundType : public Type {
 public:
     const PtrVector<VariableDecl>& fields() const { return fields_; }
     void push_field(VariableDecl* field) { fields_.push_back(field); }
     int num_fields() const { return fields_.size(); }
 
-    void print(Printer&) const;
-
-private:
+protected:
     PtrVector<VariableDecl> fields_;
+};
+
+/// Structure type
+class StructType : public CompoundType, public HasName {
+public:
+    void print(Printer&) const;
+};
+
+/// Interface block type
+class InterfaceType : public CompoundType, public HasName {
+public:
+    void print(Printer&) const;
 };
 
 /// Function argument

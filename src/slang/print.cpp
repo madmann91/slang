@@ -132,6 +132,26 @@ void StructType::print(Printer& printer) const {
         array_spec_->print(printer);
 }
 
+void InterfaceType::print(Printer& printer) const {
+    for (auto q : quals_) {
+        q->print(printer);
+        printer << " ";
+    }
+
+    printer << name_ << " {";
+    printer.indent();
+    for (size_t i = 0; i < fields_.size(); i++) {
+        printer.new_line();
+        fields_[i]->print(printer);
+    }
+    printer.unindent();
+    printer.new_line();
+    printer << "}";
+
+    if (array_spec_)
+        array_spec_->print(printer);
+}
+
 void PrecisionDecl::print(Printer& printer) const {
     printer << "precision ";
     prec_->print(printer);
