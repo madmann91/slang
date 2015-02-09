@@ -20,7 +20,7 @@ def do_test(dir, opts):
             err = open(err_file, "w")
             cmd = "slangc " + opts + " " + full_file
             print(cmd)
-            subprocess.call(cmd, stdout = out, stderr = err)
+            subprocess.call(["slangc", opts, full_file], stdout = out, stderr = err)
             out.close()
             err.close()
 

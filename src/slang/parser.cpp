@@ -126,7 +126,7 @@ ast::Type* Parser::parse_type() {
             break;
 
         default:
-            error() << "Expected identifier or data type\n";
+            error() << "Identifier or data type expected\n";
             type = new_node<ast::ErrorType>().node();
     }
 
@@ -150,7 +150,7 @@ ast::NamedType* Parser::parse_named_type() {
         type->set_name(lookup_[0].ident());
         eat(Token::TOK_IDENT);
     } else {
-        error() << "Expected type name identifier\n";
+        error() << "Type name expected\n";
     }
 
     return type.node();
@@ -226,7 +226,7 @@ ast::FunctionDecl* Parser::parse_function_decl(ast::Type* type) {
         decl->set_name(lookup_[0].ident());
         eat(Token::TOK_IDENT);
     } else {
-        error() << "Expected function name identifier\n";
+        error() << "Function name expected\n";
     }
 
     decl->set_type(type);
@@ -263,7 +263,7 @@ ast::Variable* Parser::parse_variable() {
         var->set_name(lookup_[0].ident());
         eat(Token::TOK_IDENT);
     } else {
-        error() << "Expected variable name identifier\n";
+        error() << "Variable name expected\n";
     }
 
     // Optional array specification

@@ -1,3 +1,3 @@
-Error in parser/invalid/arg-function.glsl (2, 0) : Expected identifier
+Error in parser/invalid/arg-function.glsl (2, 0) : Type name expected
 Error in parser/invalid/arg-function.glsl (2, 0) : ')' expected
 Error in parser/invalid/arg-function.glsl (2, 0) : ';' expected
