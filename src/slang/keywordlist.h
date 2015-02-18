@@ -6,7 +6,8 @@ SLANG_KEY(STRUCT,    "struct")
 SLANG_KEY(PRECISION, "precision")
 SLANG_KEY(DISCARD,   "discard")
 
-// Special keyword to indicate that it is not recognized as a keyword
+// Tokens of type TOK_IDENT can be identifiers or keywords.
+// This "Unknown keyword" value is used to describe identifiers.
 #ifndef SLANG_KEY_UNKNOWN
 #define SLANG_KEY_UNKNOWN(key, str) SLANG_KEY(key, str)
 #endif
