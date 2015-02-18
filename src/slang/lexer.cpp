@@ -39,7 +39,7 @@ T read_hexadecimal(int c) {
     return T(c - '0');
 }
 
-Lexer::Lexer(std::istream& stream, const Keywords& keys, const Logger& logger)
+Lexer::Lexer(std::istream& stream, const Keywords& keys, Logger& logger)
     : stream_(stream), keys_(keys), logger_(logger)
 {
     prev_ = Position(1, 0);

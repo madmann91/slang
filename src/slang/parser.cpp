@@ -5,8 +5,8 @@
 
 namespace slang {
 
-Parser::Parser(const Lexer& lexer)
-    : lexer_(lexer)
+Parser::Parser(Lexer& lexer, Logger& logger)
+    : lexer_(lexer), logger_(logger)
 {
     lookup_[0] = lexer_.lex();
     lookup_[1] = lexer_.lex();
@@ -50,7 +50,7 @@ void Parser::expect(Key::Type type) {
 }
 
 std::ostream& Parser::error() {
-    return lexer_.logger().error(lookup_[0].loc().start());
+    return logger_.error(lookup_[0].loc().start());
 }
 
 ast::DeclList* Parser::parse_root() {

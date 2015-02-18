@@ -14,10 +14,15 @@ namespace slang {
 /// valid SLANG program. Uses the Logger object in the lexer to report errors.
 class Parser {
 public:
-    Parser(const Lexer& lexer);
+    Parser(Lexer& lexer, Logger& logger);
 
     /// Parses the stream and produces an AST
     ast::DeclList* parse();
+
+    /// Returns the lexer object associated with the parser
+    Lexer& lexer() { return lexer_; }
+    /// Returns the logger object used to report errors
+    Logger& logger() { return logger_; }
 
 private:
     template <typename T>
@@ -107,7 +112,8 @@ private:
     ast::ExprStmt* parse_expr_stmt();
     ast::ReturnStmt* parse_return_stmt();
 
-    Lexer lexer_;
+    Lexer& lexer_;
+    Logger& logger_;
     Environment env_;
     Token lookup_[3];
     Position prev_;

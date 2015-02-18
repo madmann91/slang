@@ -22,7 +22,8 @@ bool lexical_analysis(const std::string& filename, const Keywords& keys) {
     std::ifstream is(filename);
     if (!is) return false;
 
-    Lexer lexer(is, keys, Logger(filename));
+    Logger logger(filename);
+    Lexer lexer(is, keys, logger);
 
     Token tok;
     do {
@@ -39,7 +40,9 @@ bool syntax_analysis(const std::string& filename, const Keywords& keys) {
     std::ifstream is(filename);
     if (!is) return false;
 
-    Parser parser(Lexer(is, keys, Logger(filename)));
+    Logger logger(filename);
+    Lexer lexer(is, keys, logger);
+    Parser parser(lexer, logger);
     ast::DeclList* root = parser.parse();
 
     Printer printer(std::cout);

@@ -14,14 +14,15 @@ namespace slang {
 /// Errors are reported through a logger object.
 class Lexer {
 public:
-    Lexer(std::istream& stream, const Keywords& keywords, const Logger& logger);
+    Lexer(std::istream& stream, const Keywords& keywords, Logger& logger);
 
     /// Returns the next token in the stream and goes to the next one.
     Token lex();
 
-    /// Returns the logger object associated with the lexer.
+    /// Returns the set of recognized keywords
+    const Keywords& keywords() const { return keys_; }
+    /// Returns the logger object used to report errors
     Logger& logger() { return logger_; }
-    Keywords& keywords() { return keys_; }
 
 private:
     void next();
@@ -43,8 +44,8 @@ private:
 
     Position cur_, prev_;
     std::istream& stream_;
-    Keywords keys_;
-    Logger logger_;
+    const Keywords& keys_;
+    Logger& logger_;
 };
 
 } // namespace slang
