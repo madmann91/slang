@@ -19,11 +19,6 @@ public:
     /// Returns the next token in the stream and goes to the next one.
     Token lex();
 
-    /// Returns the set of recognized keywords
-    const Keywords& keywords() const { return keys_; }
-    /// Returns the logger object used to report errors
-    Logger& logger() { return logger_; }
-
 private:
     void next();
 

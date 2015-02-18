@@ -10,19 +10,13 @@
 
 namespace slang {
 
-/// Parser object : creates the Abstract Syntax Tree (AST) for a given
-/// valid SLANG program. Uses the Logger object in the lexer to report errors.
+/// Parser object : creates the Abstract Syntax Tree (AST) for a given SLANG program.
 class Parser {
 public:
     Parser(Lexer& lexer, Logger& logger);
 
     /// Parses the stream and produces an AST
     ast::DeclList* parse();
-
-    /// Returns the lexer object associated with the parser
-    Lexer& lexer() { return lexer_; }
-    /// Returns the logger object used to report errors
-    Logger& logger() { return logger_; }
 
 private:
     template <typename T>
