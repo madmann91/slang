@@ -42,10 +42,11 @@ T read_hexadecimal(int c) {
 Lexer::Lexer(std::istream& stream, const Keywords& keys, Logger& logger)
     : stream_(stream), keys_(keys), logger_(logger)
 {
-    prev_ = Position(1, 0);
-    cur_  = Position(1, 0);
     c_ = 0;
     next();
+    
+    prev_ = Position(1, 0);
+    cur_  = Position(1, 0);
 }
 
 Token Lexer::lex() {
@@ -203,7 +204,17 @@ void Lexer::next() {
     } else {
         cur_.inc_col();
     }
+
     c_ = stream_.get();
+
+    // Handle line escaping
+    while (c_ == '\\' && stream_.peek() == '\n') {
+        cur_.inc_line();
+        cur_.reset_col();
+        // Eat newline
+        stream_.get();
+        c_ = stream_.get();
+    }
 }
 
 Literal Lexer::parse_int(bool octal) {
