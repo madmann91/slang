@@ -2,3 +2,5 @@ int ;
 a;
 invalid_qualifier ;
 b;
+subroutine() int c;
+layout() int d;

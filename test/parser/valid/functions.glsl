@@ -10,9 +10,10 @@ int bar(int a, int b) {
 
 int foobar(void);
 int foobar(void) {
+    foo(void);
+    foo();
     return bar(foobar(), foobar());
 }
-
 
 float baz(float a, vec3 b);
 float baz(float, float) {

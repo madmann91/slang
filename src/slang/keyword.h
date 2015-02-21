@@ -19,17 +19,6 @@ public:
     bool is_unknown() const { return type_ == KEY_UNKNOWN; }
     Type type() const { return type_; }
 
-    bool is_data() const {
-        switch (type_) {
-#define SLANG_KEY_DATA(key, str) case KEY_##key:
-#include "slang/keywordlist.h"
-                return true;
-            default:
-                break;
-        }
-        return false;
-    }
-
     bool is_qualifier() const {
         switch (type_) {
 #define SLANG_KEY_QUAL(key, str) case KEY_##key:

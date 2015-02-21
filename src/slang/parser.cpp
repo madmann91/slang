@@ -93,8 +93,18 @@ ast::PrecisionDecl* Parser::parse_precision_decl() {
     auto decl = new_node<ast::PrecisionDecl>();
     eat(Key::KEY_PRECISION);
     
-    decl->set_precision(parse_precision_qualifier());
-    decl->set_prim(parse_prim_type());
+    if (lookup_[0].key().isa(Key::KEY_LOWP) ||
+        lookup_[0].key().isa(Key::KEY_HIGHP) ||
+        lookup_[0].key().isa(Key::KEY_MEDIUMP))
+        decl->set_precision(parse_precision_qualifier());
+    else
+        error() << "Precision qualifier expected\n";
+
+    while (lookup_[0].key().is_qualifier()) {
+        eat(Token::TOK_IDENT);
+        error() << "No qualifiers allowed inside precision declaration\n";
+    }
+    decl->set_type(parse_type());
 
     expect(Token::TOK_SEMICOLON);
 
@@ -102,7 +112,7 @@ ast::PrecisionDecl* Parser::parse_precision_decl() {
 }
 
 ast::Type* Parser::parse_type() {
-    // Type ::= Qualifier* (StructType|NamedType|PrimType) (ArraySpecifier)?
+    // Type ::= Qualifier* (StructType|NamedType|PrimType|InterfaceType) (ArraySpecifier)?
     ast::PtrVector<ast::TypeQualifier> quals;
 
     while (lookup_[0].key().is_qualifier()) {
@@ -213,7 +223,7 @@ ast::PrimType* Parser::parse_prim_type() {
         case Key::KEY_##key: prim->set_prim(ast::PrimType::PRIM_##key); break;
 #include "slang/keywordlist.h"
         default:
-            error() << "Primitive data type expected\n";
+            assert(0 && "Invalid primitive type");
             break;
     }
 
@@ -395,7 +405,7 @@ ast::PrecisionQualifier* Parser::parse_precision_qualifier() {
 #include "slang/keywordlist.h"
 
         default:
-            error() << "Unknown precision qualifier\n";
+            assert(0 && "Invalid precision qualifier");
             break;
     }
 
@@ -455,7 +465,7 @@ ast::LayoutQualifier* Parser::parse_layout_qualifier() {
 }
 
 ast::SubroutineQualifier* Parser::parse_subroutine_qualifier() {
-    // SubroutineQualifier ::= subroutine ( (ident)+ )
+    // SubroutineQualifier ::= subroutine ( ident (,ident)* )
     auto subroutine = new_node<ast::SubroutineQualifier>();
     eat(Key::KEY_SUBROUTINE);
     expect(Token::TOK_LPAREN);
@@ -842,7 +852,7 @@ ast::Expr* Parser::parse_init_expr() {
         auto init = new_node<ast::InitExpr>();
         eat(Token::TOK_LBRACE);
         if (!lookup_[0].isa(Token::TOK_RBRACE)) {
-            init->push_expr(parse_assign_expr());
+            init->push_expr(parse_init_expr());
 
             while (lookup_[0].isa(Token::TOK_COMMA) && !lookup_[1].isa(Token::TOK_RBRACE)) {
                 eat(Token::TOK_COMMA);

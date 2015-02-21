@@ -556,9 +556,9 @@ private:
 /// A default precision declaration
 class PrecisionDecl : public Decl {
 public:
-    PrimType* prim() { return prim_.get(); }
-    const PrimType* prim() const { return prim_.get(); }
-    void set_prim(PrimType* prim) { prim_.reset(prim); }
+    Type* type() { return type_.get(); }
+    const Type* type() const { return type_.get(); }
+    void set_type(Type* type) { type_.reset(type); }
 
     PrecisionQualifier* precision() { return prec_.get(); }
     const PrecisionQualifier* precision() const { return prec_.get(); }
@@ -567,7 +567,7 @@ public:
     void print(Printer&) const;
 
 private:
-    Ptr<PrimType> prim_;
+    Ptr<Type> type_;
     Ptr<PrecisionQualifier> prec_;
 };
 

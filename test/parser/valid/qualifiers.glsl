@@ -1,0 +1,1 @@
+lowp highp mediump varying attribute flat noperspective smooth invariant layout(location = 3, other = 42, yetanother) subroutine(routine1, routine2) const inout in out centroid patch sample uniform buffer shared coherent volatile restrict readonly writeonly int i;

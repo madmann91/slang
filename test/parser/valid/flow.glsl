@@ -40,4 +40,10 @@ void control_flow() {
 
     do { i++; } while (i < 5);
     do i++; while (i < 5);
+
+    switch (i) {
+        case 0: i++; break;
+        case 1: i--; break;
+        default: return;
+    }
 }

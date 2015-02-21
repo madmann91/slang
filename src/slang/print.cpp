@@ -154,9 +154,14 @@ void InterfaceType::print(Printer& printer) const {
 
 void PrecisionDecl::print(Printer& printer) const {
     printer << "precision ";
-    prec_->print(printer);
+
+    if (prec_)
+        prec_->print(printer);
+    else
+        printer << "<error>";
     printer << " ";
-    prim_->print(printer);
+
+    type_->print(printer);
     printer << ";";
 }
 

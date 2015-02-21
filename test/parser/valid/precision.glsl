@@ -1,0 +1,3 @@
+precision lowp float;
+precision highp double;
+precision mediump float;

@@ -8,6 +8,8 @@ int bar(int a, int b) {
 }
 int foobar(void);
 int foobar(void) {
+    foo();
+    foo();
     return bar(foobar(), foobar());
 }
 float baz(float a, vec3 b);
