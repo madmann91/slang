@@ -222,6 +222,7 @@ ast::PrimType* Parser::parse_prim_type() {
 #define SLANG_KEY_DATA(key, str) \
         case Key::KEY_##key: prim->set_prim(ast::PrimType::PRIM_##key); break;
 #include "slang/keywordlist.h"
+
         default:
             assert(0 && "Invalid primitive type");
             break;
@@ -387,7 +388,7 @@ ast::StorageQualifier* Parser::parse_storage_qualifier() {
 #include "slang/keywordlist.h"
 
         default:
-            error() << "Unknown storage qualifier\n";
+            assert(0 && "Invalid storage qualifier");
             break;
     }
 
@@ -423,7 +424,7 @@ ast::InterpQualifier* Parser::parse_interp_qualifier() {
 #include "slang/keywordlist.h"
 
         default:
-            error() << "Unknown interpolation qualifier\n";
+            assert(0 && "Invalid interpolation qualifier");
             break;
     }
 
