@@ -40,7 +40,7 @@ T read_hexadecimal(int c) {
 }
 
 Lexer::Lexer(std::istream& stream, const Keywords& keys, Logger& logger)
-    : stream_(stream), keys_(keys), logger_(logger)
+    : new_line_(true), stream_(stream), keys_(keys), logger_(logger)
 {
     prev_ = Position(1, 0);
     cur_  = Position(1, -1);
@@ -54,11 +54,12 @@ Token Lexer::lex() {
         while (std::isspace(c_)) {
             next();
         }
+
         prev_ = cur_;
 
         if (stream_.eof()) {
             // End-of-file case, early exit
-            return Token(Location(prev_, cur_), Token::TOK_EOF);
+            return make_token(Token::TOK_EOF);
         }
 
         if (std::isalpha(c_) || c_ == '_') {
@@ -189,6 +190,8 @@ Token Lexer::lex() {
             case ';': return make_token(Token::TOK_SEMICOLON);
             case ',': return make_token(Token::TOK_COMMA);
 
+            case '#': return make_token(Token::TOK_SHARP);
+
             default:
                 error() << "Unknown token\n";
                 return make_token(Token::TOK_UNKNOWN);
@@ -200,6 +203,7 @@ void Lexer::next() {
     if (c_ == '\n') {
         cur_.inc_line();
         cur_.reset_col();
+        new_line_ = true;
     } else {
         cur_.inc_col();
     }
@@ -389,16 +393,22 @@ bool Lexer::eat_suffix() {
     return ok;
 }
 
-Token Lexer::make_literal(const Literal& l) const {
-    return Token(Location(prev_, cur_), l);
+inline bool reset_bool(bool& value) {
+    bool old = value;
+    value = false;
+    return old;
 }
 
-Token Lexer::make_ident(const std::string& ident) const {
-    return Token(Location(prev_, cur_), ident, keys_);
+Token Lexer::make_literal(const Literal& l) {
+    return Token(Location(prev_, cur_), l, reset_bool(new_line_));
 }
 
-Token Lexer::make_token(Token::Type type) const {
-    return Token(Location(prev_, cur_), type);
+Token Lexer::make_ident(const std::string& ident) {
+    return Token(Location(prev_, cur_), ident, keys_, reset_bool(new_line_));
+}
+
+Token Lexer::make_token(Token::Type type) {
+    return Token(Location(prev_, cur_), type, reset_bool(new_line_));
 }
 
 std::ostream& Lexer::error() {

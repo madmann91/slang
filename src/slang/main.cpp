@@ -4,6 +4,7 @@
 
 #include "slang/lexer.h"
 #include "slang/parser.h"
+#include "slang/preprocess.h"
 #include "slang/ast.h"
 #include "slang/print.h"
 
@@ -12,8 +13,9 @@ using namespace slang;
 void usage() {
     std::cout << "slangc [options] file...\n"
               << "Available options :\n"
-              << "    -h --help : Displays this message\n"
+              << "    -h   --help : Displays this message\n"
               << "    -tok --tokenize : Generates a stream of tokens from the input and print it\n"
+              << "    -pp  --preprocess : Preprocesses the input stream and prints the result\n"
               << "    -ast --syntax : Generates an AST from the input and print it (default)\n";
 }
 
@@ -52,6 +54,25 @@ bool syntax_analysis(const std::string& filename, const Keywords& keys) {
     return true;
 }
 
+bool preprocess(const std::string& filename, const Keywords& keys) {
+    // Do the syntax analysis and display the AST
+    std::ifstream is(filename);
+    if (!is) return false;
+
+    Logger logger(filename);
+    Lexer lexer(is, keys, logger);
+    Preprocessor pp(lexer, logger);
+    
+    Token tok;
+    do {
+        tok = pp.preprocess();
+        std::cout << tok << tok.loc() << " ";
+    } while (tok.type() != Token::TOK_EOF);
+
+    std::cout << std::endl;
+    return true;
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         usage();
@@ -60,6 +81,7 @@ int main(int argc, char** argv) {
 
     enum {
         ACTION_TOKENIZE,
+        ACTION_PREPROCESS,
         ACTION_SYNTAX
     } action = ACTION_SYNTAX;
 
@@ -75,6 +97,8 @@ int main(int argc, char** argv) {
                 usage();
             } else if (!std::strcmp(argv[i], "--tokenize") || !std::strcmp(argv[i], "-tok")) {
                 action = ACTION_TOKENIZE;
+            } else if (!std::strcmp(argv[i], "--preprocess") || !std::strcmp(argv[i], "-pp")) {
+                action = ACTION_PREPROCESS;
             } else if (!std::strcmp(argv[i], "--syntax") || !std::strcmp(argv[i], "-ast")) {
                 action = ACTION_SYNTAX;
             } else {
@@ -83,6 +107,7 @@ int main(int argc, char** argv) {
         } else {
             switch (action) {
                 case ACTION_SYNTAX: syntax_analysis(argv[i], keys); break;
+                case ACTION_PREPROCESS: preprocess(argv[i], keys); break;
                 case ACTION_TOKENIZE: lexical_analysis(argv[i], keys); break;
             }
         }

@@ -28,12 +28,12 @@ public:
     }
 
     std::ostream& warn(const Location& loc) {
-        clog_ << "Error in " << filename_ << " " << loc << " : ";
+        clog_ << "Warning in " << filename_ << " " << loc << " : ";
         return clog_;
     }
 
     std::ostream& warn(const Position& pos) {
-        clog_ << "Error in " << filename_ << " " << pos << " : ";
+        clog_ << "Warning in " << filename_ << " " << pos << " : ";
         return clog_;
     }
 

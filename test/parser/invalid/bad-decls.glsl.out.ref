@@ -1,4 +1,3 @@
 precision <error> int;
-precision <error> ;
+precision <error> <error>;
 precision lowp int;
-int;

@@ -1,4 +1,3 @@
-Error in lexer/invalid/unknown.glsl (1, 1) : Unknown token
 Error in lexer/invalid/unknown.glsl (1, 3) : Unknown token
 Error in lexer/invalid/unknown.glsl (1, 5) : Unknown token
 Error in lexer/invalid/unknown.glsl (1, 7) : Unknown token

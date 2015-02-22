@@ -1,6 +1,6 @@
 Error in parser/invalid/bad-decls.glsl (1, 10) : Precision qualifier expected
 Error in parser/invalid/bad-decls.glsl (2, 9) : Precision qualifier expected
-Error in parser/invalid/bad-decls.glsl (2, 9) : Type name expected
+Error in parser/invalid/bad-decls.glsl (2, 9) : Identifier or data type expected
 Error in parser/invalid/bad-decls.glsl (3, 18) : No qualifiers allowed inside precision declaration
 Error in parser/invalid/bad-decls.glsl (3, 22) : No qualifiers allowed inside precision declaration
 Error in parser/invalid/bad-decls.glsl (4, 0) : Keyword or identifier expected

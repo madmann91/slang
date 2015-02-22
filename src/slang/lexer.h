@@ -29,13 +29,15 @@ private:
 
     bool eat_suffix();
     
-    Token make_literal(const Literal&) const;
-    Token make_ident(const std::string&) const;
-    Token make_token(Token::Type) const;
+    Token make_literal(const Literal&);
+    Token make_ident(const std::string&);
+    Token make_token(Token::Type);
 
     std::ostream& error();
 
     int c_;
+
+    bool new_line_;
 
     Position cur_, prev_;
     std::istream& stream_;

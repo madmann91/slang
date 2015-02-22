@@ -8,6 +8,7 @@ set(HEADER_FILES
     location.h
     logger.h
     parser.h
+    preprocess.h
     print.h
     token.h
     tokenlist.h)
@@ -15,6 +16,7 @@ set(HEADER_FILES
 set(SOURCE_FILES
     lexer.cpp
     parser.cpp
+    preprocess.cpp
     print.cpp)
 
 if(CMAKE_COMPILER_IS_GNUCXX)

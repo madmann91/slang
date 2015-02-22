@@ -121,13 +121,6 @@ ast::Type* Parser::parse_type() {
 
     ast::Type* type = nullptr;
     switch (lookup_[0].key().type()) {
-        case Key::KEY_UNKNOWN:
-            if (lookup_[1].isa(Token::TOK_LBRACE))
-                type = parse_interface_type();
-            else
-                type = parse_named_type();
-            break;
-
         case Key::KEY_STRUCT:
             type = parse_struct_type();
             break;
@@ -136,6 +129,16 @@ ast::Type* Parser::parse_type() {
 #include "slang/keywordlist.h"
             type = parse_prim_type();
             break;
+
+        case Key::KEY_UNKNOWN:
+            if (lookup_[0].isa(Token::TOK_IDENT)) {
+                if (lookup_[1].isa(Token::TOK_LBRACE))
+                    type = parse_interface_type();
+                else
+                    type = parse_named_type();
+                break;
+            }
+            // Generate an error type otherwise
 
         default:
             error() << "Identifier or data type expected\n";
@@ -159,12 +162,8 @@ ast::NamedType* Parser::parse_named_type() {
     // NamedType ::= ident
     auto type = new_node<ast::NamedType>();
 
-    if (lookup_[0].is_ident()) {
-        type->set_name(lookup_[0].ident());
-        eat(Token::TOK_IDENT);
-    } else {
-        error() << "Type name expected\n";
-    }
+    type->set_name(lookup_[0].ident());
+    eat(Token::TOK_IDENT);
 
     return type.node();
 }
@@ -271,7 +270,7 @@ ast::FunctionDecl* Parser::parse_function_decl(ast::Type* type) {
     expect(Token::TOK_LPAREN);
 
     // Optional argument list
-    if (!lookup_[0].isa(Token::TOK_RPAREN))
+    if (lookup_[0].isa(Token::TOK_IDENT))
     {
         decl->push_arg(parse_arg());
         while (lookup_[0].isa(Token::TOK_COMMA)) {

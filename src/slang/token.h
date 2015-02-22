@@ -59,16 +59,16 @@ public:
 
     Token() : type_(TOK_UNKNOWN) {}
     /// Create a token which is not an identifier nor a literal
-    Token(const Location& loc, Type type)
-        : loc_(loc), type_(type)
+    Token(const Location& loc, Type type, bool new_line)
+        : loc_(loc), type_(type), new_line_(new_line)
     {}
     /// Create an identifier or keyword
-    Token(const Location& loc, const std::string& str, const Keywords& keys)
-        : loc_(loc), type_(TOK_IDENT), ident_(str), key_(keys.keyword(str))
+    Token(const Location& loc, const std::string& str, const Keywords& keys, bool new_line)
+        : loc_(loc), type_(TOK_IDENT), ident_(str), key_(keys.keyword(str)), new_line_(new_line)
     {}
     /// Create a literal
-    Token(const Location& loc, Literal lit)
-        : loc_(loc), type_(TOK_LIT), lit_(lit)
+    Token(const Location& loc, Literal lit, bool new_line)
+        : loc_(loc), type_(TOK_LIT), lit_(lit), new_line_(new_line)
     {}
 
     bool isa(Type type) const { return type_ == type; }
@@ -82,6 +82,8 @@ public:
 
     Literal lit() const { return lit_; }
     const std::string& ident() const { return ident_; }
+
+    bool new_line() const { return new_line_; }
     
 private:
     Location loc_;
@@ -89,6 +91,7 @@ private:
     Literal lit_;
     std::string ident_;
     Key key_;
+    bool new_line_;
 };
 
 inline std::ostream& operator << (std::ostream& out, const Literal& lit) {
