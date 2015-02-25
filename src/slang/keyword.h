@@ -52,6 +52,7 @@ public:
         return map_.find(key) != map_.end();
     }
 
+    /// Returns the keyword associated with the string (if there is no such keyword, returns KEY_UNKNOWN).
     Key keyword(const std::string& key) const {
         auto it = map_.find(key);
         if (it != map_.end())

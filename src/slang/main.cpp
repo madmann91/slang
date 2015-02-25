@@ -45,17 +45,16 @@ bool syntax_analysis(const std::string& filename, const Keywords& keys) {
     Logger logger(filename);
     Lexer lexer(is, keys, logger);
     Parser parser(lexer, logger);
-    ast::DeclList* root = parser.parse();
+    std::unique_ptr<ast::DeclList> root(parser.parse());
 
     Printer printer(std::cout);
     root->print(printer);
-    delete root;
 
     return true;
 }
 
 bool preprocess(const std::string& filename, const Keywords& keys) {
-    // Do the syntax analysis and display the AST
+    // Preprocesses the file and displays the resulting tokens
     std::ifstream is(filename);
     if (!is) return false;
 

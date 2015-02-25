@@ -59,15 +59,15 @@ public:
     };
 
     Token() : type_(TOK_UNKNOWN) {}
-    /// Create a token which is not an identifier nor a literal
+    /// Creates a token which is not an identifier nor a literal.
     Token(const Location& loc, Type type, bool new_line)
         : loc_(loc), type_(type), new_line_(new_line)
     {}
-    /// Create an identifier or keyword
+    /// Creates an identifier or keyword.
     Token(const Location& loc, const std::string& str, const Keywords& keys, bool new_line)
         : loc_(loc), type_(TOK_IDENT), ident_(str), key_(keys.keyword(str)), new_line_(new_line)
     {}
-    /// Create a literal
+    /// Creates a literal.
     Token(const Location& loc, Literal lit, bool new_line)
         : loc_(loc), type_(TOK_LIT), lit_(lit), new_line_(new_line)
     {}

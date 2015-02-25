@@ -33,6 +33,7 @@ class Preprocessor {
 public:
     Preprocessor(Lexer& lexer, Logger& logger);
 
+    /// Extracts the next preprocessed token from the stream.
     Token preprocess();
 
 private:

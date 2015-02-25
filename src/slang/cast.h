@@ -5,6 +5,7 @@
 
 namespace slang {
 
+/// Compile-time converts a pointer type A = ClassA* into B = ClassB* provided ClassB derives from ClassA.
 template <typename A, typename B>
 inline B as(A a) {
     static_assert(std::is_base_of<typename std::remove_pointer<A>::type,
@@ -14,6 +15,7 @@ inline B as(A a) {
     return static_cast<B>(a);
 }
 
+/// Runtime converts a pointer type A = ClassA* into B = ClassB* provided ClassB derives from ClassA.
 template <typename A, typename B>
 inline B isa(A a) {
     static_assert(std::is_base_of<typename std::remove_pointer<A>::type,
@@ -22,6 +24,7 @@ inline B isa(A a) {
     return dynamic_cast<B>(a);
 }
 
+/// Utility class to allow matching over derived class types.
 template <typename Base>
 class Cast {
 public:

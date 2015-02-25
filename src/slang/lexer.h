@@ -15,7 +15,7 @@ class Lexer {
 public:
     Lexer(std::istream& stream, const Keywords& keywords, Logger& logger);
 
-    /// Returns the next token in the stream and goes to the next one.
+    /// Returns the next token in the stream and updates the current position.
     Token lex();
 
 private:

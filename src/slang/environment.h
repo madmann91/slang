@@ -11,7 +11,7 @@ namespace ast {
     class Node;
 }
 
-/// Holds a declaration (function, variable or datatype)
+/// Holds a declaration (function, variable or datatype).
 class Name {
 public:
     Name(const std::string& name)
@@ -31,14 +31,14 @@ private:
     ast::Node* def_;
 };
 
-/// An environment : holds variables, structures and functions names
+/// An environment : holds variables, structures and functions names.
 class Environment {
 public:
     Environment()
         : parent_(nullptr)
     {}
 
-    /// Lookup for a declaration in the environment
+    /// Lookup for a declaration in the environment.
     Name* lookup(const std::string& name) {
         auto it = std::find_if(names_.begin(), names_.end(), [name] (const Name & n) {
             return n.name() == name;
@@ -57,16 +57,16 @@ public:
         return nullptr;
     }
 
-    /// Pushes a name in this environment
+    /// Pushes a name in this environment.
     void push_name(const Name& name) { names_.push_back(name); }
 
-    /// Sets the parent of this environment
+    /// Sets the parent of this environment.
     void set_parent(Environment* parent) { parent_ = parent; }
 
-    /// Gets the parent of this environment (if any)
+    /// Gets the parent of this environment (if any).
     Environment* parent() { return parent_; }
 
-    /// Gets the parent of this environment (if any)
+    /// Gets the parent of this environment (if any).
     const Environment* parent() const { return parent_; }
 
 private:

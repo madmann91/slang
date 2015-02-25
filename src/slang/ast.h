@@ -54,7 +54,7 @@ public:
     using Map::find;
 };
 
-/// Base class for AST nodes
+/// Base class for AST nodes.
 class Node : public Cast<Node> {
 public:
     Node() {}
@@ -68,7 +68,7 @@ private:
     Location loc_;
 };
 
-/// Nodes that have a name
+/// Nodes that have a name.
 class HasName {
 public:
     HasName(const std::string& name = std::string()) : name_(name) {}
@@ -82,7 +82,7 @@ protected:
     std::string name_;
 };
 
-/// Nodes that have an environment bound
+/// Nodes that have an environment bound.
 class HasEnv {
 public:
     virtual ~HasEnv() {}
@@ -95,13 +95,13 @@ protected:
     Ptr<Environment> env_;
 };
 
-/// Base class for expressions
+/// Base class for expressions.
 class Expr : public Node {
 public:
     virtual ~Expr() {}
 };
 
-/// List of expressions separated by a comma
+/// List of expressions separated by a comma.
 class ExprList : public Expr {
 public:
     const PtrVector<Expr>& exprs() const { return exprs_; }
@@ -114,13 +114,13 @@ private:
     PtrVector<Expr> exprs_;
 };
 
-/// An expression that the parser could not parse
+/// An expression that the parser could not parse.
 class ErrorExpr : public Expr {
 public:
     void print(Printer&) const;
 };
 
-/// An expression composed of a literal
+/// An expression composed of a literal.
 class LiteralExpr : public Expr {
 public:
     Literal lit() const { return lit_; }
@@ -132,13 +132,13 @@ private:
     Literal lit_;
 };
 
-/// An expression composed of an identifier
+/// An expression composed of an identifier.
 class IdentExpr : public Expr, public HasName {
 public:
     void print(Printer&) const;
 };
 
-/// A field selection expression
+/// A field selection expression.
 class FieldExpr : public Expr {
 public:
     Expr* left() { return left_.get(); }
@@ -155,7 +155,7 @@ private:
     Ptr<Expr> left_;
 };
 
-/// A array index expression
+/// A array index expression.
 class IndexExpr : public Expr {
 public:
     Expr* left() { return left_.get(); }
@@ -172,7 +172,7 @@ private:
     Ptr<Expr> left_, index_;
 };
 
-/// A function call expression
+/// A function call expression.
 class CallExpr : public Expr, public HasName {
 public:
     const PtrVector<Expr>& args() const { return args_; }
@@ -185,7 +185,7 @@ private:
     PtrVector<Expr> args_;
 };
 
-/// An unary operation expression
+/// An unary operation expression.
 class UnOpExpr : public Expr {
 public:
     enum Type {
@@ -216,7 +216,7 @@ private:
     Ptr<Expr> op_;
 };
 
-/// A conditional expression (a ? b : c)
+/// A conditional expression (a ? b : c).
 class CondExpr : public Expr {
 public:
     Expr* cond() { return cond_.get(); }
@@ -237,7 +237,7 @@ private:
     Ptr<Expr> cond_, if_true_, if_false_;
 };
 
-/// An assignment expression (=, +=, -=, ...)
+/// An assignment expression (=, +=, -=, ...).
 class AssignOpExpr : public Expr {
 public:
     enum Type {
@@ -275,7 +275,7 @@ private:
     Ptr<Expr> left_, right_;
 };
 
-/// A binary operation expression
+/// A binary operation expression.
 class BinOpExpr : public Expr {
 public:
     enum Type {
@@ -320,7 +320,7 @@ private:
     Ptr<Expr> left_, right_;
 };
 
-/// Structure initializer expression
+/// Structure initializer expression.
 class InitExpr : public Expr {
 public:
     const PtrVector<Expr>& exprs() const { return exprs_; }
@@ -333,13 +333,13 @@ private:
     PtrVector<Expr> exprs_;
 };
 
-/// Type qualifier, base class
+/// Type qualifier, base class.
 class TypeQualifier : public Node {
 public:
     virtual ~TypeQualifier() {}
 };
 
-/// Storage qualifiers
+/// Storage qualifiers.
 class StorageQualifier : public TypeQualifier {
 public:
     enum Storage {
@@ -356,7 +356,7 @@ protected:
     Storage storage_;
 };
 
-/// Precision qualifier
+/// Precision qualifier.
 class PrecisionQualifier : public TypeQualifier {
 public:
     enum Precision {
@@ -373,7 +373,7 @@ private:
     Precision prec_;
 };
 
-/// Interpolation qualifier
+/// Interpolation qualifier.
 class InterpQualifier : public TypeQualifier {
 public:
     enum Interp {
@@ -390,7 +390,7 @@ private:
     Interp interp_;
 };
 
-/// Subroutine qualifier (contains a list of type names)
+/// Subroutine qualifier (contains a list of type names).
 class SubroutineQualifier : public TypeQualifier {
 public:
     const std::vector<std::string>& names() const { return names_; }
@@ -403,7 +403,7 @@ protected:
     std::vector<std::string> names_;
 };
 
-/// Layout qualifier (contains a map from identifiers to values)
+/// Layout qualifier (contains a map from identifiers to values).
 class LayoutQualifier : public TypeQualifier {
 public:
     const PtrMap<std::string, Expr>& layouts() const { return layouts_; }
@@ -419,25 +419,25 @@ private:
     PtrMap<std::string, Expr> layouts_;
 };
 
-/// Invariance qualifier
+/// Invariance qualifier.
 class InvariantQualifier : public TypeQualifier {
 public:
     void print(Printer&) const;
 };
 
-/// Attribute qualifier (deprecated in GLSL 4.0)
+/// Attribute qualifier (deprecated in GLSL 4.0).
 class AttributeQualifier : public TypeQualifier {
 public:
     void print(Printer&) const;
 };
 
-/// Varying qualifier (deprecated in GLSL 4.0)
+/// Varying qualifier (deprecated in GLSL 4.0).
 class VaryingQualifier : public TypeQualifier {
 public:
     void print(Printer&) const;
 };
 
-/// Array specifier, can have several dimensions
+/// Array specifier, can have several dimensions.
 class ArraySpecifier : public Node {
 public:
     const PtrVector<Expr>& dims() const { return dims_; }
@@ -450,7 +450,7 @@ private:
     PtrVector<Expr> dims_;
 };
 
-/// Nodes that have an array specifier
+/// Nodes that have an array specifier.
 class HasArraySpecifier {
 public:
     virtual ~HasArraySpecifier() {}
@@ -463,7 +463,7 @@ protected:
     Ptr<ArraySpecifier> array_spec_;
 };
 
-/// Base class for types
+/// Base class for types.
 class Type : public Node, public HasArraySpecifier {
 public:
     bool has_qualifier() const { return quals_.size() != 0; }
@@ -476,7 +476,7 @@ protected:
     PtrVector<TypeQualifier> quals_;
 };
 
-/// Nodes that have a type
+/// Nodes that have a type.
 class HasType {
 public:
     virtual ~HasType() {}
@@ -489,13 +489,13 @@ protected:
     Ptr<Type> type_;
 };
 
-/// A type that the parser cannot parse
+/// A type that the parser cannot parse.
 class ErrorType : public Type {
 public:
     void print(Printer&) const;
 };
 
-/// Primitive type
+/// Primitive type.
 class PrimType : public Type {
 public:
     enum Prim {
@@ -512,17 +512,17 @@ private:
     Prim prim_;
 };
 
-/// A type referenced by a name (can be structure, or typedef)
+/// A type referenced by a name (can be structure, or typedef).
 class NamedType : public Type, public HasName {
 public:
     void print(Printer&) const;
 };
 
-/// Base class for declarations
+/// Base class for declarations.
 class Decl : public Node {
 };
 
-/// A list of declarations
+/// A list of declarations.
 class DeclList : public Node, public HasEnv {
 public:
     const PtrVector<Decl>& decls() const { return decls_; }
@@ -535,13 +535,13 @@ private:
     PtrVector<Decl> decls_;
 };
 
-/// Base class for statements
+/// Base class for statements.
 class Stmt : public Node {
 public:
     virtual ~Stmt() {}
 };
 
-/// A list of declarations
+/// A list of statements.
 class StmtList : public Stmt {
 public:
     const PtrVector<Stmt>& stmts() const { return stmts_; }
@@ -554,7 +554,7 @@ private:
     PtrVector<Stmt> stmts_;
 };
 
-/// A default precision declaration
+/// A default precision declaration.
 class PrecisionDecl : public Decl {
 public:
     Type* type() { return type_.get(); }
@@ -572,7 +572,7 @@ private:
     Ptr<PrecisionQualifier> prec_;
 };
 
-/// A variable declaration
+/// A variable declaration.
 class Variable : public Node, public HasName, public HasArraySpecifier {
 public:
     Expr* init() { return init_.get(); }
@@ -585,7 +585,7 @@ private:
     Ptr<Expr> init_;
 };
 
-/// A list of variable declarations
+/// A list of variable declarations.
 class VariableDecl : public Decl, public HasType {
 public:
     const PtrVector<Variable>& vars() const { return vars_; }
@@ -598,7 +598,7 @@ private:
     PtrVector<Variable> vars_;
 };
 
-/// Compound type : structure or interface block
+/// Compound type : structure or interface block.
 class CompoundType : public Type {
 public:
     const PtrVector<VariableDecl>& fields() const { return fields_; }
@@ -609,25 +609,25 @@ protected:
     PtrVector<VariableDecl> fields_;
 };
 
-/// Structure type
+/// Structure type.
 class StructType : public CompoundType, public HasName {
 public:
     void print(Printer&) const;
 };
 
-/// Interface block type
+/// Interface block type.
 class InterfaceType : public CompoundType, public HasName {
 public:
     void print(Printer&) const;
 };
 
-/// Function argument
+/// Function argument.
 class Arg : public Node, public HasName, public HasType, public HasArraySpecifier {
 public:
     void print(Printer&) const;
 };
 
-/// Function prototype of function definition
+/// Function prototype of function definition.
 class FunctionDecl : public Decl, public HasType, public HasName {
 public:
     bool is_prototype() const { return static_cast<bool>(body_); }
@@ -647,7 +647,7 @@ private:
     Ptr<StmtList> body_;
 };
 
-/// Condition in a loop clause
+/// Condition in a loop clause.
 class LoopCond : public Node {
 public:
     bool is_expr() const { return static_cast<bool>(expr_); }
@@ -673,7 +673,7 @@ private:
     Ptr<Type> var_type_;
 };
 
-/// A declaration statement
+/// A declaration statement.
 class DeclStmt : public Stmt {
 public:
     Decl* decl() { return decl_.get(); }
@@ -686,7 +686,7 @@ private:
     Ptr<Decl> decl_;
 };
 
-/// A declaration statement
+/// A declaration statement.
 class ExprStmt : public Stmt {
 public:
     Expr* expr() { return expr_.get(); }
@@ -699,7 +699,7 @@ private:
     Ptr<Expr> expr_;
 };
 
-/// If-else statement
+/// If-else statement.
 class IfStmt : public Stmt {
 public:
     Expr* cond() { return cond_.get(); }
@@ -739,7 +739,7 @@ private:
     Ptr<Expr> expr_;
 };
 
-/// Case label statement
+/// Case label statement.
 class CaseLabelStmt : public Stmt {
 public:
     Expr* expr() { return expr_.get(); }
@@ -754,7 +754,7 @@ private:
     Ptr<Expr> expr_;
 };
 
-/// Base class for loop statements
+/// Base class for loop statements.
 class LoopStmt : public Stmt {
 public:
     virtual ~LoopStmt() {}
@@ -772,7 +772,7 @@ protected:
     Ptr<Stmt> body_;
 };
 
-/// For loop statement
+/// For loop statement.
 class ForLoopStmt : public LoopStmt {
 public:
     Stmt* init() { return init_.get(); }
@@ -790,25 +790,25 @@ private:
     Ptr<Expr> iter_;
 };
 
-/// While loop statement
+/// While loop statement.
 class WhileLoopStmt : public LoopStmt {
 public:
     void print(Printer&) const;
 };
 
-/// Do-While loop statement
+/// Do-While loop statement.
 class DoWhileLoopStmt : public LoopStmt {
 public:
     void print(Printer&) const;
 };
 
-/// Break statement
+/// Break statement.
 class BreakStmt : public Stmt {
 public:
     void print(Printer& out) const;
 };
 
-/// Continue statement
+/// Continue statement.
 class ContinueStmt : public Stmt {
 public:
     void print(Printer& out) const;
@@ -820,7 +820,7 @@ public:
     void print(Printer& out) const;
 };
 
-/// Return statement
+/// Return statement.
 class ReturnStmt : public Stmt {
 public:
     Expr* value() { return value_.get(); }

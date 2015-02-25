@@ -15,7 +15,7 @@ class Parser {
 public:
     Parser(Lexer& lexer, Logger& logger);
 
-    /// Parses the stream and produces an AST
+    /// Parses the stream and produces an AST.
     ast::DeclList* parse();
 
 private:

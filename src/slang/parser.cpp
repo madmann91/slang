@@ -771,7 +771,7 @@ ast::Expr* Parser::parse_unary_expr() {
 }
 
 ast::Expr* Parser::parse_binary_expr(ast::Expr* left, int pred) {
-    // BinOpExpr<precedence> ::= BinOpExpr<Precedence - 1> BinOp<precedence> BinOpExpr<Precedence>
+    // BinOpExpr<Precedence> ::= BinOpExpr<Precedence - 1> BinOp<Precedence> BinOpExpr<Precedence>
     while (true) {
         const ast::BinOpExpr::Type type = token_to_binop(lookup_[0]);
         if (type == ast::BinOpExpr::BINOP_UNKNOWN)
