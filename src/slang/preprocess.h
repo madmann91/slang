@@ -9,7 +9,7 @@
 
 namespace slang {
 
-/// A #define macro (without the name)
+/// A #define macro (without the name).
 class Macro {
 public:
     Macro() {}
@@ -28,8 +28,7 @@ private:
     std::vector<Token> rule_;
 };
 
-/// The preprocessor : reads tokens and produces tokens while
-/// expanding macros and handling preprocessor directives.
+/// The preprocessor : expands macros and handles preprocessor directives.
 class Preprocessor {
 public:
     Preprocessor(Lexer& lexer, Logger& logger);

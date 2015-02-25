@@ -9,7 +9,7 @@
 
 namespace slang {
 
-/// A literal value as specified in the language
+/// A literal value as specified in the language.
 class Literal {
 public:
     enum Type {
@@ -50,6 +50,7 @@ private:
     } value_;
 };
 
+/// A lexer token. Can represent a special character, a literal, an identifier or a keyword.
 class Token {
 public:
     enum Type {

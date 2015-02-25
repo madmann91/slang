@@ -512,6 +512,7 @@ private:
     Prim prim_;
 };
 
+/// A type referenced by a name (can be structure, or typedef)
 class NamedType : public Type, public HasName {
 public:
     void print(Printer&) const;

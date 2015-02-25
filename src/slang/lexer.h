@@ -11,7 +11,6 @@
 namespace slang {
 
 /// The lexer : produces a stream of tokens from a stream of characters.
-/// Errors are reported through a logger object.
 class Lexer {
 public:
     Lexer(std::istream& stream, const Keywords& keywords, Logger& logger);

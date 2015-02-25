@@ -6,8 +6,6 @@
 namespace slang {
 
 /// Pretty printer class. Used by the print method in each AST node.
-/// The indentation level, indentation symbol and parentheses mode
-/// can be set at construction time.
 class Printer {
 public:
     Printer(std::ostream& out,

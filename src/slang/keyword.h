@@ -5,6 +5,7 @@
 
 namespace slang {
 
+/// Class that represents keywords.
 class Key {
 public:
     enum Type {
@@ -35,6 +36,7 @@ private:
     Type type_;
 };
 
+/// Map between strings and associated keywords.
 class Keywords {
 public:
     Keywords() {}
