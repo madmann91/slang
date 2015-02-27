@@ -4,16 +4,18 @@
 
 namespace slang {
 
-Preprocessor::Preprocessor(Lexer& lexer, Logger& logger)
-    : lexer_(lexer), logger_(logger), buf_index_(0)
+Preprocessor::Preprocessor(Lexer& lexer, Logger& logger, int max_depth)
+    : lexer_(lexer), logger_(logger), max_depth_(max_depth)
 {
     lex();
 }
 
 Token Preprocessor::preprocess() {
     // Return tokens resulting from a macro expansion if present
-    if (buf_index_ < buffer_.size()) {
-        return buffer_[buf_index_++];
+    if (buffer_.size()) {
+        Token tok = buffer_.front();
+        buffer_.pop_front();
+        return tok;
     }
 
     // Parse preprocessor directives
@@ -29,8 +31,9 @@ Token Preprocessor::preprocess() {
 
     // Expand macros if needed
     if (lookup_.isa(Token::TOK_IDENT)) {
-        if (macros_.find(lookup_.ident()) != macros_.end()) {
-
+        auto macro = macros_.find(lookup_.ident());
+        if (macro != macros_.end()) {
+            expanded_.clear();
         }
     }
 
@@ -116,12 +119,12 @@ void Preprocessor::parse_define() {
     }
 
     // Parse macro arguments
-    std::vector<std::string> args;
+    std::unordered_map<std::string, int> args;
     if (lookup_.isa(Token::TOK_LPAREN)) {
         eat(Token::TOK_LPAREN);
 
         while (lookup_.isa(Token::TOK_IDENT)) {
-            args.push_back(lookup_.ident());
+            args.emplace(std::make_pair(lookup_.ident(), args.size()));
             eat(Token::TOK_IDENT);
 
             if (!lookup_.isa(Token::TOK_COMMA))
@@ -145,6 +148,111 @@ void Preprocessor::parse_define() {
         warn() << "Redefinition of macro \'" << macro << "\'\n";
 
     macros_[macro] = Macro(args, body);
+}
+
+void Preprocessor::expand_macro(const Macro& macro, std::list<Token>& buffer, int depth) {
+    if (depth > max_depth_) {
+        error() << "Maximum macro expansion depth reached\n";
+        return;
+    }
+
+    std::string name = buffer.front().ident();
+
+    // Do not recursively expand macros that have already been expanded
+    if (expanded_[name]) return;
+
+    expanded_[name] = true;
+    buffer.pop_front();
+
+    // Read macro arguments (may not be present)
+    std::vector<Macro::Arg> args;
+    if (buffer.size() > 0) {
+        if (buffer.front().isa(Token::TOK_LPAREN)) {
+            args = parse_macro_args(name, macro, buffer);
+        } else {
+            assert(0 && "Buffer should only contain macro name and arguments");
+        }
+
+        buffer.clear();
+    }
+
+    if (args.size() != macro.args().size()) {
+        error() << "Invalid number of arguments given to macro \'" << name
+                << "\' (found " << args.size() << ", expected " << macro.num_args()
+                << ")\n";
+        args.resize(macro.num_args());
+    }
+
+    // Expand the macro into the buffer
+    for (auto tok: macro.rule()) {
+        if (tok.isa(Token::TOK_IDENT)) {
+            auto arg_index = macro.args().find(tok.ident());
+            if (arg_index == macro.args().end()) {
+                // This is not a macro argument
+                buffer.push_back(tok);
+            } else {
+                // This is a macro argument, has to be replaced
+                buffer.insert(buffer.end(), args[arg_index->second].begin(), args[arg_index->second].end());
+            }
+        }
+    }
+
+    // Expand macros present in the expanded string
+    auto first = buffer.begin();
+    while (first != buffer.end()) {
+        if (first->isa(Token::TOK_IDENT)) {
+            auto next_macro = macros_.find(lookup_.ident());
+            if (next_macro != macros_.end()) {
+                auto last = (next_macro->second.has_args()) ? expansion_site(buffer, first) : std::next(first);
+
+                std::list<Token> exp_buf;
+                exp_buf.splice(exp_buf.begin(), buffer, first, last);
+                expand_macro(next_macro->second, exp_buf, depth + 1);
+
+                first = exp_buf.begin();
+                buffer.splice(last, exp_buf, first, exp_buf.end());
+            }
+        } else {
+            first++;
+        }
+    }
+}
+
+std::vector<Macro::Arg> Preprocessor::parse_macro_args(const std::string& name, const Macro& macro, const std::list<Token>& buffer) {
+    auto it = buffer.begin();
+    assert(it->isa(Token::TOK_LPAREN));
+
+    it++;
+
+    // Read argument values
+    std::vector<Macro::Arg> args;
+    if (!it->isa(Token::TOK_RPAREN)) {
+        args.emplace_back();
+        while (it != buffer.end() && !it->isa(Token::TOK_RPAREN)) {
+            if (it->isa(Token::TOK_COMMA)) {
+                args.emplace_back();
+            } else {
+                args.back().push_back(*it);
+            }
+            it++;
+        }
+    }
+
+    // Assert that there is a closing parenthesis
+    if (it != buffer.end()) {
+        it++;
+        assert(it == buffer.end());
+    } else {
+        error() << "Missing ending parenthesis in invocation of macro \'" << name << "\'\n";
+    }
+
+    return args;
+}
+
+std::list<Token>::iterator Preprocessor::expansion_site(const std::list<Token>& buffer, std::list<Token>::iterator first) {
+    assert(first->isa(Token::TOK_IDENT));
+    first++;
+    return first;
 }
 
 std::ostream& Preprocessor::error() {
