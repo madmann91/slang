@@ -22,7 +22,7 @@ public:
         : args_(args), rule_(rule)
     {}
 
-    std::vector<Token> apply(const std::vector<Arg>& args) const;
+    std::list<Token> apply(const std::vector<Arg>& args) const;
 
     const std::unordered_map<std::string, int>& args() const { return args_; }
     const std::vector<Token>& rule() const { return rule_; }
@@ -56,9 +56,9 @@ private:
     void parse_ifdef();
     void parse_define();
 
-    void expand_macro(const Macro&, std::list<Token>&, int);
-    std::vector<Macro::Arg> parse_macro_args(const std::string&, const Macro&, const std::list<Token>&);
-    std::list<Token>::iterator expansion_site(const std::list<Token>&, std::list<Token>::iterator);
+    void start_expansion(const Macro& macro);
+    std::list<Token> expand_macro(const Macro&, const std::string&, const std::vector<Macro::Arg>&, int);
+    std::vector<Macro::Arg> macro_args(const std::string&, const Macro&, std::list<Token>::iterator&, std::list<Token>&);
 
     std::ostream& error();
     std::ostream& warn();
