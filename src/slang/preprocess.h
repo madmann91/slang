@@ -10,7 +10,7 @@
 
 namespace slang {
 
-/// A #define macro (without the name).
+/// A preprocessor macro (without the name).
 class Macro {
 public:
     typedef std::vector<Token> Arg;
@@ -22,6 +22,7 @@ public:
         : args_(args), rule_(rule)
     {}
 
+    /// Applies the macro rule with the given arguments, pushes the result into the vector
     void apply(const std::vector<Arg>&, std::vector<Token>&) const;
 
     const std::unordered_map<std::string, size_t>& args() const { return args_; }
@@ -29,6 +30,7 @@ public:
 
     bool has_args() const { return args_.size() != 0; }
     int num_args() const { return args_.size(); }
+
 private:
     std::unordered_map<std::string, size_t> args_;
     std::vector<Token> rule_;

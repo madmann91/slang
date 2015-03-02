@@ -28,9 +28,13 @@ inline B isa(A a) {
 template <typename Base>
 class Cast {
 public:
+    /// Casts the object to the target type, no check is done.
     template <typename T> T* as() { return slang::as<Base*, T*>(static_cast<Base*>(this)); }
+    /// Casts the object to the target type, dynamically checking if the cast is possible (returns NULL if the cast is not possible).
     template <typename T> T* isa() { return slang::isa<Base*, T*>(static_cast<Base*>(this)); }
+    /// Casts the object to the target type, no check is done.
     template <typename T> const T* as() const { return slang::as<const Base*, const T*>(static_cast<const Base*>(this)); }
+    /// Casts the object to the target type, dynamically checking if the cast is possible (returns NULL if the cast is not possible).
     template <typename T> const T* isa() const { return slang::isa<const Base*, const T*>(static_cast<const Base*>(this)); }
 };
 
