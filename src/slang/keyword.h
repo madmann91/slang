@@ -44,8 +44,34 @@ public:
         : map_(map)
     {}
 
+    /// Add a keyword to the dictionary
     void add_keyword(const std::string& name, Key::Type type) {
         map_[name] = Key(type);
+    }
+
+    /// Adds every possible keyword to the dictionary
+    void add_all_keywords() {
+#define SLANG_KEY_UNKNOWN(key, str)
+#define SLANG_KEY(key, str) add_keyword(str, Key::KEY_##key);
+#include "slang/keywordlist.h"
+    }
+
+    /// Adds all data type keywords to the dictionary
+    void add_data_keywords() {
+#define SLANG_KEY_DATA(key, str) add_keyword(str, Key::KEY_##key);
+#include "slang/keywordlist.h"
+    }
+
+    /// Adds all control flow keywords to the dictionary
+    void add_flow_keywords() {
+#define SLANG_KEY_FLOW(key, str) add_keyword(str, Key::KEY_##key);
+#include "slang/keywordlist.h"
+    }
+
+    /// Adds all qualifier keywords to the dictionary
+    void add_qualifier_keywords() {
+#define SLANG_KEY_QUAL(key, str) add_keyword(str, Key::KEY_##key);
+#include "slang/keywordlist.h"
     }
 
     bool is_keyword(const std::string& key) const {

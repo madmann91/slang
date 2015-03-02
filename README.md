@@ -19,9 +19,7 @@ void parse_glsl(const std::string& filename) {
 
     // Generate list of available keywords (you can choose to exclude some of them at runtime)
     Keywords keys;
-#define SLANG_KEY_UNKNOWN(key, str)
-#define SLANG_KEY(key, str) keys.add_keyword(str, Key::KEY_##key);
-#include "slang/keywordlist.h"
+    keys.add_all_keywords();
 
     // Create a logger object, error messages can be redirected
     Logger logger(filename);

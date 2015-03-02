@@ -86,9 +86,7 @@ int main(int argc, char** argv) {
 
     // Generate list of available keywords
     Keywords keys;
-#define SLANG_KEY_UNKNOWN(key, str)
-#define SLANG_KEY(key, str) keys.add_keyword(str, Key::KEY_##key);
-#include "slang/keywordlist.h"
+    keys.add_all_keywords();
 
     for (int i = 1; i < argc; i++) {
         if (argv[i][0] == '-') {
