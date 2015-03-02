@@ -17,32 +17,42 @@ public:
 
     Macro() {}
 
-    Macro(const std::unordered_map<std::string, int>& args,
+    Macro(const std::unordered_map<std::string, size_t>& args,
           const std::vector<Token>& rule)
         : args_(args), rule_(rule)
     {}
 
-    std::list<Token> apply(const std::vector<Arg>& args) const;
+    void apply(const std::vector<Arg>&, std::vector<Token>&) const;
 
-    const std::unordered_map<std::string, int>& args() const { return args_; }
+    const std::unordered_map<std::string, size_t>& args() const { return args_; }
     const std::vector<Token>& rule() const { return rule_; }
 
     bool has_args() const { return args_.size() != 0; }
     int num_args() const { return args_.size(); }
 private:
-    std::unordered_map<std::string, int> args_;
+    std::unordered_map<std::string, size_t> args_;
     std::vector<Token> rule_;
 };
 
 /// The preprocessor : expands macros and handles preprocessor directives.
 class Preprocessor {
 public:
-    Preprocessor(Lexer& lexer, Logger& logger, int max_depth = 1024);
+    Preprocessor(Lexer& lexer, Logger& logger, size_t max_depth = 1024);
 
     /// Extracts the next preprocessed token from the stream.
     Token preprocess();
 
 private:
+    struct Context {
+        Context() {}
+        Context(int a, int b, const std::string& name)
+            : first(a), last(b), cur(a), macro_name(name)
+        {}
+
+        int first, last, cur;
+        std::string macro_name;
+    };
+
     void lex();
     void eat(Token::Type);
     void expect(Token::Type);
@@ -57,8 +67,6 @@ private:
     void parse_define();
 
     void start_expansion(const Macro& macro);
-    std::list<Token> expand_macro(const Macro&, const std::string&, const std::vector<Macro::Arg>&, int);
-    std::vector<Macro::Arg> macro_args(const std::string&, const Macro&, std::list<Token>::iterator&, std::list<Token>&);
 
     std::ostream& error();
     std::ostream& warn();
@@ -66,8 +74,9 @@ private:
     Lexer& lexer_;
     Logger& logger_;
     Token lookup_;
-    int max_depth_;
-    std::list<Token> buffer_;
+    size_t max_depth_;
+    std::vector<Context> stack_;
+    std::vector<Token> buffer_;
     std::unordered_map<std::string, bool> expanded_;
     std::unordered_map<std::string, Macro> macros_;
 };
