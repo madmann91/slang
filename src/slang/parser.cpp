@@ -18,7 +18,7 @@ ast::DeclList* Parser::parse() {
     return parse_root();
 }
 
-void Parser::lex() {
+void Parser::next() {
     prev_ = lookup_[0].loc().end();
     lookup_[0] = lookup_[1];
     lookup_[1] = lookup_[2];
@@ -27,26 +27,26 @@ void Parser::lex() {
 
 void Parser::eat(Token::Type type) {
     assert(lookup_[0].type() == type);
-    lex();
+    next();
 }
 
 void Parser::eat(Key::Type type) {
     assert(lookup_[0].key().type() == type);
-    lex();
+    next();
 }
 
 void Parser::expect(Token::Type type) {
     if (lookup_[0].type() != type)
         error() << "\'" << type << "\' expected\n";
 
-    lex();
+    next();
 }
 
 void Parser::expect(Key::Type type) {
     if (lookup_[0].key().type() != type)
         error() << "\'" << Key(type) << "\' expected\n";
 
-    lex();
+    next();
 }
 
 std::ostream& Parser::error() {
@@ -61,7 +61,7 @@ ast::DeclList* Parser::parse_root() {
             root->push_decl(parse_decl());
         } else {
             error() << "Keyword or identifier expected\n";
-            lex();
+            next();
         }
     }
 
@@ -736,7 +736,7 @@ ast::Expr* Parser::parse_unary_expr() {
     if (pre_type != ast::UnOpExpr::UNOP_UNKNOWN) {
         auto unop = new_node<ast::UnOpExpr>();
         unop->set_type(pre_type);
-        lex();
+        next();
         
         unop->set_operand(parse_unary_expr());
         return unop.node();
@@ -752,7 +752,7 @@ ast::Expr* Parser::parse_unary_expr() {
         if (post_type != ast::UnOpExpr::UNOP_UNKNOWN) {
             auto unop = new_node<ast::UnOpExpr>();
             unop->set_type(post_type);
-            lex();
+            next();
             
             unop->set_operand(expr);
 
@@ -783,7 +783,7 @@ ast::Expr* Parser::parse_binary_expr(ast::Expr* left, int pred) {
             return left;
 
         auto current = new_node<ast::BinOpExpr>();
-        lex();
+        next();
 
         ast::Expr* right = parse_unary_expr();
 
@@ -836,7 +836,7 @@ ast::Expr* Parser::parse_assign_expr() {
     ast::AssignOpExpr::Type type = token_to_assignop(lookup_[0]);
     if (type != ast::AssignOpExpr::ASSIGN_UNKNOWN) {
         auto assign = new_node<ast::AssignOpExpr>();
-        lex();
+        next();
         assign->set_type(type);
         assign->set_left(left);
         assign->set_right(parse_assign_expr());

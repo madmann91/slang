@@ -46,7 +46,7 @@ private:
         return NodeLocation<T>(new T(args...), this);
     }
 
-    void lex();
+    void next();
 
     void eat(Token::Type);
     void eat(Key::Type);

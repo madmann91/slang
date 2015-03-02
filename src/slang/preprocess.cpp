@@ -22,7 +22,7 @@ void Macro::apply(const std::vector<Arg>& args, std::vector<Token>& buffer) cons
 Preprocessor::Preprocessor(Lexer& lexer, Logger& logger, size_t max_depth)
     : lexer_(lexer), logger_(logger), max_depth_(max_depth)
 {
-    lex();
+    next();
 }
 
 Token Preprocessor::preprocess() {
@@ -54,11 +54,11 @@ Token Preprocessor::preprocess() {
     }
 
     Token tok = lookup_;
-    lex();
+    next();
     return tok;
 }
 
-void Preprocessor::lex() {
+void Preprocessor::next() {
     while (!stack_.empty() && stack_.back().cur >= stack_.back().last) {
         buffer_.resize(stack_.back().first);
         expanded_[stack_.back().macro_name] = false;
@@ -75,13 +75,13 @@ void Preprocessor::lex() {
 
 void Preprocessor::eat(Token::Type type) {
     assert(lookup_.isa(type));
-    lex();
+    next();
 }
 
 void Preprocessor::expect(Token::Type type) {
     if (!lookup_.isa(type))
         error() << "\'" << type << "\' expected\n";
-    lex();
+    next();
 }
 
 void Preprocessor::parse_directive() {
@@ -168,7 +168,7 @@ void Preprocessor::parse_define() {
     while (!lookup_.new_line() &&
            !lookup_.isa(Token::TOK_EOF)) {
         body.push_back(lookup_);
-        lex();
+        next();
     }
 
     if (macros_.find(macro) != macros_.end())
@@ -195,7 +195,7 @@ void Preprocessor::start_expansion(const Macro& macro) {
                     } else {
                         args.back().emplace_back(lookup_);
                     }
-                    lex();
+                    next();
                 }
             }
 
@@ -223,7 +223,7 @@ void Preprocessor::start_expansion(const Macro& macro) {
         int last = buffer_.size();
 
         stack_.emplace_back(first, last, macro_name);
-        lex();
+        next();
     } else {
         error() << "Maximum macro expansion depth reached\n";
     }

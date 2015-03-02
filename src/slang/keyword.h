@@ -49,7 +49,7 @@ public:
         map_[name] = Key(type);
     }
 
-    /// Adds every possible keyword to the dictionary
+    /// Adds all keywords to the dictionary
     void add_all_keywords() {
 #define SLANG_KEY_UNKNOWN(key, str)
 #define SLANG_KEY(key, str) add_keyword(str, Key::KEY_##key);

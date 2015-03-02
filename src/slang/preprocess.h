@@ -55,7 +55,7 @@ private:
         std::string macro_name;
     };
 
-    void lex();
+    void next();
     void eat(Token::Type);
     void expect(Token::Type);
 
