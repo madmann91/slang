@@ -12,7 +12,7 @@ Here is a simple example describing how to parse a GLSL file :
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.cpp}
 using namespace slang;
 
-void parse_glsl(const std::string& filename) {
+bool parse_glsl(const std::string& filename) {
     // Open a stream for reading in text mode
     std::ifstream is(filename);
     if (!is) return false;
@@ -33,6 +33,7 @@ void parse_glsl(const std::string& filename) {
     // AST can be pretty-printed to an output stream
     Printer printer(std::cout);
     root->print(printer);
+    return true;
 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
