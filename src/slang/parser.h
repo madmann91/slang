@@ -2,6 +2,7 @@
 #define SLANG_PARSER_H
 
 #include <ostream>
+#include <functional>
 
 #include "slang/lexer.h"
 #include "slang/environment.h"
@@ -13,7 +14,7 @@ namespace slang {
 /// Parser object : creates the Abstract Syntax Tree (AST) for a given SLANG program.
 class Parser {
 public:
-    Parser(Lexer& lexer, Logger& logger);
+    Parser(std::function<Token()> input, Logger& logger);
 
     /// Parses the stream and produces an AST.
     ast::DeclList* parse();
@@ -106,7 +107,8 @@ private:
     ast::ExprStmt* parse_expr_stmt();
     ast::ReturnStmt* parse_return_stmt();
 
-    Lexer& lexer_;
+    std::function<Token()> input_;
+
     Logger& logger_;
     Environment env_;
     Token lookup_[3];

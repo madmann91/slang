@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <list>
+#include <functional>
 
 #include "slang/token.h"
 #include "slang/lexer.h"
@@ -39,7 +40,7 @@ private:
 /// The preprocessor : expands macros and handles preprocessor directives.
 class Preprocessor {
 public:
-    Preprocessor(Lexer& lexer, Logger& logger, size_t max_depth = 1024);
+    Preprocessor(std::function<Token()> input, Logger& logger, size_t max_depth = 1024);
 
     /// Extracts the next preprocessed token from the stream.
     Token preprocess();
@@ -73,7 +74,8 @@ private:
     std::ostream& error();
     std::ostream& warn();
 
-    Lexer& lexer_;
+    std::function<Token()> input_;
+
     Logger& logger_;
     Token lookup_;
     size_t max_depth_;

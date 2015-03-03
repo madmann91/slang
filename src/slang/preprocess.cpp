@@ -19,8 +19,8 @@ void Macro::apply(const std::vector<Arg>& args, std::vector<Token>& buffer) cons
     }
 }
 
-Preprocessor::Preprocessor(Lexer& lexer, Logger& logger, size_t max_depth)
-    : lexer_(lexer), logger_(logger), max_depth_(max_depth)
+Preprocessor::Preprocessor(std::function<Token()> input, Logger& logger, size_t max_depth)
+    : input_(input), logger_(logger), max_depth_(max_depth)
 {
     next();
 }
@@ -66,7 +66,7 @@ void Preprocessor::next() {
     }
 
     if (stack_.empty()) {
-        lookup_ = lexer_.lex();
+        lookup_ = input_();
     } else {
         // Read token from stacked context
         lookup_ = buffer_[stack_.back().cur++];
