@@ -186,17 +186,14 @@ void Preprocessor::start_expansion(const Macro& macro) {
         eat(Token::TOK_IDENT);
         if (lookup_.isa(Token::TOK_LPAREN)) {
             eat(Token::TOK_LPAREN);
-            if (!lookup_.isa(Token::TOK_RPAREN) &&
-                !lookup_.isa(Token::TOK_EOF)) {
-                args.emplace_back();
-                while (!lookup_.isa(Token::TOK_EOF) && !lookup_.isa(Token::TOK_RPAREN)) {
-                    if (lookup_.isa(Token::TOK_COMMA)) {
-                        args.emplace_back();
-                    } else {
-                        args.back().emplace_back(lookup_);
-                    }
-                    next();
+            args.emplace_back();
+            while (!lookup_.isa(Token::TOK_EOF) && !lookup_.isa(Token::TOK_RPAREN)) {
+                if (lookup_.isa(Token::TOK_COMMA)) {
+                    args.emplace_back();
+                } else {
+                    args.back().emplace_back(lookup_);
                 }
+                next();
             }
 
             if (!lookup_.isa(Token::TOK_RPAREN)) {
@@ -206,7 +203,7 @@ void Preprocessor::start_expansion(const Macro& macro) {
 
             if (args.size() != macro.args().size()) {
                 eat(Token::TOK_RPAREN);
-                error() << "Invalid number of arguments for macro \'" << macro_name << "\'"
+                error() << "Invalid number of arguments for macro \'" << macro_name << "\' "
                         << "(got " << args.size() << ", expected " << macro.args().size() << ")\n";
                 return;
             }
