@@ -56,10 +56,21 @@ private:
         std::string macro_name;
     };
 
-    enum State {
-        STATE_IF,
-        STATE_ELSE,
-        STATE_ELIF
+    struct State {
+        enum Branch {
+            BRANCH_IF,
+            BRANCH_ELSE,
+            BRANCH_ELIF
+        };
+
+        State() {}
+        State(bool e, bool d, Branch b)
+            : enabled(e), done(d), branch(b)
+        {}
+
+        bool enabled;
+        bool done;
+        Branch branch;
     };
 
     void next();
@@ -91,7 +102,7 @@ private:
     Token prev_, lookup_;
     size_t max_depth_;
     bool expand_;
-    std::vector<std::pair<bool, State> > state_stack_;
+    std::vector<State> state_stack_;
     std::vector<Context> ctx_stack_;
     std::vector<Token> ctx_buffer_;
     std::unordered_map<std::string, bool> expanded_;

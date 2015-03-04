@@ -40,8 +40,8 @@ Token Preprocessor::preprocess() {
             }
         }
 
-        // Skip tokens in an unused #if, #else or #elif branch
-        if (state_stack_.size() > 0 && !state_stack_.back().first) {
+        // Skip tokens in a disabled #if, #else or #elif branch
+        if (state_stack_.size() > 0 && !state_stack_.back().enabled) {
             next();
             continue;
         }
@@ -130,7 +130,7 @@ void Preprocessor::parse_directive() {
         } else if (lookup_.ident() == "define") {
             parse_define();
         } else {
-            error() << "Unknown preprocessor directive : \'" << lookup_.ident() << "\'\n";
+            error() << "Unknown preprocessor directive \'" << lookup_.ident() << "\'\n";
         }
     } else {
         error() << "Preprocessor directive name expected\n";
@@ -143,7 +143,8 @@ void Preprocessor::parse_pragma() {
 
 void Preprocessor::parse_if() {
     eat(Token::TOK_IDENT);
-    state_stack_.emplace_back(evaluate_condition(), STATE_IF);
+    bool cond = evaluate_condition();
+    state_stack_.emplace_back(cond, cond, State::BRANCH_IF);
     eat_line(true);
 }
 
@@ -161,11 +162,16 @@ void Preprocessor::parse_else() {
     eat(Token::TOK_IDENT);
     if (state_stack_.empty()) {
         error() << "#else outside of an #if\n";
-    } else if (state_stack_.back().second == STATE_ELSE) {
+    } else if (state_stack_.back().branch == State::BRANCH_ELSE) {
         error() << "Only one #else directive allowed inside a condition\n";
     } else {
-        state_stack_.back().first = !state_stack_.back().first;
-        state_stack_.back().second = STATE_ELSE;
+        if (state_stack_.back().done) {
+            state_stack_.back().enabled = false;
+        } else {
+            state_stack_.back().enabled = !state_stack_.back().enabled;
+            state_stack_.back().done |= state_stack_.back().enabled;
+        }
+        state_stack_.back().branch = State::BRANCH_ELSE;
     }
     eat_line(true);
 }
@@ -174,13 +180,17 @@ void Preprocessor::parse_elif() {
     eat(Token::TOK_IDENT);
     if (state_stack_.empty()) {
         error() << "#elif outside of an #if\n";
-    } else if (state_stack_.back().second == STATE_ELSE) {
+    } else if (state_stack_.back().branch == State::BRANCH_ELSE) {
         error() << "#elif cannot follow #else\n";
     } else {
-        if (!state_stack_.back().first) {
-            state_stack_.back().first = evaluate_condition();
+        if (state_stack_.back().enabled || state_stack_.back().done) {
+            state_stack_.back().enabled = false;
+        } else {
+            bool enabled = evaluate_condition();
+            state_stack_.back().enabled = enabled;
+            state_stack_.back().done |= enabled;
         }
-        state_stack_.back().second = STATE_ELIF;
+        state_stack_.back().branch = State::BRANCH_ELIF;
     }
     eat_line(true);
 }
