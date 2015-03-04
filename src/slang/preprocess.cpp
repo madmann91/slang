@@ -28,7 +28,7 @@ Preprocessor::Preprocessor(std::function<Token()> input, Logger& logger, size_t 
 Token Preprocessor::preprocess() {
     while (!lookup_.isa(Token::TOK_EOF)) {
         // Parse preprocessor directives
-        if (stack_.empty()) {
+        if (ctx_stack_.empty()) {
             while (lookup_.isa(Token::TOK_SHARP)) {
                 if (lookup_.new_line()) {
                     // This is a preprocessor directive
@@ -38,6 +38,12 @@ Token Preprocessor::preprocess() {
                     break;
                 }
             }
+        }
+
+        // Skip tokens in an unused #if, #else or #elif branch
+        if (state_stack_.size() > 0 && !state_stack_.back().first) {
+            next();
+            continue;
         }
 
         // Expand macros if needed
@@ -53,23 +59,31 @@ Token Preprocessor::preprocess() {
         break;
     }
 
+    // For a missing #endif directive, emit an error (just once)
+    if (!prev_.isa(Token::TOK_EOF) && lookup_.isa(Token::TOK_EOF) && state_stack_.size() > 0) {
+        error() << "Missing " << state_stack_.size() << " #endif directive(s)\n";
+    }
+
     Token tok = lookup_;
     next();
+
     return tok;
 }
 
 void Preprocessor::next() {
-    while (!stack_.empty() && stack_.back().cur >= stack_.back().last) {
-        buffer_.resize(stack_.back().first);
-        expanded_[stack_.back().macro_name] = false;
-        stack_.pop_back();
+    prev_ = lookup_;
+
+    while (!ctx_stack_.empty() && ctx_stack_.back().cur >= ctx_stack_.back().last) {
+        ctx_buffer_.resize(ctx_stack_.back().first);
+        expanded_[ctx_stack_.back().macro_name] = false;
+        ctx_stack_.pop_back();
     }
 
-    if (stack_.empty()) {
+    if (ctx_stack_.empty()) {
         lookup_ = input_();
     } else {
         // Read token from stacked context
-        lookup_ = buffer_[stack_.back().cur++];
+        lookup_ = ctx_buffer_[ctx_stack_.back().cur++];
     }
 }
 
@@ -84,6 +98,17 @@ void Preprocessor::expect(Token::Type type) {
     next();
 }
 
+void Preprocessor::eat_line(bool report) {
+    // Eat every token until we reach a newline
+    while (!lookup_.isa(Token::TOK_EOF) && !lookup_.new_line()) {
+        if (report) {
+            error() << "Additional characters after preprocessor directive\n";
+            report = false;
+        }
+        next();
+    }
+}
+
 void Preprocessor::parse_directive() {
     eat(Token::TOK_SHARP);
 
@@ -96,12 +121,16 @@ void Preprocessor::parse_directive() {
             parse_endif();
         } else if (lookup_.ident() == "else") {
             parse_else();
+        } else if (lookup_.ident() == "elif") {
+            parse_elif();
         } else if (lookup_.ident() == "ifndef") {
             parse_ifndef();
         } else if (lookup_.ident() == "ifdef") {
             parse_ifdef();
         } else if (lookup_.ident() == "define") {
             parse_define();
+        } else {
+            error() << "Unknown preprocessor directive : \'" << lookup_.ident() << "\'\n";
         }
     } else {
         error() << "Preprocessor directive name expected\n";
@@ -113,15 +142,47 @@ void Preprocessor::parse_pragma() {
 }
 
 void Preprocessor::parse_if() {
-    assert(0 && "Not implemented");
+    eat(Token::TOK_IDENT);
+    state_stack_.emplace_back(evaluate_condition(), STATE_IF);
+    eat_line(true);
 }
 
 void Preprocessor::parse_endif() {
-    assert(0 && "Not implemented");
+    eat(Token::TOK_IDENT);
+    if (state_stack_.empty()) {
+        error() << "#endif outside of an #if\n";
+    } else {
+        state_stack_.pop_back();
+    }
+    eat_line(true);
 }
 
 void Preprocessor::parse_else() {
-    assert(0 && "Not implemented");
+    eat(Token::TOK_IDENT);
+    if (state_stack_.empty()) {
+        error() << "#else outside of an #if\n";
+    } else if (state_stack_.back().second == STATE_ELSE) {
+        error() << "Only one #else directive allowed inside a condition\n";
+    } else {
+        state_stack_.back().first = !state_stack_.back().first;
+        state_stack_.back().second = STATE_ELSE;
+    }
+    eat_line(true);
+}
+
+void Preprocessor::parse_elif() {
+    eat(Token::TOK_IDENT);
+    if (state_stack_.empty()) {
+        error() << "#elif outside of an #if\n";
+    } else if (state_stack_.back().second == STATE_ELSE) {
+        error() << "#elif cannot follow #else\n";
+    } else {
+        if (!state_stack_.back().first) {
+            state_stack_.back().first = evaluate_condition();
+        }
+        state_stack_.back().second = STATE_ELIF;
+    }
+    eat_line(true);
 }
 
 void Preprocessor::parse_ifndef() {
@@ -214,16 +275,20 @@ void Preprocessor::start_expansion(const Macro& macro) {
     }
 
     // Expand the macro
-    if (stack_.size() < max_depth_) {
-        int first = buffer_.size();
-        macro.apply(args, buffer_);
-        int last = buffer_.size();
+    if (ctx_stack_.size() < max_depth_) {
+        int first = ctx_buffer_.size();
+        macro.apply(args, ctx_buffer_);
+        int last = ctx_buffer_.size();
 
-        stack_.emplace_back(first, last, macro_name);
+        ctx_stack_.emplace_back(first, last, macro_name);
         next();
     } else {
         error() << "Maximum macro expansion depth reached\n";
     }
+}
+
+bool Preprocessor::evaluate_condition() {
+    return true;
 }
 
 std::ostream& Preprocessor::error() {

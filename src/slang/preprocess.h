@@ -56,20 +56,31 @@ private:
         std::string macro_name;
     };
 
+    enum State {
+        STATE_IF,
+        STATE_ELSE,
+        STATE_ELIF
+    };
+
     void next();
     void eat(Token::Type);
     void expect(Token::Type);
+
+    void eat_line(bool);
 
     void parse_directive();
     void parse_pragma();
     void parse_if();
     void parse_endif();
     void parse_else();
+    void parse_elif();
     void parse_ifndef();
     void parse_ifdef();
     void parse_define();
 
     void start_expansion(const Macro& macro);
+
+    bool evaluate_condition();
 
     std::ostream& error();
     std::ostream& warn();
@@ -77,10 +88,12 @@ private:
     std::function<Token()> input_;
 
     Logger& logger_;
-    Token lookup_;
+    Token prev_, lookup_;
     size_t max_depth_;
-    std::vector<Context> stack_;
-    std::vector<Token> buffer_;
+    bool expand_;
+    std::vector<std::pair<bool, State> > state_stack_;
+    std::vector<Context> ctx_stack_;
+    std::vector<Token> ctx_buffer_;
     std::unordered_map<std::string, bool> expanded_;
     std::unordered_map<std::string, Macro> macros_;
 };
