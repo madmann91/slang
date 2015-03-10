@@ -202,22 +202,19 @@ void Preprocessor::parse_ifdef_ifndef(bool flag) {
 
     if (lookup_.new_line()) {
         error() << "Incomplete #ifdef or #ifndef directive\n";
-        state_stack_.emplace_back(false, false, State::BRANCH_IF);
-        return;
-    }
+        state_stack_.emplace_back(flag, flag, State::BRANCH_IF);
+    } else {
+        if (!lookup_.isa(Token::TOK_IDENT)) {
+            error() << "Expected identifier after #ifdef or #ifndef\n";
+            state_stack_.emplace_back(flag, flag, State::BRANCH_IF);
+        } else {
+            bool cond = flag ^ (macros_.find(lookup_.ident()) != macros_.end());
+            state_stack_.emplace_back(cond, cond, State::BRANCH_IF);
+        }
 
-    if (!lookup_.isa(Token::TOK_IDENT)) {
-        error() << "Expected identifier after #ifdef or #ifndef\n";
-        state_stack_.emplace_back(false, false, State::BRANCH_IF);
         next();
-        return;
+        eat_line(true);
     }
-
-    bool cond = flag ^ (macros_.find(lookup_.ident()) != macros_.end());
-    state_stack_.emplace_back(cond, cond, State::BRANCH_IF);
-
-    next();
-    eat_line(true);
 }
 
 void Preprocessor::parse_define() {
