@@ -124,9 +124,9 @@ void Preprocessor::parse_directive() {
         } else if (lookup_.ident() == "elif") {
             parse_elif();
         } else if (lookup_.ident() == "ifndef") {
-            parse_ifndef();
+            parse_ifdef_ifndef(true);
         } else if (lookup_.ident() == "ifdef") {
-            parse_ifdef();
+            parse_ifdef_ifndef(false);
         } else if (lookup_.ident() == "define") {
             parse_define();
         } else {
@@ -164,6 +164,7 @@ void Preprocessor::parse_else() {
         error() << "#else outside of an #if\n";
     } else if (state_stack_.back().branch == State::BRANCH_ELSE) {
         error() << "Only one #else directive allowed inside a condition\n";
+        state_stack_.back().enabled = false;
     } else {
         if (state_stack_.back().done) {
             state_stack_.back().enabled = false;
@@ -182,6 +183,7 @@ void Preprocessor::parse_elif() {
         error() << "#elif outside of an #if\n";
     } else if (state_stack_.back().branch == State::BRANCH_ELSE) {
         error() << "#elif cannot follow #else\n";
+        state_stack_.back().enabled = false;
     } else {
         if (state_stack_.back().enabled || state_stack_.back().done) {
             state_stack_.back().enabled = false;
@@ -195,12 +197,27 @@ void Preprocessor::parse_elif() {
     eat_line(true);
 }
 
-void Preprocessor::parse_ifndef() {
-    assert(0 && "Not implemented");
-}
+void Preprocessor::parse_ifdef_ifndef(bool flag) {
+    eat(Token::TOK_IDENT);
 
-void Preprocessor::parse_ifdef() {
-    assert(0 && "Not implemented");
+    if (lookup_.new_line()) {
+        error() << "Incomplete #ifdef or #ifndef directive\n";
+        state_stack_.emplace_back(false, false, State::BRANCH_IF);
+        return;
+    }
+
+    if (!lookup_.isa(Token::TOK_IDENT)) {
+        error() << "Expected identifier after #ifdef or #ifndef\n";
+        state_stack_.emplace_back(false, false, State::BRANCH_IF);
+        next();
+        return;
+    }
+
+    bool cond = flag ^ (macros_.find(lookup_.ident()) != macros_.end());
+    state_stack_.emplace_back(cond, cond, State::BRANCH_IF);
+
+    next();
+    eat_line(true);
 }
 
 void Preprocessor::parse_define() {
@@ -302,11 +319,11 @@ bool Preprocessor::evaluate_condition() {
 }
 
 std::ostream& Preprocessor::error() {
-    return logger_.error(lookup_.loc().start());
+    return logger_.error(prev_.loc().end());
 }
 
 std::ostream& Preprocessor::warn() {
-    return logger_.warn(lookup_.loc().start());
+    return logger_.warn(prev_.loc().end());
 }
 
 } // namespace slang
