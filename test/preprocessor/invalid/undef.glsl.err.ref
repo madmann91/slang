@@ -1,0 +1,2 @@
+Error in preprocessor/invalid/undef.glsl (1, 6) : Macro identifier expected
+Warning in preprocessor/invalid/undef.glsl (2, 6) : Unknown macro 'TEST'

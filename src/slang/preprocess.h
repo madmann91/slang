@@ -87,6 +87,7 @@ private:
     void parse_elif();
     void parse_ifdef_ifndef(bool);
     void parse_define();
+    void parse_undef();
 
     void start_expansion(const Macro& macro);
 

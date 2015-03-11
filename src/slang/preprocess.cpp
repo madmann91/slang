@@ -130,6 +130,8 @@ void Preprocessor::parse_directive() {
             parse_ifdef_ifndef(false);
         } else if (lookup_.ident() == "define") {
             parse_define();
+        } else if (lookup_.ident() == "undef") {
+            parse_undef();
         } else {
             error() << "Unknown preprocessor directive \'" << lookup_.ident() << "\'\n";
         }
@@ -229,7 +231,6 @@ void Preprocessor::parse_ifdef_ifndef(bool flag) {
 }
 
 void Preprocessor::parse_define() {
-    // DefineMacro ::= define ident ( ( ident (,ident)* ) )? (ident)*
     eat(Token::TOK_IDENT);
 
     // Read macro name
@@ -271,6 +272,20 @@ void Preprocessor::parse_define() {
         warn() << "Redefinition of macro \'" << macro << "\'\n";
 
     macros_[macro] = Macro(args, body);
+}
+
+void Preprocessor::parse_undef() {
+    eat(Token::TOK_IDENT);
+    if (lookup_.isa(Token::TOK_IDENT)) {
+        if (macros_.find(lookup_.ident()) == macros_.end())
+            warn() << "Unknown macro \'" << lookup_.ident() << "\'\n";
+        else
+            macros_.erase(lookup_.ident());
+
+        eat(Token::TOK_IDENT);
+    } else {
+        error() << "Macro identifier expected\n";
+    }
 }
 
 void Preprocessor::start_expansion(const Macro& macro) {
