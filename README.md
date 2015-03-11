@@ -1,9 +1,9 @@
 # Slang
-A small and flexible and extensible front-end for GLSL.
+A small, flexible and extensible front-end for GLSL.
 
 ## Project goal
 Provide a simple GLSL (OpenGL shading language) front-end, that is : a lexer, a parser, and a semantic analyser.
-The system should be simple and lightweight, and well documented. A thorough test suite should also be included.
+The system is designed to be simple and lightweight, and well documented. A thorough test suite is included.
 
 ## Example
 
