@@ -312,8 +312,9 @@ void Preprocessor::parse_version() {
             warn() << "GLSL version not supported, defaulting to 440\n";
             version_ = 440;
         }
-
         eat(Token::TOK_LIT);
+
+        // Optional profile argument
         if (lookup_.isa(Token::TOK_IDENT) && !lookup_.new_line()) {
             // Profile parameter only allowed for GLSL > 1.50
             if (version_ >= 150) {
@@ -338,6 +339,7 @@ void Preprocessor::parse_version() {
             error() << "Profile string is mandatory for GLSL version 300\n";
             profile_ = PROFILE_ES;
         } else {
+            // Defaults to core profile
             profile_ = PROFILE_CORE;
         }
     } else {

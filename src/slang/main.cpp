@@ -37,23 +37,6 @@ bool lexical_analysis(const std::string& filename, const Keywords& keys) {
     return true;
 }
 
-bool syntax_analysis(const std::string& filename, const Keywords& keys) {
-    // Do the syntax analysis and display the AST
-    std::ifstream is(filename);
-    if (!is) return false;
-
-    Logger logger(filename);
-    Lexer lexer(is, keys, logger);
-    Preprocessor pp(lexer, logger);
-    Parser parser([&pp]() { return pp.preprocess(); }, logger);
-    std::unique_ptr<ast::DeclList> root(parser.parse());
-
-    Printer printer(std::cout);
-    root->print(printer);
-
-    return true;
-}
-
 bool preprocess(const std::string& filename, const Keywords& keys) {
     // Preprocesses the file and displays the resulting tokens
     std::ifstream is(filename);
@@ -70,6 +53,23 @@ bool preprocess(const std::string& filename, const Keywords& keys) {
     } while (tok.type() != Token::TOK_EOF);
 
     std::cout << std::endl;
+    return true;
+}
+
+bool syntax_analysis(const std::string& filename, const Keywords& keys) {
+    // Do the syntax analysis and display the AST
+    std::ifstream is(filename);
+    if (!is) return false;
+
+    Logger logger(filename);
+    Lexer lexer(is, keys, logger);
+    Preprocessor pp(lexer, logger);
+    Parser parser([&pp]() { return pp.preprocess(); }, logger);
+    std::unique_ptr<ast::DeclList> root(parser.parse());
+
+    Printer printer(std::cout);
+    root->print(printer);
+
     return true;
 }
 
