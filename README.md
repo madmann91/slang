@@ -2,7 +2,7 @@
 A small, flexible and extensible front-end for GLSL.
 
 ## Project goal
-Provide a simple GLSL (OpenGL shading language) front-end, that is : a lexer, a parser, and a semantic analyser.
+This project aims to provide a simple GLSL (OpenGL shading language) front-end, that is : a lexer, a parser, and a semantic analyser.
 The system is designed to be simple and lightweight, and well documented. A thorough test suite is included.
 
 ## Example
@@ -42,7 +42,7 @@ bool parse_glsl(const std::string& filename) {
 
 ## Status
 Currently only the lexer, preprocessor, parser and the test suite are implemented. The whole GLSL 4.0 specification
-is supported, some extensions are also implemented, to allow parsing of older GLSL versions (attribute or varying
+is supported. Some extensions are also implemented, to allow parsing of older GLSL versions (attribute or varying
 qualifiers, for instance). The documentation can be generated using doxygen.
 
 ## License
