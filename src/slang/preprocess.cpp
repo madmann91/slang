@@ -20,7 +20,7 @@ void Macro::apply(const std::vector<Arg>& args, std::vector<Token>& buffer) cons
 }
 
 Preprocessor::Preprocessor(Lexer& lexer, Logger& logger, size_t max_depth)
-    : lexer_(lexer), logger_(logger), max_depth_(max_depth), version_(110), profile_(PROFILE_CORE)
+    : lexer_(lexer), logger_(logger), max_depth_(max_depth), first_(true), version_(110), profile_(PROFILE_CORE)
 {
     next();
 }
@@ -65,6 +65,8 @@ Token Preprocessor::preprocess() {
     if (!prev_.isa(Token::TOK_EOF) && lookup_.isa(Token::TOK_EOF) && state_stack_.size() > 0) {
         error() << "Missing " << state_stack_.size() << " #endif directive(s)\n";
     }
+
+    first_ = false;
 
     Token tok = lookup_;
     next();
@@ -141,13 +143,20 @@ void Preprocessor::parse_directive() {
         } else if (lookup_.ident() == "undef") {
             parse_undef();
         } else if (lookup_.ident() == "version") {
-            parse_version();
+            if (first_) {
+                parse_version();
+            } else {
+                error() << "Version directive must occur before anything else\n";
+                eat_line(false);
+            }
         } else {
             error() << "Unknown preprocessor directive \'" << lookup_.ident() << "\'\n";
         }
     } else {
         error() << "Preprocessor directive name expected\n";
     }
+
+    first_ = false;
 }
 
 void Preprocessor::parse_pragma() {

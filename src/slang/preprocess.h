@@ -113,6 +113,7 @@ private:
     Logger& logger_;
     Token prev_, lookup_;
     size_t max_depth_;
+    bool first_;
     int version_;
     Profile profile_;
     std::vector<State> state_stack_;

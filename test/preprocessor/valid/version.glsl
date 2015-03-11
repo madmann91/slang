@@ -1,4 +1,3 @@
-#version 440
-#version 440 core
-#version 300 es
-#version 440 compatibility
+// Comments and white space are allowed before a version directive
+
+    # version 440
