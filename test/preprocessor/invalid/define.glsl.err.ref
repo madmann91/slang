@@ -1,0 +1,6 @@
+Error in preprocessor/invalid/define.glsl (1, 10) : Unexpected end of line in preprocessor directive
+Error in preprocessor/invalid/define.glsl (3, 12) : Unexpected end of line in preprocessor directive
+Error in preprocessor/invalid/define.glsl (5, 7) : Unexpected end of line in preprocessor directive
+Error in preprocessor/invalid/define.glsl (7, 10) : ')' expected
+Error in preprocessor/invalid/define.glsl (8, 10) : Unexpected end of line in preprocessor directive
+Error in preprocessor/invalid/define.glsl (11, 7) : Macro identifier expected

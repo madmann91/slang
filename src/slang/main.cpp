@@ -44,7 +44,7 @@ bool syntax_analysis(const std::string& filename, const Keywords& keys) {
 
     Logger logger(filename);
     Lexer lexer(is, keys, logger);
-    Preprocessor pp([&lexer]() { return lexer.lex(); }, logger);
+    Preprocessor pp(lexer, logger);
     Parser parser([&pp]() { return pp.preprocess(); }, logger);
     std::unique_ptr<ast::DeclList> root(parser.parse());
 
@@ -61,7 +61,7 @@ bool preprocess(const std::string& filename, const Keywords& keys) {
 
     Logger logger(filename);
     Lexer lexer(is, keys, logger);
-    Preprocessor pp([&lexer]() { return lexer.lex(); }, logger);
+    Preprocessor pp(lexer, logger);
     
     Token tok;
     do {

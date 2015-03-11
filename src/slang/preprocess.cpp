@@ -19,8 +19,8 @@ void Macro::apply(const std::vector<Arg>& args, std::vector<Token>& buffer) cons
     }
 }
 
-Preprocessor::Preprocessor(std::function<Token()> input, Logger& logger, size_t max_depth)
-    : input_(input), logger_(logger), max_depth_(max_depth)
+Preprocessor::Preprocessor(Lexer& lexer, Logger& logger, size_t max_depth)
+    : lexer_(lexer), logger_(logger), max_depth_(max_depth), version_(110), profile_(PROFILE_CORE)
 {
     next();
 }
@@ -81,7 +81,7 @@ void Preprocessor::next() {
     }
 
     if (ctx_stack_.empty()) {
-        lookup_ = input_();
+        lookup_ = lexer_.lex();
     } else {
         // Read token from stacked context
         lookup_ = ctx_buffer_[ctx_stack_.back().cur++];
@@ -110,6 +110,14 @@ void Preprocessor::eat_line(bool report) {
     }
 }
 
+bool Preprocessor::check_newline() {
+    if (lookup_.new_line()) {
+        error() << "Unexpected end of line in preprocessor directive\n";
+        return false;
+    }
+    return true;
+}
+
 void Preprocessor::parse_directive() {
     eat(Token::TOK_SHARP);
 
@@ -132,6 +140,8 @@ void Preprocessor::parse_directive() {
             parse_define();
         } else if (lookup_.ident() == "undef") {
             parse_undef();
+        } else if (lookup_.ident() == "version") {
+            parse_version();
         } else {
             error() << "Unknown preprocessor directive \'" << lookup_.ident() << "\'\n";
         }
@@ -212,7 +222,7 @@ void Preprocessor::parse_ifdef_ifndef(bool flag) {
         error() << "Incomplete #ifdef or #ifndef directive\n";
         state_stack_.emplace_back(false, true, State::BRANCH_IF);
     } else {
-        if (!lookup_.isa(Token::TOK_IDENT)) {
+        if (!lookup_.isa(Token::TOK_IDENT) || lookup_.new_line()) {
             error() << "Expected identifier after #ifdef or #ifndef\n";
             state_stack_.emplace_back(false, true, State::BRANCH_IF);
         } else {
@@ -233,6 +243,8 @@ void Preprocessor::parse_ifdef_ifndef(bool flag) {
 void Preprocessor::parse_define() {
     eat(Token::TOK_IDENT);
 
+     if (!check_newline()) return;
+
     // Read macro name
     std::string macro;
     if (lookup_.isa(Token::TOK_IDENT)) {
@@ -244,18 +256,22 @@ void Preprocessor::parse_define() {
 
     // Parse macro arguments
     std::unordered_map<std::string, size_t> args;
-    if (lookup_.isa(Token::TOK_LPAREN)) {
+    if (lookup_.isa(Token::TOK_LPAREN) && !lookup_.new_line()) {
         eat(Token::TOK_LPAREN);
 
-        while (lookup_.isa(Token::TOK_IDENT)) {
+        while (lookup_.isa(Token::TOK_IDENT) && !lookup_.new_line()) {
             args.emplace(std::make_pair(lookup_.ident(), args.size()));
             eat(Token::TOK_IDENT);
+
+            if (!check_newline()) return;
 
             if (!lookup_.isa(Token::TOK_COMMA))
                 break;
 
             eat(Token::TOK_COMMA);
         }
+
+        if (!check_newline()) return;
 
         expect(Token::TOK_RPAREN);
     }
@@ -276,7 +292,7 @@ void Preprocessor::parse_define() {
 
 void Preprocessor::parse_undef() {
     eat(Token::TOK_IDENT);
-    if (lookup_.isa(Token::TOK_IDENT)) {
+    if (lookup_.isa(Token::TOK_IDENT) && !lookup_.new_line()) {
         if (macros_.find(lookup_.ident()) == macros_.end())
             warn() << "Unknown macro \'" << lookup_.ident() << "\'\n";
         else
@@ -285,6 +301,47 @@ void Preprocessor::parse_undef() {
         eat(Token::TOK_IDENT);
     } else {
         error() << "Macro identifier expected\n";
+    }
+}
+
+void Preprocessor::parse_version() {
+    eat(Token::TOK_IDENT);
+    if (lookup_.isa(Token::TOK_LIT) && lookup_.lit().isa(Literal::LIT_INT) && !lookup_.new_line()) {
+        version_ = lookup_.lit().as_int();
+        if (version_ > 440) {
+            warn() << "GLSL version not supported, defaulting to 440\n";
+            version_ = 440;
+        }
+
+        eat(Token::TOK_LIT);
+        if (lookup_.isa(Token::TOK_IDENT) && !lookup_.new_line()) {
+            // Profile parameter only allowed for GLSL > 1.50
+            if (version_ >= 150) {
+                if (lookup_.ident() == "core") {
+                    profile_ = PROFILE_CORE;
+                } else if (lookup_.ident() == "compatibility") {
+                    profile_ = PROFILE_COMPAT;
+                } else if (lookup_.ident() == "es") {
+                    profile_ = PROFILE_ES;
+                } else {
+                    error() << "Invalid profile string\n";
+                }
+
+                if (version_ == 300 && profile_ != PROFILE_ES) {
+                    error() << "Profile must be 'es' for GLSL version 300\n";
+                }
+            } else {
+                error() << "Profile argument provided for GLSL version less than 150\n";
+            }
+            eat(Token::TOK_IDENT);
+        } else if (version_ == 300) {
+            error() << "Profile string is mandatory for GLSL version 300\n";
+            profile_ = PROFILE_ES;
+        } else {
+            profile_ = PROFILE_CORE;
+        }
+    } else {
+        error() << "Version number expected\n";
     }
 }
 

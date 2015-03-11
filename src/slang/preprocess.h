@@ -40,10 +40,21 @@ private:
 /// The preprocessor : expands macros and handles preprocessor directives.
 class Preprocessor {
 public:
-    Preprocessor(std::function<Token()> input, Logger& logger, size_t max_depth = 1024);
+    enum Profile {
+        PROFILE_CORE,
+        PROFILE_COMPAT,
+        PROFILE_ES
+    };
+
+    Preprocessor(Lexer& lexer, Logger& logger, size_t max_depth = 1024);
 
     /// Extracts the next preprocessed token from the stream.
     Token preprocess();
+
+    /// Returns the shading language version
+    int version() { return version_; }
+    /// Returns the shading language profile
+    Profile profile() { return profile_; }
 
 private:
     struct Context {
@@ -78,6 +89,7 @@ private:
     void expect(Token::Type);
 
     void eat_line(bool);
+    bool check_newline();
 
     void parse_directive();
     void parse_pragma();
@@ -88,6 +100,7 @@ private:
     void parse_ifdef_ifndef(bool);
     void parse_define();
     void parse_undef();
+    void parse_version();
 
     void start_expansion(const Macro& macro);
 
@@ -96,12 +109,12 @@ private:
     std::ostream& error();
     std::ostream& warn();
 
-    std::function<Token()> input_;
-
+    Lexer& lexer_;
     Logger& logger_;
     Token prev_, lookup_;
     size_t max_depth_;
-    bool expand_;
+    int version_;
+    Profile profile_;
     std::vector<State> state_stack_;
     std::vector<Context> ctx_stack_;
     std::vector<Token> ctx_buffer_;

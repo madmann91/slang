@@ -1,0 +1,6 @@
+Error in preprocessor/invalid/version.glsl (1, 8) : Version number expected
+Error in preprocessor/invalid/version.glsl (2, 12) : Profile string is mandatory for GLSL version 300
+Error in preprocessor/invalid/version.glsl (3, 12) : Profile must be 'es' for GLSL version 300
+Error in preprocessor/invalid/version.glsl (4, 12) : Profile argument provided for GLSL version less than 150
+Error in preprocessor/invalid/version.glsl (5, 12) : Invalid profile string
+Warning in preprocessor/invalid/version.glsl (6, 8) : GLSL version not supported, defaulting to 440
