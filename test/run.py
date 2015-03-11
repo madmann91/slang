@@ -35,10 +35,12 @@ def do_test(dir, opts):
                 shutil.copy(out_file, out_file + ".ref")
                 shutil.copy(err_file, err_file + ".ref")
 
-do_test("lexer/valid",    "--tokenize")
-do_test("lexer/invalid",  "--tokenize")
-do_test("parser/invalid", "--syntax")
-do_test("parser/valid",   "--syntax")
+do_test("lexer/valid",          "--tokenize")
+do_test("lexer/invalid",        "--tokenize")
+do_test("preprocessor/invalid", "--preprocess")
+do_test("preprocessor/valid",   "--preprocess")
+do_test("parser/invalid",       "--syntax")
+do_test("parser/valid",         "--syntax")
 
 print("\nPassed :\n")
 for f in passed:

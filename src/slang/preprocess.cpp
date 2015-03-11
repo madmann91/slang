@@ -143,8 +143,13 @@ void Preprocessor::parse_pragma() {
 
 void Preprocessor::parse_if() {
     eat(Token::TOK_IDENT);
-    bool cond = evaluate_condition();
-    state_stack_.emplace_back(cond, cond, State::BRANCH_IF);
+    // Check if current branch was taken
+    if (state_stack_.empty() || state_stack_.back().enabled) {
+        bool cond = evaluate_condition();
+        state_stack_.emplace_back(cond, cond, State::BRANCH_IF);
+    } else {
+        state_stack_.emplace_back(false, true, State::BRANCH_IF);
+    }
     eat_line(true);
 }
 
@@ -202,14 +207,19 @@ void Preprocessor::parse_ifdef_ifndef(bool flag) {
 
     if (lookup_.new_line()) {
         error() << "Incomplete #ifdef or #ifndef directive\n";
-        state_stack_.emplace_back(flag, flag, State::BRANCH_IF);
+        state_stack_.emplace_back(false, true, State::BRANCH_IF);
     } else {
         if (!lookup_.isa(Token::TOK_IDENT)) {
             error() << "Expected identifier after #ifdef or #ifndef\n";
-            state_stack_.emplace_back(flag, flag, State::BRANCH_IF);
+            state_stack_.emplace_back(false, true, State::BRANCH_IF);
         } else {
-            bool cond = flag ^ (macros_.find(lookup_.ident()) != macros_.end());
-            state_stack_.emplace_back(cond, cond, State::BRANCH_IF);
+            // Check if current branch was taken
+            if (state_stack_.empty() || state_stack_.back().enabled) {
+                bool cond = flag ^ (macros_.find(lookup_.ident()) != macros_.end());
+                state_stack_.emplace_back(cond, cond, State::BRANCH_IF);
+            } else {
+                state_stack_.emplace_back(false, true, State::BRANCH_IF);
+            }
         }
 
         next();
