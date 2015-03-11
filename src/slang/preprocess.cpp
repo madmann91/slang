@@ -342,6 +342,7 @@ void Preprocessor::parse_version() {
 
                 if (version == 300 && profile != Profile::PROFILE_ES) {
                     error() << "Profile must be 'es' for GLSL version 300\n";
+                    profile = Profile::PROFILE_ES;
                 }
             } else {
                 error() << "Profile argument provided for GLSL version less than 150\n";

@@ -44,7 +44,9 @@ bool preprocess(const std::string& filename, const Keywords& keys) {
 
     Logger logger(filename);
     Lexer lexer(is, keys, logger);
-    Preprocessor pp(lexer, logger);
+    Preprocessor pp(lexer, logger, [] (int ver, Profile p) {
+        std::cout << "Version : " << ver << " " << p << std::endl;
+    });
     
     Token tok;
     do {
@@ -63,7 +65,9 @@ bool syntax_analysis(const std::string& filename, const Keywords& keys) {
 
     Logger logger(filename);
     Lexer lexer(is, keys, logger);
-    Preprocessor pp(lexer, logger);
+    Preprocessor pp(lexer, logger, [] (int ver, Profile p) {
+        std::cout << "#version " << ver << " " << p << std::endl;
+    });
     Parser parser([&pp]() { return pp.preprocess(); }, logger);
     std::unique_ptr<ast::DeclList> root(parser.parse());
 
