@@ -38,6 +38,8 @@ Token Preprocessor::preprocess() {
                     break;
                 }
             }
+
+            if (lookup_.isa(Token::TOK_EOF)) break;
         }
 
         // Skip tokens in a disabled #if, #else or #elif branch
@@ -66,7 +68,6 @@ Token Preprocessor::preprocess() {
 
     Token tok = lookup_;
     next();
-
     return tok;
 }
 
