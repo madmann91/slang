@@ -26,7 +26,7 @@ bool parse_glsl(const std::string& filename) {
     // Create a lexer object, using the previously created set of keywords
     Lexer lexer(is, keys, logger);
     // Create a preprocessor that reads tokens from the lexer
-    Preprocessor pp([&lexer]() { return lexer.lex(); }, logger);
+    Preprocessor pp(lexer, logger);
     // Create a parser object that reads tokens from the preprocessor (you can choose to read directly from the lexer)
     Parser parser([&pp]() { return pp.preprocess(); }, logger);
 
