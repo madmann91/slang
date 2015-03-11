@@ -37,24 +37,25 @@ private:
     std::vector<Token> rule_;
 };
 
+/// GLSL profiles as specified in the version preprocessor directive
+enum class Profile {
+    PROFILE_CORE,
+    PROFILE_COMPAT,
+    PROFILE_ES
+};
+
 /// The preprocessor : expands macros and handles preprocessor directives.
 class Preprocessor {
 public:
-    enum Profile {
-        PROFILE_CORE,
-        PROFILE_COMPAT,
-        PROFILE_ES
-    };
-
-    Preprocessor(Lexer& lexer, Logger& logger, size_t max_depth = 1024);
+    Preprocessor(Lexer& lexer, Logger& logger,
+                 std::function<void(int, Profile)> version_handler = default_version_handler,
+                 size_t max_depth = 1024);
 
     /// Extracts the next preprocessed token from the stream.
     Token preprocess();
 
-    /// Returns the shading language version
-    int version() { return version_; }
-    /// Returns the shading language profile
-    Profile profile() { return profile_; }
+    /// Default version directive handler (does nothing)
+    static void default_version_handler(int, Profile) {}
 
 private:
     struct Context {
@@ -111,17 +112,28 @@ private:
 
     Lexer& lexer_;
     Logger& logger_;
+    std::function<void(int, Profile)> version_handler_;
+
     Token prev_, lookup_;
     size_t max_depth_;
     bool first_;
-    int version_;
-    Profile profile_;
     std::vector<State> state_stack_;
     std::vector<Context> ctx_stack_;
     std::vector<Token> ctx_buffer_;
     std::unordered_map<std::string, bool> expanded_;
     std::unordered_map<std::string, Macro> macros_;
 };
+
+inline std::ostream& operator << (std::ostream& out, Profile p) {
+    switch (p) {
+        case Profile::PROFILE_CORE:   out << "core";          break;
+        case Profile::PROFILE_COMPAT: out << "compatibility"; break;
+        case Profile::PROFILE_ES:     out << "es";            break;
+        default:
+            assert(0 && "Invalid profile");
+    }
+    return out;
+}
 
 } // namespace slang
 

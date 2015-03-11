@@ -19,8 +19,10 @@ void Macro::apply(const std::vector<Arg>& args, std::vector<Token>& buffer) cons
     }
 }
 
-Preprocessor::Preprocessor(Lexer& lexer, Logger& logger, size_t max_depth)
-    : lexer_(lexer), logger_(logger), max_depth_(max_depth), first_(true), version_(110), profile_(PROFILE_CORE)
+Preprocessor::Preprocessor(Lexer& lexer, Logger& logger,
+                           std::function<void(int, Profile)> version_handler,
+                           size_t max_depth)
+    : lexer_(lexer), logger_(logger), version_handler_(version_handler), max_depth_(max_depth), first_(true)
 {
     next();
 }
@@ -316,41 +318,41 @@ void Preprocessor::parse_undef() {
 void Preprocessor::parse_version() {
     eat(Token::TOK_IDENT);
     if (lookup_.isa(Token::TOK_LIT) && lookup_.lit().isa(Literal::LIT_INT) && !lookup_.new_line()) {
-        version_ = lookup_.lit().as_int();
-        if (version_ > 440) {
+        int version = lookup_.lit().as_int();
+        if (version > 440) {
             warn() << "GLSL version not supported, defaulting to 440\n";
-            version_ = 440;
+            version = 440;
         }
         eat(Token::TOK_LIT);
 
-        // Optional profile argument
+        // Optional profile argument (default is core)
+        Profile profile = Profile::PROFILE_CORE;
         if (lookup_.isa(Token::TOK_IDENT) && !lookup_.new_line()) {
             // Profile parameter only allowed for GLSL > 1.50
-            if (version_ >= 150) {
+            if (version >= 150) {
                 if (lookup_.ident() == "core") {
-                    profile_ = PROFILE_CORE;
+                    profile = Profile::PROFILE_CORE;
                 } else if (lookup_.ident() == "compatibility") {
-                    profile_ = PROFILE_COMPAT;
+                    profile = Profile::PROFILE_COMPAT;
                 } else if (lookup_.ident() == "es") {
-                    profile_ = PROFILE_ES;
+                    profile = Profile::PROFILE_ES;
                 } else {
                     error() << "Invalid profile string\n";
                 }
 
-                if (version_ == 300 && profile_ != PROFILE_ES) {
+                if (version == 300 && profile != Profile::PROFILE_ES) {
                     error() << "Profile must be 'es' for GLSL version 300\n";
                 }
             } else {
                 error() << "Profile argument provided for GLSL version less than 150\n";
             }
             eat(Token::TOK_IDENT);
-        } else if (version_ == 300) {
+        } else if (version == 300) {
             error() << "Profile string is mandatory for GLSL version 300\n";
-            profile_ = PROFILE_ES;
-        } else {
-            // Defaults to core profile
-            profile_ = PROFILE_CORE;
+            profile = Profile::PROFILE_ES;
         }
+
+        version_handler_(version, profile);
     } else {
         error() << "Version number expected\n";
     }
