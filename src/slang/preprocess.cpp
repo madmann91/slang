@@ -51,14 +51,8 @@ Token Preprocessor::preprocess() {
         }
 
         // Expand macros if needed
-        if (lookup_.isa(Token::TOK_IDENT) && !expanded_[lookup_.ident()]) {
-            auto macro = macros_.find(lookup_.ident());
-            if (macro != macros_.end()) {
-                expanded_[macro->first] = true;
-                start_expansion(macro->second);
-                continue;
-            }
-        }
+        if (lookup_.isa(Token::TOK_IDENT) && expand(true))
+            continue;
 
         break;
     }
@@ -76,11 +70,11 @@ Token Preprocessor::preprocess() {
 }
 
 void Preprocessor::next() {
-    prev_ = lookup_;
+    if (ctx_stack_.empty()) prev_ = lookup_;
 
     while (!ctx_stack_.empty() && ctx_stack_.back().cur >= ctx_stack_.back().last) {
         ctx_buffer_.resize(ctx_stack_.back().first);
-        expanded_[ctx_stack_.back().macro_name] = false;
+        expanded_.erase(ctx_stack_.back().macro_name);
         ctx_stack_.pop_back();
     }
 
@@ -214,12 +208,13 @@ void Preprocessor::parse_elif() {
         error() << "#elif cannot follow #else\n";
         state_stack_.back().enabled = false;
     } else {
+        bool cond = evaluate_condition();
+
         if (state_stack_.back().enabled || state_stack_.back().done) {
             state_stack_.back().enabled = false;
         } else {
-            bool enabled = evaluate_condition();
-            state_stack_.back().enabled = enabled;
-            state_stack_.back().done |= enabled;
+            state_stack_.back().enabled = cond;
+            state_stack_.back().done |= cond;
         }
         state_stack_.back().branch = State::BRANCH_ELIF;
     }
@@ -359,18 +354,47 @@ void Preprocessor::parse_version() {
     }
 }
 
-void Preprocessor::start_expansion(const Macro& macro) {
-    std::string macro_name = lookup_.ident();
+bool Preprocessor::expand(bool lines_allowed) {
+    assert(lookup_.isa(Token::TOK_IDENT));
+
+    // Avoid infinite macro expansion
+    if (expanded_.find(lookup_.ident()) != expanded_.end())
+        return false;
+
+    // Tries to find a macro
+    auto macro = macros_.find(lookup_.ident());
+    if (macro == macros_.end())
+        return false;
+
+    // Mark this macro as expanded
+    expanded_.insert(macro->first);
 
     // Read arguments
     std::vector<Macro::Arg> args;
-    if (macro.has_args()) {
+    if (macro->second.has_args()) {
         eat(Token::TOK_IDENT);
-        if (lookup_.isa(Token::TOK_LPAREN)) {
+
+        if (lookup_.isa(Token::TOK_LPAREN) && (lines_allowed || !lookup_.new_line())) {
             eat(Token::TOK_LPAREN);
             args.emplace_back();
-            while (!lookup_.isa(Token::TOK_EOF) && !lookup_.isa(Token::TOK_RPAREN)) {
-                if (lookup_.isa(Token::TOK_COMMA)) {
+
+            int par_count = 0;
+            while (!lookup_.isa(Token::TOK_EOF)) {
+                if (lookup_.new_line() && !lines_allowed)
+                    break;
+
+                // Allow calling a macro inside a macro argument
+                if (lookup_.isa(Token::TOK_RPAREN)) {
+                    if (par_count == 0) {
+                        break;
+                    } else {
+                        args.back().emplace_back(lookup_);
+                        par_count--;
+                    }
+                } else if (lookup_.isa(Token::TOK_LPAREN)) {
+                    args.back().emplace_back(lookup_);
+                    par_count++;
+                } else if (lookup_.isa(Token::TOK_COMMA) && par_count == 0) {
                     args.emplace_back();
                 } else {
                     args.back().emplace_back(lookup_);
@@ -379,44 +403,238 @@ void Preprocessor::start_expansion(const Macro& macro) {
             }
 
             if (!lookup_.isa(Token::TOK_RPAREN)) {
-                error() << "Missing closing parenthesis in invocation of macro \'" << macro_name << "\'\n";
-                return;
+                error() << "Missing closing parenthesis in invocation of macro \'" << macro->first << "\'\n";
+                return false;
             }
 
-            if (args.size() != macro.args().size()) {
+            if (args.size() != macro->second.args().size()) {
                 eat(Token::TOK_RPAREN);
-                error() << "Invalid number of arguments for macro \'" << macro_name << "\' "
-                        << "(got " << args.size() << ", expected " << macro.args().size() << ")\n";
-                return;
+                error() << "Invalid number of arguments for macro \'" << macro->first << "\' "
+                        << "(got " << args.size() << ", expected " << macro->second.args().size() << ")\n";
+                return false;
             }
         } else {
-            error() << "Missing arguments in invocation of macro \'" << macro_name << "\'\n";
-            return;
+            error() << "Missing arguments in invocation of macro \'" << macro->first << "\'\n";
+            return false;
         }
     }
+
+    // Save the lookup token (it is about to be dropped)
+    if (ctx_stack_.empty()) prev_ = lookup_;
 
     // Expand the macro
     if (ctx_stack_.size() < max_depth_) {
         int first = ctx_buffer_.size();
-        macro.apply(args, ctx_buffer_);
+        macro->second.apply(args, ctx_buffer_);
         int last = ctx_buffer_.size();
 
-        ctx_stack_.emplace_back(first, last, macro_name);
+        ctx_stack_.emplace_back(first, last, macro->first);
         next();
+        return true;
     } else {
         error() << "Maximum macro expansion depth reached\n";
+        return false;
     }
 }
 
+Preprocessor::BinOp::BinOp()
+    : type(BINOP_UNKNOWN), pred(-1), rassoc(false)
+{}
+
+Preprocessor::BinOp::BinOp(Token tok) {
+    switch (tok.type()) {
+        case Token::TOK_MUL:    type = BINOP_MUL;    pred = 3;  rassoc = false; break;
+        case Token::TOK_DIV:    type = BINOP_DIV;    pred = 3;  rassoc = false; break;
+        case Token::TOK_MOD:    type = BINOP_MOD;    pred = 3;  rassoc = false; break;
+        case Token::TOK_ADD:    type = BINOP_ADD;    pred = 4;  rassoc = false; break;
+        case Token::TOK_SUB:    type = BINOP_SUB;    pred = 4;  rassoc = false; break;
+        case Token::TOK_LSHIFT: type = BINOP_LSHIFT; pred = 5;  rassoc = false; break;
+        case Token::TOK_RSHIFT: type = BINOP_RSHIFT; pred = 5;  rassoc = false; break;
+        case Token::TOK_LT:     type = BINOP_LT;     pred = 6;  rassoc = false; break;
+        case Token::TOK_LEQ:    type = BINOP_LE;     pred = 6;  rassoc = false; break;
+        case Token::TOK_GT:     type = BINOP_GT;     pred = 6;  rassoc = false; break;
+        case Token::TOK_GEQ:    type = BINOP_GE;     pred = 6;  rassoc = false; break;
+        case Token::TOK_EQ:     type = BINOP_EQ;     pred = 7;  rassoc = false; break;
+        case Token::TOK_NEQ:    type = BINOP_NEQ;    pred = 7;  rassoc = false; break;
+        case Token::TOK_AND:    type = BINOP_AND;    pred = 8;  rassoc = false; break;
+        case Token::TOK_XOR:    type = BINOP_XOR;    pred = 9;  rassoc = false; break;
+        case Token::TOK_OR:     type = BINOP_OR;     pred = 10; rassoc = false; break;
+        case Token::TOK_ANDAND: type = BINOP_ANDAND; pred = 11; rassoc = false; break;
+        case Token::TOK_OROR:   type = BINOP_OROR;   pred = 12; rassoc = false; break;
+        default:
+            type = BINOP_UNKNOWN;
+            pred = -1;
+            rassoc = false;
+    }
+}
+
+Preprocessor::ExprValue Preprocessor::BinOp::apply(Preprocessor::ExprValue left,
+                                                   Preprocessor::ExprValue right) const {
+    if (right.error || left.error) return ExprValue();
+
+    switch (type) {
+        case BINOP_MUL:    return ExprValue(left.value * right.value);
+        case BINOP_DIV:    return ExprValue(left.value / right.value);
+        case BINOP_MOD:    return ExprValue(left.value % right.value);
+        case BINOP_ADD:    return ExprValue(left.value + right.value);
+        case BINOP_SUB:    return ExprValue(left.value - right.value);
+        case BINOP_LSHIFT: return ExprValue(left.value << right.value);
+        case BINOP_RSHIFT: return ExprValue(left.value >> right.value);
+        case BINOP_LT:     return ExprValue(left.value < right.value);
+        case BINOP_LE:     return ExprValue(left.value <= right.value);
+        case BINOP_GT:     return ExprValue(left.value > right.value);
+        case BINOP_GE:     return ExprValue(left.value >= right.value);
+        case BINOP_EQ:     return ExprValue(left.value == right.value);
+        case BINOP_NEQ:    return ExprValue(left.value != right.value);
+        case BINOP_AND:    return ExprValue(left.value & right.value);
+        case BINOP_XOR:    return ExprValue(left.value ^ right.value);
+        case BINOP_OR:     return ExprValue(left.value | right.value);
+        case BINOP_ANDAND: return ExprValue(left.value && right.value);
+        case BINOP_OROR:   return ExprValue(left.value || right.value);
+        default:           return ExprValue();
+    }
+}
+
+const int Preprocessor::BinOp::max_pred = 12;
+
 bool Preprocessor::evaluate_condition() {
-    return true;
+    ExprValue left = evaluate_primary();
+    ExprValue value = evaluate_binary(left, BinOp::max_pred);
+    return (value.error) ? false : value.value != 0;
+}
+
+Preprocessor::ExprValue Preprocessor::evaluate_primary() {
+    if (lookup_.new_line()) {
+        error() << "Incomplete preprocessor condition\n";
+        return ExprValue();
+    }
+
+    // Expand macros
+    while (lookup_.isa(Token::TOK_IDENT) && expand(false)) ;
+
+    // Expansion may lead to an empty line
+    if (lookup_.new_line()) {
+        error() << "Incomplete preprocessor condition\n";
+        return ExprValue();
+    }
+
+    if (lookup_.isa(Token::TOK_IDENT)) {
+        // Non expanded macros or 'defined' operator
+        if (lookup_.ident() == "defined") {
+            eat(Token::TOK_IDENT);
+            expect(Token::TOK_LPAREN);
+            ExprValue value;
+            if (lookup_.isa(Token::TOK_IDENT)) {
+                value = (macros_.find(lookup_.ident()) != macros_.end()) ? ExprValue(1) : ExprValue(0);
+                eat(Token::TOK_IDENT);
+            } else {
+                error() << "Macro identifier expected in operator \'defined\'\n";
+                value = ExprValue();
+            }
+            expect(Token::TOK_RPAREN);
+            return value;
+        } else {
+            std::string ident = lookup_.ident();
+            eat(Token::TOK_IDENT);
+            error() << "Undefined macro identifier \'" << ident << "\'\n";
+            return ExprValue();
+        }
+    } else if (lookup_.isa(Token::TOK_LIT)) {
+        // Literals
+        ExprValue value;
+        Literal lit = lookup_.lit();
+
+        eat(Token::TOK_LIT);
+        switch (lit.type()) {
+            case Literal::LIT_INT:  value = ExprValue(lit.as_int());  break;
+            case Literal::LIT_UINT: value = ExprValue(lit.as_uint()); break;
+            default:
+                value = ExprValue();
+                error() << "Integer literal expected in preprocessor condition\n";
+        }
+        return value;
+    } else if (lookup_.isa(Token::TOK_ADD)) {
+        // Unary plus
+        while (lookup_.isa(Token::TOK_ADD)) {
+            eat(Token::TOK_ADD);
+        }
+        return evaluate_primary();
+    } else if (lookup_.isa(Token::TOK_SUB)) {
+        // Unary minus
+        int sign = 1;
+        while (lookup_.isa(Token::TOK_SUB)) {
+            eat(Token::TOK_SUB);
+            sign = -sign;
+        }
+        return evaluate_primary().apply([sign] (int i) { return i * sign; });
+    } else if (lookup_.isa(Token::TOK_NEG)) {
+        // Unary bitwise not
+        int mask = 0;
+        while (lookup_.isa(Token::TOK_NEG)) {
+            eat(Token::TOK_NEG);
+            mask = ~mask;
+        }
+        return evaluate_primary().apply([mask] (int i) { return i ^ mask; });
+    } else if (lookup_.isa(Token::TOK_NOT)) {
+        // Unary logical not
+        int times = 0;
+        while (lookup_.isa(Token::TOK_NOT)) {
+            eat(Token::TOK_NOT);
+            times = (times + 1) % 2;
+        }
+        return evaluate_primary().apply([times] (int i) { int j[2] = {!!i, !i }; return j[times]; });
+    } else if (lookup_.isa(Token::TOK_LPAREN)) {
+        // Parenthetical grouping
+        eat(Token::TOK_LPAREN);
+        ExprValue left = evaluate_primary();
+        ExprValue value = evaluate_binary(left, BinOp::max_pred);
+        expect(Token::TOK_RPAREN);
+        return value;
+    }
+
+    next();
+    error() << "Invalid token in preprocessor condition\n";
+    return ExprValue();
+}
+
+Preprocessor::ExprValue Preprocessor::evaluate_binary(ExprValue left, int precedence) {
+    while (true) {
+        if (lookup_.new_line())
+            return left;
+
+        BinOp binop(lookup_);
+        if (binop.type == BinOp::BINOP_UNKNOWN || binop.pred > precedence)
+            return left;
+
+        next();
+        ExprValue right = evaluate_primary();
+
+        BinOp next_binop(lookup_);
+        while (!lookup_.new_line() && next_binop.type != BinOp::BINOP_UNKNOWN &&
+               (next_binop.pred < binop.pred || (next_binop.pred == binop.pred && binop.rassoc))) {
+            right = evaluate_binary(right, next_binop.pred);
+            next_binop = BinOp(lookup_);
+        }
+
+        left = binop.apply(left, right);
+    }
 }
 
 std::ostream& Preprocessor::error() {
+    if (ctx_stack_.size()) {
+        return logger_.error(prev_.loc().end())
+            << "[in expansion of \'" << ctx_stack_.back().macro_name << "\' "
+            << lookup_.loc().start() << "] ";
+    }
     return logger_.error(prev_.loc().end());
 }
 
 std::ostream& Preprocessor::warn() {
+    if (ctx_stack_.size()) {
+        return logger_.warn(prev_.loc().end())
+            << "[in expansion of \'" << ctx_stack_.back().macro_name << "\' "
+            << lookup_.loc().start() << "] ";
+    }
     return logger_.warn(prev_.loc().end());
 }
 

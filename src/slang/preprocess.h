@@ -3,8 +3,9 @@
 
 #include <string>
 #include <vector>
-#include <list>
 #include <functional>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "slang/token.h"
 #include "slang/lexer.h"
@@ -85,6 +86,56 @@ private:
         Branch branch;
     };
 
+    struct ExprValue {
+        ExprValue() : error(true) {}
+        ExprValue(int i) : error(false), value(i) {}
+
+        template <typename F>
+        ExprValue apply(F f) const {
+            ExprValue other = *this;
+            other.value = f(value);
+            return other;
+        }
+
+        bool error;
+        int value;
+    };
+
+    struct BinOp {
+        enum Type {
+            BINOP_MUL,
+            BINOP_DIV,
+            BINOP_MOD,
+            BINOP_ADD,
+            BINOP_SUB,
+            BINOP_LSHIFT,
+            BINOP_RSHIFT,
+            BINOP_LT,
+            BINOP_LE,
+            BINOP_GT,
+            BINOP_GE,
+            BINOP_EQ,
+            BINOP_NEQ,
+            BINOP_AND,
+            BINOP_XOR,
+            BINOP_OR,
+            BINOP_ANDAND,
+            BINOP_OROR,
+            BINOP_UNKNOWN
+        };
+
+        BinOp();
+        BinOp(Token);
+
+        ExprValue apply(ExprValue, ExprValue) const;
+
+        static const int max_pred;
+
+        Type type;
+        int pred;
+        bool rassoc;
+    };
+
     void next();
     void eat(Token::Type);
     void expect(Token::Type);
@@ -103,9 +154,11 @@ private:
     void parse_undef();
     void parse_version();
 
-    void start_expansion(const Macro& macro);
+    bool expand(bool);
 
     bool evaluate_condition();
+    ExprValue evaluate_primary();
+    ExprValue evaluate_binary(ExprValue, int);
 
     std::ostream& error();
     std::ostream& warn();
@@ -120,7 +173,7 @@ private:
     std::vector<State> state_stack_;
     std::vector<Context> ctx_stack_;
     std::vector<Token> ctx_buffer_;
-    std::unordered_map<std::string, bool> expanded_;
+    std::unordered_set<std::string> expanded_;
     std::unordered_map<std::string, Macro> macros_;
 };
 
