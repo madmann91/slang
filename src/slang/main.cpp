@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
             } else if (!std::strcmp(argv[i], "--syntax") || !std::strcmp(argv[i], "-ast")) {
                 action = ACTION_SYNTAX;
             } else {
-                std::cerr << "Unknown option : " << argv[i];
+                std::cerr << "Unknown option : " << argv[i] << std::endl;
             }
         } else {
             switch (action) {
