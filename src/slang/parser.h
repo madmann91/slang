@@ -3,6 +3,7 @@
 
 #include <ostream>
 #include <functional>
+#include <memory>
 
 #include "slang/lexer.h"
 #include "slang/environment.h"
@@ -17,7 +18,7 @@ public:
     Parser(std::function<Token()> input, Logger& logger);
 
     /// Parses the stream and produces an AST.
-    ast::DeclList* parse();
+    std::unique_ptr<ast::DeclList> parse();
 
 private:
     template <typename T>

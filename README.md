@@ -31,7 +31,7 @@ bool parse_glsl(const std::string& filename) {
     Parser parser([&pp]() { return pp.preprocess(); }, logger);
 
     // Parse the stream (errors will be reported in the logger)
-    std::unique_ptr<ast::DeclList> root(parser.parse());
+    std::unique_ptr<ast::DeclList> root = parser.parse();
 
     // AST can be pretty-printed to an output stream
     Printer printer(std::cout);

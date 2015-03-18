@@ -14,8 +14,8 @@ Parser::Parser(std::function<Token()> input, Logger& logger)
     prev_ = lookup_[0].loc().start();
 }
 
-ast::DeclList* Parser::parse() {
-    return parse_root();
+std::unique_ptr<ast::DeclList> Parser::parse() {
+    return std::unique_ptr<ast::DeclList>(parse_root());
 }
 
 void Parser::next() {

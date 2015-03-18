@@ -69,7 +69,7 @@ bool syntax_analysis(const std::string& filename, const Keywords& keys) {
         std::cout << "#version " << ver << " " << p << std::endl;
     });
     Parser parser([&pp]() { return pp.preprocess(); }, logger);
-    std::unique_ptr<ast::DeclList> root(parser.parse());
+    std::unique_ptr<ast::DeclList> root = parser.parse();
 
     Printer printer(std::cout);
     root->print(printer);
