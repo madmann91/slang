@@ -264,8 +264,7 @@ void Preprocessor::parse_ifdef_ifndef(bool flag) {
 
 void Preprocessor::parse_define() {
     eat(Token::TOK_IDENT);
-
-     if (!check_newline()) return;
+    if (!check_newline()) return;
 
     // Read macro name
     std::string macro;
@@ -314,7 +313,9 @@ void Preprocessor::parse_define() {
 
 void Preprocessor::parse_undef() {
     eat(Token::TOK_IDENT);
-    if (lookup_.isa(Token::TOK_IDENT) && !lookup_.new_line()) {
+    if (!check_newline()) return;
+
+    if (lookup_.isa(Token::TOK_IDENT)) {
         if (macros_.find(lookup_.ident()) == macros_.end())
             warn() << "Unknown macro \'" << lookup_.ident() << "\'\n";
         else
@@ -323,12 +324,16 @@ void Preprocessor::parse_undef() {
         eat(Token::TOK_IDENT);
     } else {
         error() << "Macro identifier expected\n";
+        next();
     }
+    eat_line(true);
 }
 
 void Preprocessor::parse_version() {
     eat(Token::TOK_IDENT);
-    if (lookup_.isa(Token::TOK_LIT) && lookup_.lit().isa(Literal::LIT_INT) && !lookup_.new_line()) {
+    if (!check_newline()) return;
+
+    if (lookup_.isa(Token::TOK_LIT) && lookup_.lit().isa(Literal::LIT_INT)) {
         int version = lookup_.lit().as_int();
         if (version > 440) {
             warn() << "GLSL version not supported, defaulting to 440\n";
@@ -367,12 +372,14 @@ void Preprocessor::parse_version() {
         version_handler_(version, profile);
     } else {
         error() << "Version number expected\n";
+        next();
     }
+
+    eat_line(true);
 }
 
 void Preprocessor::parse_extension() {
     eat(Token::TOK_IDENT);
-
     if (!check_newline()) return;
 
     std::string name;
