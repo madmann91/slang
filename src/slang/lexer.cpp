@@ -39,11 +39,11 @@ T read_hexadecimal(int c) {
     return T(c - '0');
 }
 
-Lexer::Lexer(std::istream& stream, const Keywords& keys, Logger& logger)
-    : err_count_(0), new_line_(true), stream_(stream), keys_(keys), logger_(logger)
+Lexer::Lexer(std::istream& stream, const Keywords& keys, Logger& logger, int line, int source)
+    : err_count_(0), new_line_(true), source_(source), stream_(stream), keys_(keys), logger_(logger)
 {
-    prev_ = Position(1, 0);
-    cur_  = Position(1, -1);
+    prev_ = Position(line, 0);
+    cur_  = Position(line, -1);
     c_ = 0;
     next();
 }
@@ -197,6 +197,23 @@ Token Lexer::lex() {
                 return make_token(Token::TOK_UNKNOWN);
         }
     }
+}
+
+void Lexer::set_line_index(int line) {
+    prev_.set_line(line);
+    cur_.set_line(line);
+}
+
+int Lexer::line_index() const {
+    return cur_.line();
+}
+
+void Lexer::set_source_index(int source) {
+    source_ = source;
+}
+
+int Lexer::source_index() const {
+    return source_;
 }
 
 void Lexer::next() {

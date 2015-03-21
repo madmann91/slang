@@ -13,6 +13,9 @@ public:
         : line_(line), col_(col)
     {}
 
+    void set_line(int line) { line_ = line; }
+    void set_col(int col) { col_ = col; }
+
     int line() const { return line_; }
     int col() const { return col_; }
 

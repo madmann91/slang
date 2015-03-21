@@ -65,6 +65,7 @@ public:
     typedef std::function<void(const std::vector<Token>&)>       PragmaHandler;
     typedef std::function<void(const std::string&, ExtBehavior)> ExtensionHandler;
 
+    /// Creates a preprocessor that reads tokens from the given lexer.
     Preprocessor(Lexer& lexer, Logger& logger,
                  VersionHandler version_handler = default_version_handler,
                  PragmaHandler pragma_handler = default_pragma_handler,

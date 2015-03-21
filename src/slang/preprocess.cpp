@@ -394,6 +394,7 @@ void Preprocessor::parse_extension() {
     expect(Token::TOK_COLON);
     if (!check_newline()) return;
 
+    // Check that the behavior is one of : require, enable, warn, or disable
     ExtBehavior behavior = ExtBehavior::BEHAVIOR_ENABLE;
     if (lookup_.isa(Token::TOK_IDENT)) {
         if (lookup_.ident() == "require") {
@@ -420,7 +421,47 @@ void Preprocessor::parse_extension() {
 }
 
 void Preprocessor::parse_line() {
-    assert(0 && "Not implemented");
+    eat(Token::TOK_IDENT);
+    if (!check_newline()) return;
+
+    // Expand macros
+    while (lookup_.isa(Token::TOK_IDENT) && expand(false)) ;
+
+    int line = lexer_.line_index();
+    if (lookup_.isa(Token::TOK_LIT) && lookup_.lit().isa(Literal::LIT_INT)) {
+        if (lookup_.lit().as_int() < 0) {
+            error() << "Invalid line index\n";
+        } else {
+            line = lookup_.lit().as_int();
+        }
+        eat(Token::TOK_LIT);
+    } else {
+        error() << "Line index expected\n";
+        eat_line(false);
+        return;
+    }
+    lexer_.set_line_index(line);
+
+    // Optional source index
+    if (!lookup_.new_line()) {
+        // Expand macros (again)
+        while (lookup_.isa(Token::TOK_IDENT) && expand(false)) ;
+
+        int source = lexer_.source_index();
+        if (lookup_.isa(Token::TOK_LIT) && lookup_.lit().isa(Literal::LIT_INT)) {
+            if (lookup_.lit().as_int() < 0) {
+                error() << "Invalid source file index\n";
+            } else {
+                source = lookup_.lit().as_int();
+            }
+            eat(Token::TOK_LIT);
+        } else {
+            error() << "Source file index expected\n";
+        }
+        lexer_.set_source_index(source);
+    }
+
+    eat_line(true);
 }
 
 bool Preprocessor::expand(bool lines_allowed) {

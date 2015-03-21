@@ -1,0 +1,6 @@
+Error in preprocessor/invalid/line.glsl (2, 14) : [in expansion of 'TOO_LONG' (1, 23)] Additional characters after preprocessor directive
+Error in preprocessor/invalid/line.glsl (11, 5) : Unexpected end of line in preprocessor directive
+Error in preprocessor/invalid/line.glsl (12, 5) : Line index expected
+Error in preprocessor/invalid/line.glsl (13, 7) : Source file index expected
+Error in preprocessor/invalid/line.glsl (13, 7) : Additional characters after preprocessor directive
+Error in preprocessor/invalid/line.glsl (2, 5) : Line index expected

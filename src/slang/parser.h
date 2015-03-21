@@ -15,6 +15,7 @@ namespace slang {
 /// Parser object : creates the Abstract Syntax Tree (AST) for a given SLANG program.
 class Parser {
 public:
+    /// Builds a parser with the given token source, errors will be redirected to the logger object.
     Parser(std::function<Token()> input, Logger& logger);
 
     /// Parses the stream and produces an AST.
