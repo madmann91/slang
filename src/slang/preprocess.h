@@ -62,6 +62,11 @@ public:
     /// Default pragma directive handler (does nothing)
     static bool default_pragma_handler(const std::vector<Token>&) { return true; }
 
+    /// Returns the number of errors generated during preprocessing
+    int error_count() const { return err_count_; }
+    /// Returns the number of warnings generated during preprocessing
+    int warn_count() const { return warn_count_; }
+
 private:
     struct Context {
         Context() {}
@@ -166,6 +171,8 @@ private:
 
     std::ostream& error();
     std::ostream& warn();
+
+    int err_count_, warn_count_;
 
     Lexer& lexer_;
     Logger& logger_;

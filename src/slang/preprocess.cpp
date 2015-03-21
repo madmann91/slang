@@ -23,8 +23,9 @@ Preprocessor::Preprocessor(Lexer& lexer, Logger& logger,
                            std::function<bool(int, Profile)> version_handler,
                            std::function<bool(const std::vector<Token>&)> pragma_handler,
                            size_t max_depth)
-    : lexer_(lexer), logger_(logger), version_handler_(version_handler)
-    , pragma_handler_(pragma_handler), max_depth_(max_depth), first_(true)
+    : err_count_(0), warn_count_(0), lexer_(lexer), logger_(logger)
+    , version_handler_(version_handler), pragma_handler_(pragma_handler)
+    , max_depth_(max_depth), first_(true)
 {
     next();
 }
@@ -633,6 +634,7 @@ Preprocessor::ExprValue Preprocessor::evaluate_binary(ExprValue left, int preced
 }
 
 std::ostream& Preprocessor::error() {
+    err_count_++;
     if (ctx_stack_.size()) {
         return logger_.error(prev_.loc().end())
             << "[in expansion of \'" << ctx_stack_.back().macro_name << "\' "
@@ -642,6 +644,7 @@ std::ostream& Preprocessor::error() {
 }
 
 std::ostream& Preprocessor::warn() {
+    warn_count_++;
     if (ctx_stack_.size()) {
         return logger_.warn(prev_.loc().end())
             << "[in expansion of \'" << ctx_stack_.back().macro_name << "\' "

@@ -6,7 +6,7 @@
 namespace slang {
 
 Parser::Parser(std::function<Token()> input, Logger& logger)
-    : input_(input), logger_(logger)
+    : err_count_(0), input_(input), logger_(logger)
 {
     lookup_[0] = input();
     lookup_[1] = input();
@@ -50,6 +50,7 @@ void Parser::expect(Key::Type type) {
 }
 
 std::ostream& Parser::error() {
+    err_count_++;
     return logger_.error(lookup_[0].loc().start());
 }
 

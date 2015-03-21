@@ -20,6 +20,9 @@ public:
     /// Parses the stream and produces an AST.
     std::unique_ptr<ast::DeclList> parse();
 
+    /// Returns the number of errors generated during parsing
+    int error_count() const { return err_count_; }
+
 private:
     template <typename T>
     class NodeLocation {
@@ -107,6 +110,8 @@ private:
     ast::DeclStmt* parse_decl_stmt();
     ast::ExprStmt* parse_expr_stmt();
     ast::ReturnStmt* parse_return_stmt();
+
+    int err_count_;
 
     std::function<Token()> input_;
 

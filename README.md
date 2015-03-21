@@ -36,7 +36,10 @@ bool parse_glsl(const std::string& filename) {
     // AST can be pretty-printed to an output stream
     Printer printer(std::cout);
     root->print(printer);
-    return true;
+    
+    return lexer.error_count() == 0 &&
+           pp.error_count() == 0 &&
+           parser.error_count() == 0;
 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -34,7 +34,7 @@ bool lexical_analysis(const std::string& filename, const Keywords& keys) {
     } while (tok.type() != Token::TOK_EOF);
 
     std::cout << std::endl;
-    return true;
+    return lexer.error_count() == 0;
 }
 
 bool preprocess(const std::string& filename, const Keywords& keys) {
@@ -56,7 +56,7 @@ bool preprocess(const std::string& filename, const Keywords& keys) {
     } while (tok.type() != Token::TOK_EOF);
 
     std::cout << std::endl;
-    return true;
+    return lexer.error_count() == 0 && pp.error_count() == 0;
 }
 
 bool syntax_analysis(const std::string& filename, const Keywords& keys) {
@@ -76,7 +76,9 @@ bool syntax_analysis(const std::string& filename, const Keywords& keys) {
     Printer printer(std::cout);
     root->print(printer);
 
-    return true;
+    return lexer.error_count() == 0 &&
+           pp.error_count() == 0 &&
+           parser.error_count() == 0;
 }
 
 int main(int argc, char** argv) {

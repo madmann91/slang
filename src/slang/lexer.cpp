@@ -40,7 +40,7 @@ T read_hexadecimal(int c) {
 }
 
 Lexer::Lexer(std::istream& stream, const Keywords& keys, Logger& logger)
-    : new_line_(true), stream_(stream), keys_(keys), logger_(logger)
+    : err_count_(0), new_line_(true), stream_(stream), keys_(keys), logger_(logger)
 {
     prev_ = Position(1, 0);
     cur_  = Position(1, -1);
@@ -412,6 +412,7 @@ Token Lexer::make_token(Token::Type type) {
 }
 
 std::ostream& Lexer::error() {
+    err_count_++;
     return logger_.error(cur_);
 }
 

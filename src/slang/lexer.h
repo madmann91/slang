@@ -18,6 +18,9 @@ public:
     /// Returns the next token in the stream and updates the current position.
     Token lex();
 
+    /// Returns the number of errors generated during lexing
+    int error_count() const { return err_count_; }
+
 private:
     void next();
 
@@ -34,10 +37,11 @@ private:
 
     std::ostream& error();
 
+    int err_count_;
+
     int c_;
-
     bool new_line_;
-
+    
     Position cur_, prev_;
     std::istream& stream_;
     const Keywords& keys_;
