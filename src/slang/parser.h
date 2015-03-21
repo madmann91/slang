@@ -20,7 +20,7 @@ public:
     /// Parses the stream and produces an AST.
     std::unique_ptr<ast::DeclList> parse();
 
-    /// Returns the number of errors generated during parsing
+    /// Returns the number of errors generated during parsing.
     int error_count() const { return err_count_; }
 
 private:

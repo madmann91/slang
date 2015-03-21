@@ -19,18 +19,23 @@ public:
 
     Macro() {}
 
+    /// Builds a macro with the given map from argument name to argument index and the given rule.
     Macro(const std::unordered_map<std::string, size_t>& args,
           const std::vector<Token>& rule)
         : args_(args), rule_(rule)
     {}
 
-    /// Applies the macro rule with the given arguments, pushes the result into the vector
+    /// Applies the macro rule with the given arguments, pushes the result into the vector.
     void apply(const std::vector<Arg>&, std::vector<Token>&) const;
 
+    /// Returns the arguments of the macro.
     const std::unordered_map<std::string, size_t>& args() const { return args_; }
+    /// Returns the expansion rule of the macro.
     const std::vector<Token>& rule() const { return rule_; }
 
+    /// Determines if the macro has any arguments.
     bool has_args() const { return args_.size() != 0; }
+    /// Returns the number of arguments of the macro.
     int num_args() const { return args_.size(); }
 
 private:
@@ -38,7 +43,7 @@ private:
     std::vector<Token> rule_;
 };
 
-/// GLSL profiles as specified in the version preprocessor directive
+/// GLSL profiles as specified in the version preprocessor directive.
 enum class Profile {
     PROFILE_CORE,
     PROFILE_COMPAT,
@@ -56,16 +61,21 @@ public:
     /// Extracts the next preprocessed token from the stream.
     Token preprocess();
 
-    /// Default version directive handler (does nothing)
+    /// Registers the given macro in the preprocessor (replaces it if it already exists).
+    void register_macro(const std::string& name, const Macro& macro) { macros_[name] = macro; }
+    /// Determines if the given macro is registered.
+    bool is_registered(const std::string& name) const { return macros_.find(name) != macros_.end(); }
+
+    /// Returns the number of errors generated during preprocessing.
+    int error_count() const { return err_count_; }
+    /// Returns the number of warnings generated during preprocessing.
+    int warn_count() const { return warn_count_; }
+
+    /// Default version directive handler (does nothing).
     static bool default_version_handler(int, Profile) { return true; }
 
-    /// Default pragma directive handler (does nothing)
+    /// Default pragma directive handler (does nothing).
     static bool default_pragma_handler(const std::vector<Token>&) { return true; }
-
-    /// Returns the number of errors generated during preprocessing
-    int error_count() const { return err_count_; }
-    /// Returns the number of warnings generated during preprocessing
-    int warn_count() const { return warn_count_; }
 
 private:
     struct Context {
@@ -162,6 +172,8 @@ private:
     void parse_define();
     void parse_undef();
     void parse_version();
+    void parse_extension();
+    void parse_line();
 
     bool expand(bool);
 

@@ -148,6 +148,10 @@ void Preprocessor::parse_directive() {
                 error() << "Version directive must occur before anything else\n";
                 eat_line(false);
             }
+        } else if (lookup_.ident() == "extension") {
+            parse_extension();
+        } else if (lookup_.ident() == "line") {
+            parse_line();
         } else {
             error() << "Unknown preprocessor directive \'" << lookup_.ident() << "\'\n";
         }
@@ -168,7 +172,7 @@ void Preprocessor::parse_pragma() {
     }
 
     if (!pragma_handler_(line))
-        error() << "Unsupported pragma\n";
+        err_count_++;
 }
 
 void Preprocessor::parse_if() {
@@ -361,10 +365,18 @@ void Preprocessor::parse_version() {
         }
 
         if (!version_handler_(version, profile))
-            error() << "Unsupported version\n";
+            err_count_++;
     } else {
         error() << "Version number expected\n";
     }
+}
+
+void Preprocessor::parse_extension() {
+    assert(0 && "Not implemented");
+}
+
+void Preprocessor::parse_line() {
+    assert(0 && "Not implemented");
 }
 
 bool Preprocessor::expand(bool lines_allowed) {
