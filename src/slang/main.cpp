@@ -84,7 +84,7 @@ bool syntax_analysis(const std::string& filename, const Keywords& keys) {
 int main(int argc, char** argv) {
     if (argc < 2) {
         usage();
-        return 0;
+        return 1;
     }
 
     enum {
@@ -97,6 +97,7 @@ int main(int argc, char** argv) {
     Keywords keys;
     keys.add_all_keywords();
 
+    bool status = true;
     for (int i = 1; i < argc; i++) {
         if (argv[i][0] == '-') {
             if (!std::strcmp(argv[i], "--help") || !std::strcmp(argv[i], "-h")) {
@@ -112,12 +113,12 @@ int main(int argc, char** argv) {
             }
         } else {
             switch (action) {
-                case ACTION_SYNTAX: syntax_analysis(argv[i], keys); break;
-                case ACTION_PREPROCESS: preprocess(argv[i], keys); break;
-                case ACTION_TOKENIZE: lexical_analysis(argv[i], keys); break;
+                case ACTION_SYNTAX:     status &= syntax_analysis(argv[i], keys);  break;
+                case ACTION_PREPROCESS: status &= preprocess(argv[i], keys);       break;
+                case ACTION_TOKENIZE:   status &= lexical_analysis(argv[i], keys); break;
             }
         }
     }
 
-    return 0;
+    return status ? 0 : 1;
 }
