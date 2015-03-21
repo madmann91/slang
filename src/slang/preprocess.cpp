@@ -20,9 +20,11 @@ void Macro::apply(const std::vector<Arg>& args, std::vector<Token>& buffer) cons
 }
 
 Preprocessor::Preprocessor(Lexer& lexer, Logger& logger,
-                           std::function<void(int, Profile)> version_handler,
+                           std::function<bool(int, Profile)> version_handler,
+                           std::function<bool(const std::vector<Token>&)> pragma_handler,
                            size_t max_depth)
-    : lexer_(lexer), logger_(logger), version_handler_(version_handler), max_depth_(max_depth), first_(true)
+    : lexer_(lexer), logger_(logger), version_handler_(version_handler)
+    , pragma_handler_(pragma_handler), max_depth_(max_depth), first_(true)
 {
     next();
 }
@@ -156,7 +158,16 @@ void Preprocessor::parse_directive() {
 }
 
 void Preprocessor::parse_pragma() {
-    assert(0 && "Not implemented");
+    eat(Token::TOK_IDENT);
+
+    std::vector<Token> line;
+    while (!lookup_.isa(Token::TOK_EOF) && !lookup_.new_line()) {
+        line.push_back(lookup_);
+        next();
+    }
+
+    if (!pragma_handler_(line))
+        error() << "Unsupported pragma\n";
 }
 
 void Preprocessor::parse_if() {
@@ -348,7 +359,8 @@ void Preprocessor::parse_version() {
             profile = Profile::PROFILE_ES;
         }
 
-        version_handler_(version, profile);
+        if (!version_handler_(version, profile))
+            error() << "Unsupported version\n";
     } else {
         error() << "Version number expected\n";
     }

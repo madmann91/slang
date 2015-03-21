@@ -49,14 +49,18 @@ enum class Profile {
 class Preprocessor {
 public:
     Preprocessor(Lexer& lexer, Logger& logger,
-                 std::function<void(int, Profile)> version_handler = default_version_handler,
+                 std::function<bool(int, Profile)> version_handler = default_version_handler,
+                 std::function<bool(const std::vector<Token>&)> pragma_handler = default_pragma_handler,
                  size_t max_depth = 1024);
 
     /// Extracts the next preprocessed token from the stream.
     Token preprocess();
 
     /// Default version directive handler (does nothing)
-    static void default_version_handler(int, Profile) {}
+    static bool default_version_handler(int, Profile) { return true; }
+
+    /// Default pragma directive handler (does nothing)
+    static bool default_pragma_handler(const std::vector<Token>&) { return true; }
 
 private:
     struct Context {
@@ -165,7 +169,9 @@ private:
 
     Lexer& lexer_;
     Logger& logger_;
-    std::function<void(int, Profile)> version_handler_;
+
+    std::function<bool(int, Profile)>              version_handler_;
+    std::function<bool(const std::vector<Token>&)> pragma_handler_;
 
     Token prev_, lookup_;
     size_t max_depth_;
