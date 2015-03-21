@@ -1,0 +1,1 @@
+Error in preprocessor/invalid/invalid-macro.glsl (1, 1) : Unknown preprocessor directive 'wrongmacro'
