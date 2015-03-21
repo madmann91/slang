@@ -1,0 +1,7 @@
+Error in preprocessor/invalid/extension.glsl (1, 10) : Unexpected end of line in preprocessor directive
+Error in preprocessor/invalid/extension.glsl (2, 19) : Unexpected end of line in preprocessor directive
+Error in preprocessor/invalid/extension.glsl (3, 27) : Unexpected end of line in preprocessor directive
+Error in preprocessor/invalid/extension.glsl (4, 28) : Extension behavior must be one of 'require', 'enable', 'warn', 'disable'
+Error in preprocessor/invalid/extension.glsl (6, 10) : Unexpected end of line in preprocessor directive
+Error in preprocessor/invalid/extension.glsl (9, 21) : Unexpected end of line in preprocessor directive
+Error in preprocessor/invalid/extension.glsl (12, 23) : Unexpected end of line in preprocessor directive

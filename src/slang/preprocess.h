@@ -50,12 +50,25 @@ enum class Profile {
     PROFILE_ES
 };
 
+/// The possible behaviors of an extension directive.
+enum class ExtBehavior {
+    BEHAVIOR_REQUIRE,
+    BEHAVIOR_ENABLE,
+    BEHAVIOR_WARN,
+    BEHAVIOR_DISABLE
+};
+
 /// The preprocessor : expands macros and handles preprocessor directives.
 class Preprocessor {
 public:
+    typedef std::function<void(int, Profile)>                    VersionHandler;
+    typedef std::function<void(const std::vector<Token>&)>       PragmaHandler;
+    typedef std::function<void(const std::string&, ExtBehavior)> ExtensionHandler;
+
     Preprocessor(Lexer& lexer, Logger& logger,
-                 std::function<bool(int, Profile)> version_handler = default_version_handler,
-                 std::function<bool(const std::vector<Token>&)> pragma_handler = default_pragma_handler,
+                 VersionHandler version_handler = default_version_handler,
+                 PragmaHandler pragma_handler = default_pragma_handler,
+                 ExtensionHandler ext_handler = default_extension_handler,
                  size_t max_depth = 1024);
 
     /// Extracts the next preprocessed token from the stream.
@@ -72,10 +85,11 @@ public:
     int warn_count() const { return warn_count_; }
 
     /// Default version directive handler (does nothing).
-    static bool default_version_handler(int, Profile) { return true; }
-
+    static void default_version_handler(int, Profile) {}
     /// Default pragma directive handler (does nothing).
-    static bool default_pragma_handler(const std::vector<Token>&) { return true; }
+    static void default_pragma_handler(const std::vector<Token>&) {}
+    /// Default extension directive handler (does nothing).
+    static void default_extension_handler(const std::string&, ExtBehavior) {}
 
 private:
     struct Context {
@@ -189,8 +203,9 @@ private:
     Lexer& lexer_;
     Logger& logger_;
 
-    std::function<bool(int, Profile)>              version_handler_;
-    std::function<bool(const std::vector<Token>&)> pragma_handler_;
+    VersionHandler   version_handler_;
+    PragmaHandler    pragma_handler_;
+    ExtensionHandler ext_handler_;
 
     Token prev_, lookup_;
     size_t max_depth_;

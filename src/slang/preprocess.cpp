@@ -20,12 +20,13 @@ void Macro::apply(const std::vector<Arg>& args, std::vector<Token>& buffer) cons
 }
 
 Preprocessor::Preprocessor(Lexer& lexer, Logger& logger,
-                           std::function<bool(int, Profile)> version_handler,
-                           std::function<bool(const std::vector<Token>&)> pragma_handler,
+                           VersionHandler version_handler,
+                           PragmaHandler pragma_handler,
+                           ExtensionHandler ext_handler,
                            size_t max_depth)
     : err_count_(0), warn_count_(0), lexer_(lexer), logger_(logger)
     , version_handler_(version_handler), pragma_handler_(pragma_handler)
-    , max_depth_(max_depth), first_(true)
+    , ext_handler_(ext_handler), max_depth_(max_depth), first_(true)
 {
     next();
 }
@@ -171,8 +172,7 @@ void Preprocessor::parse_pragma() {
         next();
     }
 
-    if (!pragma_handler_(line))
-        err_count_++;
+    pragma_handler_(line);
 }
 
 void Preprocessor::parse_if() {
@@ -364,15 +364,52 @@ void Preprocessor::parse_version() {
             profile = Profile::PROFILE_ES;
         }
 
-        if (!version_handler_(version, profile))
-            err_count_++;
+        version_handler_(version, profile);
     } else {
         error() << "Version number expected\n";
     }
 }
 
 void Preprocessor::parse_extension() {
-    assert(0 && "Not implemented");
+    eat(Token::TOK_IDENT);
+
+    if (!check_newline()) return;
+
+    std::string name;
+    if (lookup_.isa(Token::TOK_IDENT)) {
+        name = lookup_.ident();
+        eat(Token::TOK_IDENT);
+    } else {
+        error() << "Extension name expected\n";
+    }
+
+    if (!check_newline()) return;
+    expect(Token::TOK_COLON);
+    if (!check_newline()) return;
+
+    ExtBehavior behavior = ExtBehavior::BEHAVIOR_ENABLE;
+    if (lookup_.isa(Token::TOK_IDENT)) {
+        if (lookup_.ident() == "require") {
+            behavior = ExtBehavior::BEHAVIOR_REQUIRE;
+        } else if (lookup_.ident() == "enable") {
+            behavior = ExtBehavior::BEHAVIOR_ENABLE;
+        } else if (lookup_.ident() == "warn") {
+            behavior = ExtBehavior::BEHAVIOR_WARN;
+        } else if (lookup_.ident() == "disable") {
+            behavior = ExtBehavior::BEHAVIOR_DISABLE;
+        } else {
+            error() << "Extension behavior must be one of "
+                       "\'require\', \'enable\', \'warn\', \'disable\'\n";
+        }
+        eat(Token::TOK_IDENT);
+    } else {
+        error() << "Extension behavior expected\n";
+        next();
+    }
+
+    ext_handler_(name, behavior);
+
+    eat_line(true);
 }
 
 void Preprocessor::parse_line() {
