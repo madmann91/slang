@@ -1,23 +1,10 @@
 #include <cassert>
+#include <sstream>
+#include <cmath>
 
 #include "slang/preprocess.h"
 
 namespace slang {
-
-void Macro::apply(const std::vector<Arg>& args, std::vector<Token>& buffer) const {
-    for (auto tok: rule_) {
-        if (tok.isa(Token::TOK_IDENT)) {
-            auto arg_index = args_.find(tok.ident());
-            if (arg_index != args_.end() && arg_index->second < args.size()) {
-                // This is a macro argument, has to be replaced
-                buffer.insert(buffer.end(), args[arg_index->second].begin(), args[arg_index->second].end());
-                continue;
-            }
-        }
-
-        buffer.push_back(tok);
-    }
-}
 
 Preprocessor::Preprocessor(Lexer& lexer, Logger& logger,
                            VersionHandler version_handler,
@@ -273,10 +260,12 @@ void Preprocessor::parse_define() {
         eat(Token::TOK_IDENT);
     } else {
         error() << "Macro identifier expected\n";
+        eat_line(false);
+        return;
     }
 
     // Parse macro arguments
-    std::unordered_map<std::string, size_t> args;
+    std::unordered_map<std::string, int> args;
     if (lookup_.isa(Token::TOK_LPAREN) && !lookup_.new_line()) {
         eat(Token::TOK_LPAREN);
 
@@ -303,6 +292,24 @@ void Preprocessor::parse_define() {
            !lookup_.isa(Token::TOK_EOF)) {
         body.push_back(lookup_);
         next();
+    }
+
+    if (!body.empty()) {
+        if (body.front().isa(Token::TOK_SHARPSHARP) || body.back().isa(Token::TOK_SHARPSHARP)) {
+            error() << "Concatenation operator \'##\' cannot appear at the beginnning or the end of a macro body\n";
+            eat_line(false);
+            return;
+        }
+
+        Token prev;
+        for (size_t i = 0; i < body.size(); i++) {
+            if (prev.isa(Token::TOK_SHARPSHARP) && body[i].isa(Token::TOK_SHARPSHARP)) {
+                error() << "Cannot have two concatenation operators \'##\' next to each other\n";
+                eat_line(false);
+                return;
+            }
+            prev = body[i];
+        }
     }
 
     if (macros_.find(macro) != macros_.end())
@@ -464,6 +471,91 @@ void Preprocessor::parse_line() {
     eat_line(true);
 }
 
+void Preprocessor::apply(const Macro& macro, const std::vector<Macro::Arg>& args, std::vector<Token>& buffer) {
+    bool concat_next = false;
+    for (auto& tok : macro.rule()) {
+
+        // May have to replace an argument here
+        if (tok.isa(Token::TOK_IDENT)) {
+            auto arg_index = macro.args().find(tok.ident());
+            if (arg_index != macro.args().end() && arg_index->second < macro.num_args()) {
+                // This is a macro argument, has to be replaced
+                int first = 0;
+                if (concat_next) {
+                    concat_next = false;
+                    Token next;
+                    if (!args[arg_index->second].empty() &&
+                        concat(buffer.back(), args[arg_index->second].front(), next)) {
+                        buffer.back() = next;
+                        first = 1;
+                    }
+                }
+                buffer.insert(buffer.end(), args[arg_index->second].begin() + first, args[arg_index->second].end());
+                continue;
+            }
+        }
+
+        if (tok.isa(Token::TOK_SHARPSHARP)) {
+            assert(!concat_next);
+            concat_next = !buffer.empty();
+            continue;
+        }
+
+        if (concat_next) {
+            concat_next = false;
+            Token next;
+            if (concat(buffer.back(), tok, next)) {
+                buffer.back() = next;
+                continue;
+            }
+        }
+
+        buffer.push_back(tok);
+    }
+}
+
+inline Location concat_loc(const Token& a, const Token& b) {
+    return Location(a.loc().start(), b.loc().end());
+}
+
+class NullBuffer : public std::streambuf
+{
+public:
+    int overflow(int c) { return c; }
+};
+
+bool Preprocessor::concat(const Token& a, const Token& b, Token& c) {
+    std::stringstream str;
+    str << a << b;
+
+    // Redirect errors to null output stream
+    NullBuffer null_buffer;
+    std::ostream null_stream(&null_buffer);
+    Logger logger("", null_stream, null_stream);
+    Lexer lex(str, lexer_.keywords(), logger);
+
+    // Get the concatenated token
+    Token tok = lex.lex();
+    if (tok.isa(Token::TOK_EOF) || !lex.lex().isa(Token::TOK_EOF) || lex.error_count() > 0) {
+        error() << "Invalid tokens for concatenation operator\n";
+        return false;
+    }
+
+    switch (tok.type()) {
+        case Token::TOK_IDENT:
+            c = Token(concat_loc(a, b), tok.ident(), lexer_.keywords(), a.new_line() | b.new_line());
+            break;
+        case Token::TOK_LIT:
+            c = Token(concat_loc(a, b), tok.lit(), tok.lit_str(), a.new_line() | b.new_line());
+            break;
+        default:
+            c = Token(concat_loc(a, b), tok.type(), a.new_line() | b.new_line());
+            break;
+    }
+
+    return true;
+}
+
 bool Preprocessor::expand(bool lines_allowed) {
     assert(lookup_.isa(Token::TOK_IDENT));
 
@@ -535,7 +627,7 @@ bool Preprocessor::expand(bool lines_allowed) {
     // Expand the macro
     if (ctx_stack_.size() < max_depth_) {
         int first = ctx_buffer_.size();
-        macro->second.apply(args, ctx_buffer_);
+        apply(macro->second, args, ctx_buffer_);
         int last = ctx_buffer_.size();
 
         ctx_stack_.emplace_back(first, last, macro->first);

@@ -952,6 +952,7 @@ ast::StmtList* Parser::parse_compound_stmt() {
            lookup_[0].isa(Token::TOK_LIT) ||
            lookup_[0].isa(Token::TOK_LPAREN) ||
            lookup_[0].isa(Token::TOK_LBRACE) ||
+           lookup_[0].isa(Token::TOK_SEMICOLON) ||
            token_to_pre_unop(lookup_[0]) != ast::UnOpExpr::UNOP_UNKNOWN) {
         list->push_stmt(parse_stmt());
     }

@@ -1,0 +1,4 @@
+Error in preprocessor/invalid/concat.glsl (3, 16) : Invalid tokens for concatenation operator
+Error in preprocessor/invalid/concat.glsl (4, 17) : Invalid tokens for concatenation operator
+Error in preprocessor/invalid/concat.glsl (5, 12) : Invalid tokens for concatenation operator
+Error in preprocessor/invalid/concat.glsl (6, 12) : Invalid tokens for concatenation operator

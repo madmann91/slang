@@ -20,16 +20,13 @@ public:
     Macro() {}
 
     /// Builds a macro with the given map from argument name to argument index and the given rule.
-    Macro(const std::unordered_map<std::string, size_t>& args,
+    Macro(const std::unordered_map<std::string, int>& args,
           const std::vector<Token>& rule)
         : args_(args), rule_(rule)
     {}
 
-    /// Applies the macro rule with the given arguments, pushes the result into the vector.
-    void apply(const std::vector<Arg>&, std::vector<Token>&) const;
-
     /// Returns the arguments of the macro.
-    const std::unordered_map<std::string, size_t>& args() const { return args_; }
+    const std::unordered_map<std::string, int>& args() const { return args_; }
     /// Returns the expansion rule of the macro.
     const std::vector<Token>& rule() const { return rule_; }
 
@@ -39,7 +36,7 @@ public:
     int num_args() const { return args_.size(); }
 
 private:
-    std::unordered_map<std::string, size_t> args_;
+    std::unordered_map<std::string, int> args_;
     std::vector<Token> rule_;
 };
 
@@ -190,6 +187,8 @@ private:
     void parse_extension();
     void parse_line();
 
+    void apply(const Macro&, const std::vector<Macro::Arg>&, std::vector<Token>&);
+    bool concat(const Token&, const Token&, Token&);
     bool expand(bool);
 
     bool evaluate_condition();
