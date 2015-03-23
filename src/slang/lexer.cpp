@@ -251,7 +251,9 @@ void Lexer::next() {
 }
 
 Literal Lexer::parse_int(std::string& str, bool octal) {
+    auto next = [this, &str] () { str += c_; Lexer::next(); };
     std::int64_t sum = 0;
+
     if (octal) {
         while (std::isdigit(c_)) {
             if (!is_octal(c_)) {
@@ -259,7 +261,7 @@ Literal Lexer::parse_int(std::string& str, bool octal) {
             } else {
                 sum = sum * 8 + read_octal<std::int64_t>(c_);
             }
-            str += c_; next();
+            next();
         }
     } else {
         if (!is_hexa(c_))
@@ -267,14 +269,14 @@ Literal Lexer::parse_int(std::string& str, bool octal) {
 
         while (is_hexa(c_)) {
             sum = sum * 16 + read_hexadecimal<std::int64_t>(c_);
-            str += c_; next();
+            next();
         }
     }
     
     // Parse suffix (if any)
     if (isalpha(c_)) {
         int d = c_;
-        str += c_; next();
+        next();
 
         if (eat_suffix()) {
 
@@ -295,12 +297,13 @@ Literal Lexer::parse_int(std::string& str, bool octal) {
 }
 
 Literal Lexer::parse_float(std::string& str, bool dot) {
+    auto next = [this, &str] () { str += c_; Lexer::next(); };
     double num = 0;
 
     if (!dot) {
         while (std::isdigit(c_)) {
             num = num * 10.0 + read_decimal<double>(c_);
-            str += c_; next();
+            next();
         }
     }
 
@@ -308,24 +311,24 @@ Literal Lexer::parse_float(std::string& str, bool dot) {
     if (dot || c_ == '.') {
         dot = true;
 
-        str += c_; next();
+        next();
         double pow = 0.1;
         while (std::isdigit(c_)) {
             num += read_decimal<double>(c_) * pow;
             pow  *= 0.1;
-            str += c_; next();
+            next();
         }
     }
 
     // Parse exponent (if any)
     if (c_ == 'e' || c_ == 'E') {
-        str += c_; next();
+        next();
 
         int exp_sign = 1;
         if (c_ == '+') {
-            str += c_; next();
+            next();
         } else if (c_ == '-') {
-            str += c_; next();
+            next();
             exp_sign = -1;
         }
 
@@ -336,7 +339,7 @@ Literal Lexer::parse_float(std::string& str, bool dot) {
             double exp = 0;
             while (std::isdigit(c_)) {
                 exp = exp * 10.0 + read_decimal<double>(c_);
-                str += c_; next();
+                next();
             }
             num = num * std::pow(10.0, exp_sign * exp);
         }
@@ -345,7 +348,7 @@ Literal Lexer::parse_float(std::string& str, bool dot) {
     // Parse suffix (if any)
     if (isalpha(c_)) {
         int d = c_;
-        str += c_; next();
+        next();
 
         switch (d) {
             case 'f':
@@ -368,7 +371,7 @@ Literal Lexer::parse_float(std::string& str, bool dot) {
 
             case 'l':
                 if (c_ == 'f') {
-                    str += c_; next();
+                    next();
                     if (eat_suffix()) return Literal(num, true);
                 }
                 break;
@@ -384,12 +387,14 @@ Literal Lexer::parse_float(std::string& str, bool dot) {
 }
 
 Literal Lexer::parse_literal(std::string& str) {
+    auto next = [this, &str] () { str += c_; Lexer::next(); };
+
     if (c_ == '0') {
         // Can be octal or hexadecimal
-        str += c_; next();
+        next();
         if (c_ == 'x' || c_ == 'X') {
             // Hexadecimal number
-            str += c_; next();
+            next();
             return parse_int(str, false);
         } else if (c_ == '.') {
             return parse_float(str, false);
