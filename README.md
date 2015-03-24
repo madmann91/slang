@@ -27,6 +27,8 @@ bool parse_glsl(const std::string& filename) {
     Lexer lexer(is, keys, logger);
     // Create a preprocessor that reads tokens from the lexer
     Preprocessor pp(lexer, logger);
+    // Register __FILE__, __LINE__, and __VERSION__ builtin macros
+    pp.register_builtin_macros();
     // Create a parser object that reads tokens from the preprocessor (you can choose to read directly from the lexer)
     Parser parser([&pp]() { return pp.preprocess(); }, logger);
 
