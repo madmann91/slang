@@ -61,39 +61,45 @@ Token Preprocessor::preprocess() {
 }
 
 void Preprocessor::register_file_macro() {
-    macros_["__FILE__"] = Macro(std::unordered_map<std::string, int>(),
-        [this] (const std::vector<Macro::Arg>& args) {
-            Location null_loc(Position(0, 0), Position(0, 0));
-            Literal lit(lexer_.source_index(), false);
-            std::ostringstream os;
-            os << lit;
-            return std::vector<Token>(1, Token(null_loc, lit, os.str(), false));
-        }
-    );
+    macros_["__FILE__"] = Macro([this] (const std::vector<Macro::Arg>&) {
+        Literal lit(lexer_.source_index(), false);
+        std::ostringstream os;
+        os << lit;
+        return std::vector<Token>(1, Token(Location::zero(), lit, os.str(), false));
+    });
 }
 
 void Preprocessor::register_line_macro() {
-    macros_["__LINE__"] = Macro(std::unordered_map<std::string, int>(),
-        [this] (const std::vector<Macro::Arg>& args) {
-            Location null_loc(Position(0, 0), Position(0, 0));
-            Literal lit(lexer_.line_index(), false);
-            std::ostringstream os;
-            os << lit;
-            return std::vector<Token>(1, Token(null_loc, lit, os.str(), false));
-        }
-    );
+    macros_["__LINE__"] = Macro([this] (const std::vector<Macro::Arg>&) {
+        Literal lit(lexer_.line_index(), false);
+        std::ostringstream os;
+        os << lit;
+        return std::vector<Token>(1, Token(Location::zero(), lit, os.str(), false));
+    });
 }
 
 void Preprocessor::register_version_macro(int ver) {
-    macros_["__VERSION__"] = Macro(std::unordered_map<std::string, int>(),
-        [this, ver] (const std::vector<Macro::Arg>& args) {
-            Location null_loc(Position(0, 0), Position(0, 0));
-            Literal lit(ver, false);
-            std::ostringstream os;
-            os << lit;
-            return std::vector<Token>(1, Token(null_loc, lit, os.str(), false));
-        }
-    );
+    macros_["__VERSION__"] = Macro([this, ver] (const std::vector<Macro::Arg>&) {
+        Literal lit(ver, false);
+        std::ostringstream os;
+        os << lit;
+        return std::vector<Token>(1, Token(Location::zero(), lit, os.str(), false));
+    });
+}
+
+void Preprocessor::register_core_macro() {
+    macros_["GL_core_profile"] = Macro(std::vector<Token>(1,
+        Token(Location::zero(), Literal(1, false), "1", false)));
+}
+
+void Preprocessor::register_compatibility_macro() {
+    macros_["GL_compatibility_profile"] = Macro(std::vector<Token>(1,
+        Token(Location::zero(), Literal(1, false), "1", false)));
+}
+
+void Preprocessor::register_es_macro() {
+    macros_["GL_es_profile"] = Macro(std::vector<Token>(1,
+        Token(Location::zero(), Literal(1, false), "1", false)));
 }
 
 void Preprocessor::next() {
@@ -664,8 +670,8 @@ bool Preprocessor::expand(bool lines_allowed) {
     // Expand the macro
     if (ctx_stack_.size() < max_depth_) {
         int first = ctx_buffer_.size();
-        if (macro->second.is_special()) {
-            std::vector<Token> tokens = macro->second.special(args);
+        if (macro->second.is_builtin()) {
+            std::vector<Token> tokens = macro->second.builtin(args);
             ctx_buffer_.insert(ctx_buffer_.end(), tokens.begin(), tokens.end());
         } else {
             apply(macro->second, args, ctx_buffer_);

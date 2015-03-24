@@ -38,6 +38,10 @@ public:
     const Position& start() const { return start_; }
     const Position& end() const { return end_; }
 
+    static Location zero() {
+        return Location(Position(0, 0), Position(0, 0));
+    }
+
 private:
     Position start_, end_;
 };

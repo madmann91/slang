@@ -12,12 +12,22 @@
 
 namespace slang {
 
-/// A preprocessor macro (without the name).
+/// A preprocessor macro (without the name). Can be a builtin macro or a user defined macro.
 class Macro {
 public:
     typedef std::vector<Token> Arg;
 
     Macro() {}
+
+    /// Builds a macro that has no argument and the given rule.
+    Macro(const std::vector<Token>& rule)
+        : rule_(rule)
+    {}
+
+    /// Builds a macro that has no argument and the given builtin function.
+    Macro(std::function<std::vector<Token>(const std::vector<Arg>&)> builtin)
+        : builtin_(builtin)
+    {}
 
     /// Builds a macro with the given map from argument name to argument index and the given rule.
     Macro(const std::unordered_map<std::string, int>& args,
@@ -25,30 +35,30 @@ public:
         : args_(args), rule_(rule)
     {}
 
-    /// Builds a macro with the given map from argument name to argument index and the special function.
+    /// Builds a macro with the given map from argument name to argument index and the builtin function.
     Macro(const std::unordered_map<std::string, int>& args,
-          std::function<std::vector<Token>(const std::vector<Arg>&)> special)
-        : args_(args), special_(special)
+          std::function<std::vector<Token>(const std::vector<Arg>&)> builtin)
+        : args_(args), builtin_(builtin)
     {}
 
     /// Returns the arguments of the macro.
     const std::unordered_map<std::string, int>& args() const { return args_; }
     /// Returns the expansion rule of the macro.
-    const std::vector<Token>& rule() const { assert(!is_special()); return rule_; }
-    /// Calls the special function associated with this macro (e.g. __FILE__ returns the source index).
-    std::vector<Token> special(const std::vector<Arg>& args) const { assert(is_special()); return special_(args); }
+    const std::vector<Token>& rule() const { assert(!is_builtin()); return rule_; }
+    /// Calls the builtin function associated with this macro (e.g. __FILE__ returns the source index).
+    std::vector<Token> builtin(const std::vector<Arg>& args) const { assert(is_builtin()); return builtin_(args); }
 
     /// Determines if the macro has any arguments.
     bool has_args() const { return args_.size() != 0; }
     /// Returns the number of arguments of the macro.
     int num_args() const { return args_.size(); }
 
-    /// Returns true if the macro is a special macro (like __FILE__, or __LINE__).
-    bool is_special() const { return static_cast<bool>(special_); }
+    /// Returns true if the macro is a builtin macro (like __FILE__, or __LINE__).
+    bool is_builtin() const { return static_cast<bool>(builtin_); }
 
 private:
     std::unordered_map<std::string, int> args_;
-    std::function<std::vector<Token>(const std::vector<Arg>&)> special_;
+    std::function<std::vector<Token>(const std::vector<Arg>&)> builtin_;
     std::vector<Token> rule_;
 };
 
@@ -88,17 +98,27 @@ public:
     void register_macro(const std::string& name, const Macro& macro) { macros_[name] = macro; }
     /// Determines if the given macro is registered.
     bool is_registered(const std::string& name) const { return macros_.find(name) != macros_.end(); }
+
     /// Adds the __FILE__ macro to the preprocessor.
     void register_file_macro();
     /// Adds the __LINE__ macro to the preprocessor.
     void register_line_macro();
     /// Adds the __VERSION__ macro to the preprocessor.
     void register_version_macro(int ver = 440);
+
+    /// Adds the GL_core_profile macro to the preprocessor.
+    void register_core_macro();
+    /// Adds the GL_compatibility_profile macro to the preprocessor.
+    void register_compatibility_macro();
+    /// Adds the GL_es_profile macro to the preprocessor.
+    void register_es_macro();
+
     /// Add all builtin macros to the preprocessor.
     void register_builtin_macros() {
         register_file_macro();
         register_line_macro();
         register_version_macro(440);
+        register_core_macro();
     }
 
     /// Returns the number of errors generated during preprocessing.

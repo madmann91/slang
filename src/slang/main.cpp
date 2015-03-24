@@ -49,7 +49,7 @@ bool preprocess(const std::string& filename, const Keywords& keys) {
         return true;
     });
     pp.register_builtin_macros();
-    
+
     Token tok;
     do {
         tok = pp.preprocess();
