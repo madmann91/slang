@@ -35,7 +35,7 @@ public:
     const std::unordered_map<std::string, int>& args() const { return args_; }
     /// Returns the expansion rule of the macro.
     const std::vector<Token>& rule() const { assert(!is_special()); return rule_; }
-    /// Calls the special function associated to this macro (e.g. __FILE__ returns the source index)
+    /// Calls the special function associated with this macro (e.g. __FILE__ returns the source index).
     std::vector<Token> special(const std::vector<Arg>& args) const { assert(is_special()); return special_(args); }
 
     /// Determines if the macro has any arguments.
@@ -43,7 +43,7 @@ public:
     /// Returns the number of arguments of the macro.
     int num_args() const { return args_.size(); }
 
-    /// Returns true if the macro is a special macro (like __FILE__, or __LINE__)
+    /// Returns true if the macro is a special macro (like __FILE__, or __LINE__).
     bool is_special() const { return static_cast<bool>(special_); }
 
 private:
@@ -88,13 +88,13 @@ public:
     void register_macro(const std::string& name, const Macro& macro) { macros_[name] = macro; }
     /// Determines if the given macro is registered.
     bool is_registered(const std::string& name) const { return macros_.find(name) != macros_.end(); }
-    /// Adds the __FILE__ macro to the preprocessor
+    /// Adds the __FILE__ macro to the preprocessor.
     void register_file_macro();
-    /// Adds the __LINE__ macro to the preprocessor
+    /// Adds the __LINE__ macro to the preprocessor.
     void register_line_macro();
-    /// Adds the __VERSION__ macro to the preprocessor
+    /// Adds the __VERSION__ macro to the preprocessor.
     void register_version_macro(int ver = 440);
-    /// Add all builtin macros to the preprocessor
+    /// Add all builtin macros to the preprocessor.
     void register_builtin_macros() {
         register_file_macro();
         register_line_macro();
