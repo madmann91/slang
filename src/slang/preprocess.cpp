@@ -60,6 +60,42 @@ Token Preprocessor::preprocess() {
     return tok;
 }
 
+void Preprocessor::register_file_macro() {
+    macros_["__FILE__"] = Macro(std::unordered_map<std::string, int>(),
+        [this] (const std::vector<Macro::Arg>& args) {
+            Location null_loc(Position(0, 0), Position(0, 0));
+            Literal lit(lexer_.source_index(), false);
+            std::ostringstream os;
+            os << lit;
+            return std::vector<Token>(1, Token(null_loc, lit, os.str(), false));
+        }
+    );
+}
+
+void Preprocessor::register_line_macro() {
+    macros_["__LINE__"] = Macro(std::unordered_map<std::string, int>(),
+        [this] (const std::vector<Macro::Arg>& args) {
+            Location null_loc(Position(0, 0), Position(0, 0));
+            Literal lit(lexer_.line_index(), false);
+            std::ostringstream os;
+            os << lit;
+            return std::vector<Token>(1, Token(null_loc, lit, os.str(), false));
+        }
+    );
+}
+
+void Preprocessor::register_version_macro(int ver) {
+    macros_["__VERSION__"] = Macro(std::unordered_map<std::string, int>(),
+        [this, ver] (const std::vector<Macro::Arg>& args) {
+            Location null_loc(Position(0, 0), Position(0, 0));
+            Literal lit(ver, false);
+            std::ostringstream os;
+            os << lit;
+            return std::vector<Token>(1, Token(null_loc, lit, os.str(), false));
+        }
+    );
+}
+
 void Preprocessor::next() {
     if (ctx_stack_.empty()) prev_ = lookup_;
 
@@ -447,7 +483,8 @@ void Preprocessor::parse_line() {
         eat_line(false);
         return;
     }
-    lexer_.set_line_index(line);
+
+    lexer_.set_line_index(lookup_.new_line() ? line : line - 1);
 
     // Optional source index
     if (!lookup_.new_line()) {
@@ -627,7 +664,12 @@ bool Preprocessor::expand(bool lines_allowed) {
     // Expand the macro
     if (ctx_stack_.size() < max_depth_) {
         int first = ctx_buffer_.size();
-        apply(macro->second, args, ctx_buffer_);
+        if (macro->second.is_special()) {
+            std::vector<Token> tokens = macro->second.special(args);
+            ctx_buffer_.insert(ctx_buffer_.end(), tokens.begin(), tokens.end());
+        } else {
+            apply(macro->second, args, ctx_buffer_);
+        }
         int last = ctx_buffer_.size();
 
         ctx_stack_.emplace_back(first, last, macro->first);

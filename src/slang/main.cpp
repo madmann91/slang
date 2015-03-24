@@ -48,6 +48,7 @@ bool preprocess(const std::string& filename, const Keywords& keys) {
         std::cout << "Version : " << ver << " " << p << std::endl;
         return true;
     });
+    pp.register_builtin_macros();
     
     Token tok;
     do {
@@ -70,6 +71,7 @@ bool syntax_analysis(const std::string& filename, const Keywords& keys) {
         std::cout << "#version " << ver << " " << p << std::endl;
         return true;
     });
+    pp.register_builtin_macros();
     Parser parser([&pp]() { return pp.preprocess(); }, logger);
     std::unique_ptr<ast::DeclList> root = parser.parse();
 
