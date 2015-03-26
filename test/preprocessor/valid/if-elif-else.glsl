@@ -34,12 +34,20 @@ int l;
 
 #if 0
 int m;
+#if 1
+int n;
+#endif
 #endif
 
 #if +1 - 1 == -1 + 1
-int n;
+int o;
 #endif
 
 #if ~0x80000000 == 0x7FFFFFFF
-int o;
+int p;
+#endif
+
+#if 1
+#elif 1
+int q;
 #endif

@@ -206,13 +206,15 @@ void Preprocessor::parse_pragma() {
 
 void Preprocessor::parse_if() {
     eat(Token::TOK_IDENT);
+    bool cond = evaluate_condition();
+
     // Check if current branch was taken
     if (state_stack_.empty() || state_stack_.back().enabled) {
-        bool cond = evaluate_condition();
         state_stack_.emplace_back(cond, cond, State::BRANCH_IF);
     } else {
         state_stack_.emplace_back(false, true, State::BRANCH_IF);
     }
+
     eat_line(true);
 }
 
@@ -247,14 +249,14 @@ void Preprocessor::parse_else() {
 
 void Preprocessor::parse_elif() {
     eat(Token::TOK_IDENT);
+    bool cond = evaluate_condition();
+
     if (state_stack_.empty()) {
         error() << "#elif outside of an #if\n";
     } else if (state_stack_.back().branch == State::BRANCH_ELSE) {
         error() << "#elif cannot follow #else\n";
         state_stack_.back().enabled = false;
     } else {
-        bool cond = evaluate_condition();
-
         if (state_stack_.back().enabled || state_stack_.back().done) {
             state_stack_.back().enabled = false;
         } else {
@@ -478,11 +480,8 @@ void Preprocessor::parse_line() {
 
     int line = lexer_.line_index();
     if (lookup_.isa(Token::TOK_LIT) && lookup_.lit().isa(Literal::LIT_INT)) {
-        if (lookup_.lit().as_int() < 0) {
-            error() << "Invalid line index\n";
-        } else {
-            line = lookup_.lit().as_int();
-        }
+        assert(lookup_.lit().as_int() >= 0);
+        line = lookup_.lit().as_int();
         eat(Token::TOK_LIT);
     } else {
         error() << "Line index expected\n";
@@ -499,11 +498,8 @@ void Preprocessor::parse_line() {
 
         int source = lexer_.source_index();
         if (lookup_.isa(Token::TOK_LIT) && lookup_.lit().isa(Literal::LIT_INT)) {
-            if (lookup_.lit().as_int() < 0) {
-                error() << "Invalid source file index\n";
-            } else {
-                source = lookup_.lit().as_int();
-            }
+            assert(lookup_.lit().as_int() >= 0);
+            source = lookup_.lit().as_int();
             eat(Token::TOK_LIT);
         } else {
             error() << "Source file index expected\n";

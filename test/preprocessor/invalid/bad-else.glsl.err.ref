@@ -1,0 +1,2 @@
+Error in preprocessor/invalid/bad-else.glsl (3, 5) : Only one #else directive allowed inside a condition
+Error in preprocessor/invalid/bad-else.glsl (6, 5) : #else outside of an #if

@@ -1,0 +1,2 @@
+Error in preprocessor/invalid/bad-directives.glsl (1, 5) : '#' symbol in the middle of a line
+Error in preprocessor/invalid/bad-directives.glsl (2, 1) : Preprocessor directive name expected
