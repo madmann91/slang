@@ -281,8 +281,10 @@ Literal Lexer::parse_int(bool octal) {
         if (eat_suffix()) {
 
             switch (d) {
+                case 'U':
                 case 'u':
                     return Literal((unsigned)sum, true);
+                case 'I':
                 case 'i':
                     return Literal((int)sum, true);
                 default:
@@ -350,10 +352,12 @@ Literal Lexer::parse_float(bool dot) {
         next();
 
         switch (d) {
+            case 'F':
             case 'f':
                 if (eat_suffix()) return Literal((float)num, true);
                 break;
 
+            case 'U':
             case 'u':
                 if (eat_suffix()) {
                     if (dot) error() << "Invalid suffix on floating point constant\n";
@@ -361,10 +365,18 @@ Literal Lexer::parse_float(bool dot) {
                 }
                 break;
 
+            case 'I':
             case 'i':
                 if (eat_suffix()) {
                     if (dot) error() << "Invalid suffix on floating point constant\n";
                     return Literal((int)num, true);
+                }
+                break;
+
+            case 'L':
+                if (c_ == 'F') {
+                    next();
+                    if (eat_suffix()) return Literal(num, true);
                 }
                 break;
 

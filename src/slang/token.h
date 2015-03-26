@@ -105,7 +105,7 @@ public:
             {
         #define SLANG_TOK(tok, str) {TOK_##tok, str},
         #include "slang/tokenlist.h"
-            }, 64, hash_type);
+            }, 256, hash_type);
         auto it = type_to_str.find(type);
         assert(it != type_to_str.end());
         return it->second;
