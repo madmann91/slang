@@ -37,7 +37,7 @@ void Parser::eat(Key::Type type) {
 
 void Parser::expect(Token::Type type) {
     if (lookup_[0].type() != type)
-        error() << "\'" << type << "\' expected\n";
+        error() << "\'" << Token::type_string(type) << "\' expected\n";
 
     next();
 }

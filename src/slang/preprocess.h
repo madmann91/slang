@@ -230,6 +230,7 @@ private:
     void parse_version();
     void parse_extension();
     void parse_line();
+    void parse_error();
 
     void apply(const Macro&, const std::vector<Macro::Arg>&, std::vector<Token>&);
     bool concat(const Token&, const Token&, Token&);

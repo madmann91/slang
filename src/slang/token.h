@@ -73,15 +73,15 @@ public:
     Token() : type_(TOK_UNKNOWN) {}
     /// Creates a token which is not an identifier nor a literal.
     Token(const Location& loc, Type type, bool new_line)
-        : loc_(loc), type_(type), new_line_(new_line)
+        : loc_(loc), type_(type), str_(type_string(type)), new_line_(new_line)
     {}
     /// Creates an identifier or keyword.
     Token(const Location& loc, const std::string& str, const Keywords& keys, bool new_line)
         : loc_(loc), type_(TOK_IDENT), str_(str), key_(keys.keyword(str)), new_line_(new_line)
     {}
     /// Creates a literal.
-    Token(const Location& loc, Literal lit, const std::string& str, bool new_line)
-        : loc_(loc), type_(TOK_LIT), lit_(lit), str_(str), new_line_(new_line)
+    Token(const Location& loc, const std::string& str, Literal lit, bool new_line)
+        : loc_(loc), type_(TOK_LIT), str_(str), lit_(lit), new_line_(new_line)
     {}
 
     bool isa(Type type) const { return type_ == type; }
@@ -94,16 +94,28 @@ public:
     Key key() const { return key_; }
 
     Literal lit() const { return lit_; }
+    const std::string& str() const { return str_; }
     const std::string& ident() const { assert(type_ == TOK_IDENT); return str_; }
-    const std::string& lit_str() const { assert(type_ == TOK_LIT); return str_; }
 
     bool new_line() const { return new_line_; }
-    
+
+    static std::string type_string(Type type) {
+        static auto hash_type = [] (Type type) { return (size_t)type; };
+        static const std::unordered_map<Type, std::string, decltype(hash_type)> type_to_str(
+            {
+        #define SLANG_TOK(tok, str) {TOK_##tok, str},
+        #include "slang/tokenlist.h"
+            }, 64, hash_type);
+        auto it = type_to_str.find(type);
+        assert(it != type_to_str.end());
+        return it->second;
+    }
+
 private:
     Location loc_;
     Type type_;
-    Literal lit_;
     std::string str_;
+    Literal lit_;
     Key key_;
     bool new_line_;
 };
@@ -135,24 +147,8 @@ inline std::ostream& operator << (std::ostream& out, const Literal& lit) {
     return out;
 }
 
-inline std::ostream& operator << (std::ostream& out, Token::Type type) {
-    switch (type) {
-#define SLANG_TOK(tok, str) case Token::TOK_##tok: out << str; break;
-#include "slang/tokenlist.h"
-    }
-
-    return out;
-}
-
 inline std::ostream& operator << (std::ostream& out, const Token& token) {
-    if (token.isa(Token::TOK_IDENT)) {
-        out << token.ident();
-    } else if (token.isa(Token::TOK_LIT)) {
-        out << token.lit_str();
-    } else {
-        out << token.type();
-    }
-    
+    out << token.str();
     return out;
 }
 

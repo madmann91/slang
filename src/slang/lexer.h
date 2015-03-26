@@ -38,14 +38,14 @@ public:
 private:
     void next();
 
-    Literal parse_int(std::string&, bool);
-    Literal parse_float(std::string&, bool);
-    Literal parse_literal(std::string&);
+    Literal parse_int(bool);
+    Literal parse_float(bool);
+    Literal parse_literal();
     std::string parse_ident();
 
     bool eat_suffix();
     
-    Token make_literal(const Literal&, const std::string&);
+    Token make_literal(const Literal&);
     Token make_ident(const std::string&);
     Token make_token(Token::Type);
 
@@ -56,6 +56,7 @@ private:
     int c_;
     bool new_line_;
     int source_;
+    std::string str_;
 
     Position cur_, prev_;
     std::istream& stream_;

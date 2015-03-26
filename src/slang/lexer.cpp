@@ -62,6 +62,8 @@ Token Lexer::lex() {
             return make_token(Token::TOK_EOF);
         }
 
+        str_.clear();
+
         if (std::isalpha(c_) || c_ == '_') {
             // Begins with a letter, must be an identifier
             return make_ident(parse_ident());
@@ -69,15 +71,13 @@ Token Lexer::lex() {
 
         if (std::isdigit(c_)) {
             // Integer or floating point number
-            std::string str;
-            return make_literal(parse_literal(str), str);
+            return make_literal(parse_literal());
         }
 
         if (c_ == '.') {
-            std::string str(1, c_);
             next();
             if (std::isdigit(c_))
-                return make_literal(parse_float(str, true), str);
+                return make_literal(parse_float(true));
             else
                 return make_token(Token::TOK_DOT);
         }
@@ -238,6 +238,7 @@ void Lexer::next() {
         cur_.inc_col();
     }
 
+    str_ += c_;
     c_ = stream_.get();
 
     // Handle line escaping
@@ -250,8 +251,7 @@ void Lexer::next() {
     }
 }
 
-Literal Lexer::parse_int(std::string& str, bool octal) {
-    auto next = [this, &str] () { str += c_; Lexer::next(); };
+Literal Lexer::parse_int(bool octal) {
     std::int64_t sum = 0;
 
     if (octal) {
@@ -296,8 +296,7 @@ Literal Lexer::parse_int(std::string& str, bool octal) {
     return Literal((int)sum, false);
 }
 
-Literal Lexer::parse_float(std::string& str, bool dot) {
-    auto next = [this, &str] () { str += c_; Lexer::next(); };
+Literal Lexer::parse_float(bool dot) {
     double num = 0;
 
     if (!dot) {
@@ -386,38 +385,34 @@ Literal Lexer::parse_float(std::string& str, bool dot) {
     return (dot) ? Literal((float)num, false) : Literal((int)num, false);
 }
 
-Literal Lexer::parse_literal(std::string& str) {
-    auto next = [this, &str] () { str += c_; Lexer::next(); };
-
+Literal Lexer::parse_literal() {
     if (c_ == '0') {
         // Can be octal or hexadecimal
         next();
         if (c_ == 'x' || c_ == 'X') {
             // Hexadecimal number
             next();
-            return parse_int(str, false);
+            return parse_int(false);
         } else if (c_ == '.') {
-            return parse_float(str, false);
+            return parse_float(false);
         }
 
         // Zero and octal numbers handled here
-        return parse_int(str, true);
+        return parse_int(true);
     }
 
     // Parse floating point and decimal integers
-    return parse_float(str, false);
+    return parse_float(false);
 }
 
 std::string Lexer::parse_ident() {
-    std::string ident(1, c_);
     next();
 
     while (std::isalnum(c_) || c_ == '_') {
-        ident.insert(ident.end(), 1, c_);
         next();
     }
 
-    return ident;
+    return str_;
 }
 
 bool Lexer::eat_suffix() {
@@ -436,8 +431,8 @@ inline bool reset_bool(bool& value) {
     return old;
 }
 
-Token Lexer::make_literal(const Literal& l, const std::string& str) {
-    return Token(Location(prev_, cur_), l, str, reset_bool(new_line_));
+Token Lexer::make_literal(const Literal& l) {
+    return Token(Location(prev_, cur_), str_, l, reset_bool(new_line_));
 }
 
 Token Lexer::make_ident(const std::string& ident) {

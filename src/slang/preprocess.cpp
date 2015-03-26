@@ -65,7 +65,7 @@ void Preprocessor::register_file_macro() {
         Literal lit(lexer_.source_index(), false);
         std::ostringstream os;
         os << lit;
-        return std::vector<Token>(1, Token(Location::zero(), lit, os.str(), false));
+        return std::vector<Token>(1, Token(Location::zero(), os.str(), lit, false));
     });
 }
 
@@ -74,7 +74,7 @@ void Preprocessor::register_line_macro() {
         Literal lit(lexer_.line_index(), false);
         std::ostringstream os;
         os << lit;
-        return std::vector<Token>(1, Token(Location::zero(), lit, os.str(), false));
+        return std::vector<Token>(1, Token(Location::zero(), os.str(), lit, false));
     });
 }
 
@@ -83,23 +83,23 @@ void Preprocessor::register_version_macro(int ver) {
         Literal lit(ver, false);
         std::ostringstream os;
         os << lit;
-        return std::vector<Token>(1, Token(Location::zero(), lit, os.str(), false));
+        return std::vector<Token>(1, Token(Location::zero(), os.str(), lit, false));
     });
 }
 
 void Preprocessor::register_core_macro() {
     macros_["GL_core_profile"] = Macro(std::vector<Token>(1,
-        Token(Location::zero(), Literal(1, false), "1", false)));
+        Token(Location::zero(), "1", Literal(1, false), false)));
 }
 
 void Preprocessor::register_compatibility_macro() {
     macros_["GL_compatibility_profile"] = Macro(std::vector<Token>(1,
-        Token(Location::zero(), Literal(1, false), "1", false)));
+        Token(Location::zero(), "1", Literal(1, false), false)));
 }
 
 void Preprocessor::register_es_macro() {
     macros_["GL_es_profile"] = Macro(std::vector<Token>(1,
-        Token(Location::zero(), Literal(1, false), "1", false)));
+        Token(Location::zero(), "1", Literal(1, false), false)));
 }
 
 void Preprocessor::next() {
@@ -126,7 +126,7 @@ void Preprocessor::eat(Token::Type type) {
 
 void Preprocessor::expect(Token::Type type) {
     if (!lookup_.isa(type))
-        error() << "\'" << type << "\' expected\n";
+        error() << "\'" << Token::type_string(type) << "\' expected\n";
     next();
 }
 
@@ -182,6 +182,8 @@ void Preprocessor::parse_directive() {
             parse_extension();
         } else if (lookup_.ident() == "line") {
             parse_line();
+        } else if (lookup_.ident() == "error") {
+            parse_error();
         } else {
             error() << "Unknown preprocessor directive \'" << lookup_.ident() << "\'\n";
         }
@@ -510,6 +512,21 @@ void Preprocessor::parse_line() {
     eat_line(true);
 }
 
+void Preprocessor::parse_error() {
+    eat(Token::TOK_IDENT);
+
+    std::ostringstream os;
+    bool prev = false;
+    while (!lookup_.new_line() && !lookup_.isa(Token::TOK_EOF)) {
+        if (prev) os << ' ';
+        os << lookup_;
+        next();
+        prev = true;
+    }
+
+    error() << "#error directive with message : \'" << os.str() << "\'\n";
+}
+
 void Preprocessor::apply(const Macro& macro, const std::vector<Macro::Arg>& args, std::vector<Token>& buffer) {
     bool concat_next = false;
     for (auto& tok : macro.rule()) {
@@ -585,7 +602,7 @@ bool Preprocessor::concat(const Token& a, const Token& b, Token& c) {
             c = Token(concat_loc(a, b), tok.ident(), lexer_.keywords(), a.new_line() | b.new_line());
             break;
         case Token::TOK_LIT:
-            c = Token(concat_loc(a, b), tok.lit(), tok.lit_str(), a.new_line() | b.new_line());
+            c = Token(concat_loc(a, b), tok.str(), tok.lit(), a.new_line() | b.new_line());
             break;
         default:
             c = Token(concat_loc(a, b), tok.type(), a.new_line() | b.new_line());
