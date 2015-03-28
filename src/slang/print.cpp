@@ -279,7 +279,7 @@ void UnOpExpr::print(Printer& printer) const {
             case UNOP_BIT_NOT: printer << "~ ";  break;
             case UNOP_PLUS:    printer << "+ ";  break;
             case UNOP_MINUS:   printer << "- ";  break;
-            default: printer << "<unknown unop>"; break;
+            default: assert(0 && "Unknown unary operation");
         }
         op_->print(printer);
     }
@@ -307,7 +307,7 @@ void AssignOpExpr::print(Printer& printer) const {
         case ASSIGN_AND:    printer << " &= ";  break;
         case ASSIGN_XOR:    printer << " ^= ";  break;
         case ASSIGN_OR:     printer << " |= ";  break;
-        default: printer << "<unknown assignop>"; break;
+        default: assert(0 && "Unknown assign operation");
     }
     right_->print(printer);
 }
@@ -348,7 +348,7 @@ void BinOpExpr::print(Printer& printer) const {
         case BINOP_OR:     printer << "|";  break;
         case BINOP_ANDAND: printer << "&&"; break;
         case BINOP_OROR:   printer << "||"; break;
-        default: printer << "<unknown binop>";  break;
+        default: assert(0 && "Unknown binary operation");
     }
     printer << " ";
     print_expr(right_.get(), printer, prec);
