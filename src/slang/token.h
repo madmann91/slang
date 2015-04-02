@@ -93,10 +93,10 @@ public:
     Location loc() const { return loc_; }
     Key key() const { return key_; }
 
-    Literal lit() const { return lit_; }
-    const std::string& str() const { return str_; }
+    Literal lit() const { assert(type_ == TOK_LIT); return lit_; }
     const std::string& ident() const { assert(type_ == TOK_IDENT); return str_; }
 
+    const std::string& str() const { return str_; }
     bool new_line() const { return new_line_; }
 
     static std::string type_string(Type type) {
