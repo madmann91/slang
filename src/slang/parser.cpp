@@ -6,7 +6,7 @@
 namespace slang {
 
 Parser::Parser(std::function<Token()> input, Logger& logger)
-    : err_count_(0), input_(input), logger_(logger)
+    : err_count_(0), input_(input), env_(nullptr), logger_(logger)
 {
     lookup_[0] = input();
     lookup_[1] = input();
@@ -15,7 +15,30 @@ Parser::Parser(std::function<Token()> input, Logger& logger)
 }
 
 std::unique_ptr<ast::DeclList> Parser::parse() {
+    env_ = nullptr;
     return std::unique_ptr<ast::DeclList>(parse_root());
+}
+
+void Parser::new_def(const std::string& name, ast::Node* def) {
+    if (auto symbol = env_->lookup(name)) {
+        if (symbol->def()) {
+            error() << "Symbol \'" << name << "\' already defined\n";
+        }
+        symbol->set_def(def);
+    } else {
+        env_->push_symbol(name, Symbol(nullptr, def));
+    }
+}
+
+void Parser::new_decl(const std::string& name, ast::Node* decl) {
+    if (auto symbol = env_->lookup(name)) {
+        if (symbol->decl()) {
+            error() << "Symbol \'" << name << "\' already declared\n";
+        }
+        symbol->set_decl(decl);
+    } else {
+        env_->push_symbol(name, Symbol(decl, nullptr));
+    }
 }
 
 void Parser::next() {
@@ -56,6 +79,9 @@ std::ostream& Parser::error() {
 
 ast::DeclList* Parser::parse_root() {
     auto root = new_node<ast::DeclList>();
+
+    env_ = new_env();
+    root->set_env(env_);
 
     while (!lookup_[0].is_eof()) {
         if (lookup_[0].isa(Token::TOK_IDENT)) {
@@ -114,7 +140,7 @@ ast::PrecisionDecl* Parser::parse_precision_decl() {
 
 ast::Type* Parser::parse_type() {
     // Type ::= Qualifier* (StructType|NamedType|PrimType|InterfaceType) (ArraySpecifier)?
-    ast::PtrVector<ast::TypeQualifier> quals;
+    PtrVector<ast::TypeQualifier> quals;
 
     while (lookup_[0].key().is_qualifier()) {
         quals.push_back(parse_type_qualifier());
@@ -287,6 +313,15 @@ ast::FunctionDecl* Parser::parse_function_decl(ast::Type* type) {
         decl->set_body(parse_compound_stmt());
     } else {
         expect(Token::TOK_SEMICOLON);
+    }
+
+    // Add the function to the environment
+    if (decl->name().length()) {
+        if (decl->is_prototype()) {
+            new_decl(decl->name(), decl.node());
+        } else {
+            new_def(decl->name(), decl.node());
+        }
     }
 
     return decl.node();

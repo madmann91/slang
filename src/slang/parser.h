@@ -52,6 +52,15 @@ private:
         return NodeLocation<T>(new T(args...), this);
     }
 
+    Environment* new_env() {
+        Environment* env = new Environment();
+        env->set_parent(env_);
+        return env;
+    }
+
+    void new_def(const std::string&, ast::Node*);
+    void new_decl(const std::string&, ast::Node*);
+
     void next();
 
     void eat(Token::Type);
@@ -116,8 +125,8 @@ private:
 
     std::function<Token()> input_;
 
+    Environment* env_;
     Logger& logger_;
-    Environment env_;
     Token lookup_[3];
     Position prev_;
 };
