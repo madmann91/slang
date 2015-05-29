@@ -2,7 +2,7 @@
 #include <sstream>
 #include <cmath>
 
-#include "slang/preprocess.h"
+#include "slang/preprocessor.h"
 
 namespace slang {
 
@@ -799,8 +799,8 @@ Preprocessor::ExprValue Preprocessor::evaluate_primary() {
         } else {
             std::string ident = lookup_.ident();
             eat(Token::TOK_IDENT);
-            error() << "Undefined macro identifier \'" << ident << "\'\n";
-            return ExprValue();
+            warn() << "Undefined macro identifier \'" << ident << "\'\n";
+            return ExprValue(0);
         }
     } else if (lookup_.isa(Token::TOK_LIT)) {
         // Literals
@@ -879,7 +879,13 @@ Preprocessor::ExprValue Preprocessor::evaluate_binary(ExprValue left, int preced
             next_binop = BinOp(lookup_);
         }
 
-        left = binop.apply(left, right);
+        // Catch division by zero here
+        if (binop.type == BinOp::BINOP_DIV && !right.error && right.value == 0) {
+            error() << "Division by zero in preprocessor condition\n";
+            left = ExprValue();
+        } else {
+            left = binop.apply(left, right);
+        }
     }
 }
 

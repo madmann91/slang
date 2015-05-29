@@ -4,7 +4,7 @@
 
 #include "slang/lexer.h"
 #include "slang/parser.h"
-#include "slang/preprocess.h"
+#include "slang/preprocessor.h"
 #include "slang/ast.h"
 #include "slang/print.h"
 
@@ -20,7 +20,7 @@ void usage() {
 }
 
 bool lexical_analysis(const std::string& filename, const Keywords& keys) {
-    // Do the lexical analysis and display the stream of tokens with their location
+    // Analyses the tokens and displays them with their location
     std::ifstream is(filename);
     if (!is) return false;
 
@@ -61,7 +61,7 @@ bool preprocess(const std::string& filename, const Keywords& keys) {
 }
 
 bool syntax_analysis(const std::string& filename, const Keywords& keys) {
-    // Do the syntax analysis and display the AST
+    // Analyses the syntax and displays the AST
     std::ifstream is(filename);
     if (!is) return false;
 

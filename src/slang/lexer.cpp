@@ -42,8 +42,8 @@ T read_hexadecimal(int c) {
 Lexer::Lexer(std::istream& stream, const Keywords& keys, Logger& logger, int line, int source)
     : err_count_(0), new_line_(true), source_(source), stream_(stream), keys_(keys), logger_(logger)
 {
-    prev_ = Position(line, 0);
-    cur_  = Position(line, -1);
+    prev_ = Position(line, 1);
+    cur_  = Position(line, 0);
     c_ = 0;
     next();
 }

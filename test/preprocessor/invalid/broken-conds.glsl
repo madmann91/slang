@@ -9,18 +9,19 @@ int j;
 
 #if ANSWER == 42
 #else
+int k;
 #endif
 
 #if SUM(1,
 #else
-int k;
+int l;
 #endif
 
 #if 0.99
 #else
-int l;
+int m;
 #endif
 
 #if # {
-int m;
+int n;
 #endif

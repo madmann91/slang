@@ -1,185 +1,167 @@
 #ifndef SLANG_SEMA_H
 #define SLANG_SEMA_H
 
-#include <vector>
+#include <unordered_set>
+#include <unordered_map>
 #include <string>
-#include <algorithm>
 
-#include "slang/cast.h"
+#include "slang/environment.h"
+#include "slang/logger.h"
+#include "slang/types.h"
+#include "slang/ast.h"
 #include "slang/ptr.h"
 
 namespace slang {
 
-/// Base class for symbol types.
-class Type : public Cast<Type> {
+/// Helper class for semantic analysis. Types are hashed and stored uniquely,
+/// which means type equality can be checked with pointer equality.
+class Sema {
 public:
-    virtual ~Type() {}
-    virtual bool equals(const Type* other) const = 0;
-};
+    Sema(Logger& logger)
+        : logger_(logger), env_(nullptr)
+    {}
 
-/// Function type (equality based on return type and arguments).
-class FunctionType : public Type {
-public:
-    bool equals(const Type* other) const {
-        if (auto fn = other->isa<FunctionType>()) {
-            if (fn->ret()->equals(ret()) &&
-                fn->args().size() == args().size()) {
-                for (size_t i = 0; i < fn->args().size(); i++) {
-                    if (!args()[i]->equals(fn->args()[i]))
-                        return false;
-                }
-                return true;
-            }
+    ~Sema() {
+        for (auto type : types_)
+            delete type;
+    }
+
+    /// Returns the current environment.
+    Environment* env() {
+        return env_;
+    }
+
+    /// Pushes a new, empty environment on the stack.
+    void push_env(const ast::Node* scope = nullptr) {
+        Environment* env = new Environment(scope);
+        env->set_parent(env_);
+        env_list_.push_back(env);
+        env_ = env;
+    }
+
+    /// Pops an environment from the stack.
+    void pop_env() {
+        assert(env_ != nullptr);
+        env_ = env_->parent();
+    }
+
+    /// Returns the type of the given symbol, if present in the current environment.
+    slang::Type* symbol_type(const std::string& name) {
+        if (Symbol* sym = env()->lookup_symbol(name)) {
+            assert(sym->type() && "Identifier without type");
+            return sym->type();
         }
-        return false;
+        return nullptr;
     }
 
-    void set_ret(Type* ret) { ret_.reset(ret); }
-    Type* ret() { return ret_.get(); }
-    const Type* ret() const { return ret_.get(); }
-
-    const PtrVector<Type>& args() const { return args_; }
-    void push_arg(Type* arg) { args_.push_back(arg); }
-    int num_args() const { return args_.size(); }
-
-private:
-    PtrVector<Type> args_;
-    Ptr<Type> ret_;
-};
-
-/// Compound type (interface or structure).
-class CompoundType : public Type {
-public:
-    const PtrMap<std::string, Type>& args() const { return args_; }
-    void push_arg(const std::string& name, Type* arg) { args_.emplace(name, arg); }
-    int num_args() const { return args_.size(); }
-
-private:
-    PtrMap<std::string, Type> args_;
-};
-
-/// Structure type (equality decided from name only).
-class StructType : public CompoundType {
-public:
-    bool equals(const Type* other) const {
-        if (auto st = other->isa<StructType>()) {
-            return st->name() == name_;
+    /// Creates a new identifier, if the name is not already used in the current environment.
+    void new_identifier(const ast::Node* node, const std::string& name, Symbol&& symbol) {
+        if (env()->find_symbol(name) != nullptr) {
+            error(node) << "Identifier \'" << name << "\' has already been used.\n";
+        } else {
+            env()->push_symbol(name, std::forward<Symbol>(symbol));
         }
-        return false;
     }
 
-    const std::string& name() const { return name_; }
-    void set_name(const std::string& name) { name_ = name; }
+    /// Displays an error message with the Logger object.
+    std::ostream& error(const ast::Node* node) {
+        return logger_.error(node->loc());
+    }
+
+    /// Creates an error type. For expressions that fail typechecking.
+    ErrorType* error_type() { return new_type<ErrorType>(); }
+    /// Creates a primitive type.
+    PrimType* prim_type(PrimType::Prim prim) { return new_type<PrimType>(prim); }
+    /// Creates a function type from a return type and a list of arguments.
+    FunctionType* function_type(Type* ret, const FunctionType::ArgList& args) {
+        return new_type<FunctionType>(ret, args);
+    }
+    /// Creates a structure type from a list of members and a name.
+    StructType* struct_type(const std::string& name, const StructType::MemberMap& members) {
+        return new_type<StructType>(name, members);
+    }
+    /// Creates an interface type type from a list of members and a name.
+    InterfaceType* interface_type(const std::string& name, const InterfaceType::MemberMap& members) {
+        return new_type<InterfaceType>(name, members);
+    }
+    /// Creates an array whose size is unknown.
+    IndefiniteArrayType* indefinite_array_type(Type* elem) {
+        return new_type<IndefiniteArrayType>(elem);
+    }
+    /// Creates an array of known size.
+    DefiniteArrayType* definite_array_type(Type* elem, int size) {
+        return new_type<DefiniteArrayType>(elem, size);
+    }
+
+    /// Checks the type of an expression, and expects the given type as a result.
+    Type* check(const ast::Expr* expr, TypeExpectation expected) {
+        Type* found = expr->check(*this, expected);
+        expr->assign_type(found);
+        if (expected.type() && found != expected.type()) {
+            error(expr) << "Expected \'" << expected.type()->to_string()
+                        << "\', but found \'" << found->to_string()
+                        << "\'\n";
+        }
+        return found;
+    }
+
+    /// Checks the type of an expression, without any constraint on the result type.
+    Type* check(const ast::Expr* expr) { return check_assign(expr, TypeExpectation(nullptr)); }
+    /// Checks the type of an AST type.
+    Type* check(const ast::Type* type) { return check_assign(type); }
+    /// Checks the type of a declaration.
+    Type* check(const ast::Decl* decl) { return check_assign(decl); }
+    /// Checks a statement.
+    void check(const ast::Stmt* stmt) { stmt->check(*this); }
+    /// Checks the type of a function argument.
+    Type* check(const ast::Arg* arg) { return check_assign(arg); }
+    /// Checks the type of a variable, given the type of the corresponding declaration.
+    Type* check(const ast::Variable* var, slang::Type* var_type) { return check_assign(var, var_type); }
 
 private:
-    std::string name_;
-};
-
-/// Interface type (cannot be equal to another type).
-class InterfaceType : public CompoundType {
-public:
-    bool equals(const Type* other) const {
-        return false;
+    template <typename T>
+    Type* check_assign(const T* t) {
+        Type* found = t->check(*this);
+        t->assign_type(found);
+        return found;
     }
-};
 
-/// Primitive type (int, float, double, ...).
-class PrimType : public Type {
-public:
-    enum Prim {
-        PRIM_BVEC4,
-        PRIM_BVEC3,
-        PRIM_BVEC2,
-        PRIM_BOOL,
+    template <typename T, typename... Args>
+    Type* check_assign(const T* t, Args... args) {
+        Type* found = t->check(*this, args...);
+        t->assign_type(found);
+        return found;
+    }
 
-        PRIM_IVEC4,
-        PRIM_IVEC3,
-        PRIM_IVEC2,
-        PRIM_INT,
+    template <typename T, typename... Args>
+    T* new_type(Args... args) {
+        T t(std::forward<Args>(args)...);
+        auto it = types_.find(&t);
+        if (it != types_.end())
+            return (*it)->as<T>();
 
-        PRIM_VEC4,
-        PRIM_VEC3,
-        PRIM_VEC2,
-        PRIM_FLOAT,
+        T* pt = new T(t);
+        types_.emplace(pt);
+        return pt;
+    }
 
-        PRIM_DVEC4,
-        PRIM_DVEC3,
-        PRIM_DVEC2,
-        PRIM_DOUBLE,
-
-        PRIM_MAT4,
-        PRIM_MAT3,
-        PRIM_MAT2,
-        PRIM_MAT4X4,
-        PRIM_MAT4X3,
-        PRIM_MAT4X2,
-        PRIM_MAT3X4,
-        PRIM_MAT3X3,
-        PRIM_MAT3X2,
-        PRIM_MAT2X4,
-        PRIM_MAT2X3,
-        PRIM_MAT2X2,
-
-        PRIM_DMAT4,
-        PRIM_DMAT3,
-        PRIM_DMAT2,
-        PRIM_DMAT4X4,
-        PRIM_DMAT4X3,
-        PRIM_DMAT4X2,
-        PRIM_DMAT3X4,
-        PRIM_DMAT3X3,
-        PRIM_DMAT3X2,
-        PRIM_DMAT2X4,
-        PRIM_DMAT2X3,
-        PRIM_DMAT2X2,
-
-        PRIM_VOID
+    struct HashType {
+        size_t operator () (Type* t) const {
+            return t->hash();
+        }
     };
 
-    bool equals(const Type* other) const {
-        if (auto prim = other->isa<PrimType>()) {
-            return prim->prim() == prim_;
+    struct EqualType {
+        bool operator () (Type* t1, Type* t2) const {
+            return t1->equals(t2);
         }
-        return false;
-    }
+    };
 
-    Prim prim() const { return prim_; }
-    void set_prim(Prim prim) { prim_ = prim; }
+    Logger& logger_;
 
-private:
-    Prim prim_;
-};
-
-class ArrayType : public Type {
-public:
-    const Type* elem() const { return elem_.get(); }
-    void set_elem(Type* elem) { elem_.reset(elem); }
-
-    virtual bool equals(const Type* other) const {
-        if (auto array = other->isa<ArrayType>()) {
-            return array->elem()->equals(elem_.get());
-        }
-        return false;
-    }
-
-private:
-    Ptr<Type> elem_;
-};
-
-class DefiniteArrayType : public ArrayType {
-public:
-    int size() const { return size_; }
-    void set_size(int size) { size_ = size; }
-
-    bool equals(const Type* other) const {
-        if (auto def = other->isa<DefiniteArrayType>()) {
-            return def->size() == size_ && def->elem()->equals(elem());
-        }
-        return false;
-    }
-
-private:
-    int size_;
+    std::unordered_set<Type*, HashType, EqualType> types_;
+    PtrVector<Environment> env_list_;
+    Environment* env_;
 };
 
 } // namespace slang

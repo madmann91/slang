@@ -2,6 +2,7 @@
 #define SLANG_CAST_H
 
 #include <type_traits>
+#include <cassert>
 
 namespace slang {
 

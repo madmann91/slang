@@ -7,12 +7,12 @@
 
 #include "slang/lexer.h"
 #include "slang/environment.h"
-
+#include "slang/sema.h"
 #include "slang/ast.h"
 
 namespace slang {
 
-/// Parser object : creates the Abstract Syntax Tree (AST) for a given SLANG program.
+/// Parser object : creates the Abstract Syntax Tree (AST) for a given GLSL program.
 class Parser {
 public:
     /// Builds a parser with the given token source, errors will be redirected to the logger object.
@@ -51,15 +51,6 @@ private:
     NodeLocation<T> new_node(Args... args) {
         return NodeLocation<T>(new T(args...), this);
     }
-
-    Environment* new_env() {
-        Environment* env = new Environment();
-        env->set_parent(env_);
-        return env;
-    }
-
-    void new_def(const std::string&, ast::Node*);
-    void new_decl(const std::string&, ast::Node*);
 
     void next();
 
@@ -110,7 +101,7 @@ private:
     ast::LoopCond* parse_loop_cond();
 
     ast::Stmt* parse_stmt();
-    ast::StmtList* parse_compound_stmt();
+    ast::StmtList* parse_compound_stmt(bool);
     ast::IfStmt* parse_if_stmt();
     ast::SwitchStmt* parse_switch_stmt();
     ast::WhileLoopStmt* parse_while_stmt();
@@ -125,7 +116,7 @@ private:
 
     std::function<Token()> input_;
 
-    Environment* env_;
+    Sema sema_;
     Logger& logger_;
     Token lookup_[3];
     Position prev_;

@@ -8,16 +8,19 @@ set(HEADER_FILES
     location.h
     logger.h
     parser.h
-    preprocess.h
+    preprocessor.h
     print.h
+    sema.h
     token.h
-    tokenlist.h)
+    tokenlist.h
+    types.h)
 
 set(SOURCE_FILES
     lexer.cpp
     parser.cpp
-    preprocess.cpp
-    print.cpp)
+    preprocessor.cpp
+    print.cpp
+    sema.cpp)
 
 if(CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_CXX_FLAGS "-Wall -std=c++11 ${CMAKE_CXX_FLAGS}")

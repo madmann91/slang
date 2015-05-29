@@ -19,6 +19,7 @@ public:
         for (auto p : *this) delete p;
     }
 
+    using Vector::empty;
     using Vector::begin;
     using Vector::end;
     using Vector::push_back;
@@ -36,6 +37,7 @@ public:
         for (auto p : *this) delete p.second;
     }
 
+    using Map::empty;
     using Map::begin;
     using Map::end;
     using Map::emplace;

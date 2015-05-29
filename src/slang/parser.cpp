@@ -6,7 +6,7 @@
 namespace slang {
 
 Parser::Parser(std::function<Token()> input, Logger& logger)
-    : err_count_(0), input_(input), env_(nullptr), logger_(logger)
+    : err_count_(0), input_(input), sema_(logger), logger_(logger)
 {
     lookup_[0] = input();
     lookup_[1] = input();
@@ -15,30 +15,7 @@ Parser::Parser(std::function<Token()> input, Logger& logger)
 }
 
 std::unique_ptr<ast::DeclList> Parser::parse() {
-    env_ = nullptr;
     return std::unique_ptr<ast::DeclList>(parse_root());
-}
-
-void Parser::new_def(const std::string& name, ast::Node* def) {
-    if (auto symbol = env_->lookup(name)) {
-        if (symbol->def()) {
-            error() << "Symbol \'" << name << "\' already defined\n";
-        }
-        symbol->set_def(def);
-    } else {
-        env_->push_symbol(name, Symbol(nullptr, def));
-    }
-}
-
-void Parser::new_decl(const std::string& name, ast::Node* decl) {
-    if (auto symbol = env_->lookup(name)) {
-        if (symbol->decl()) {
-            error() << "Symbol \'" << name << "\' already declared\n";
-        }
-        symbol->set_decl(decl);
-    } else {
-        env_->push_symbol(name, Symbol(decl, nullptr));
-    }
 }
 
 void Parser::next() {
@@ -80,17 +57,19 @@ std::ostream& Parser::error() {
 ast::DeclList* Parser::parse_root() {
     auto root = new_node<ast::DeclList>();
 
-    env_ = new_env();
-    root->set_env(env_);
-
+    sema_.push_env();
     while (!lookup_[0].is_eof()) {
         if (lookup_[0].isa(Token::TOK_IDENT)) {
-            root->push_decl(parse_decl());
+            ast::Decl* decl = parse_decl();
+            root->push_decl(decl);
+            sema_.check(decl);
         } else {
             error() << "Keyword or identifier expected\n";
             next();
         }
     }
+    root->set_env(sema_.env());
+    sema_.pop_env();
 
     return root.node();
 }
@@ -208,12 +187,15 @@ ast::StructType* Parser::parse_struct_type() {
 
     expect(Token::TOK_LBRACE);
     
+    sema_.push_env();
     while (lookup_[0].isa(Token::TOK_IDENT)) {
         ast::Type* field_type = parse_type();
         type->push_field(parse_variable_decl(field_type));
     }
+    sema_.pop_env();
 
     expect(Token::TOK_RBRACE);
+
     return type.node();
 }
 
@@ -237,6 +219,7 @@ ast::InterfaceType* Parser::parse_interface_type() {
     }
 
     expect(Token::TOK_RBRACE);
+
     return type.node();
 }
 
@@ -310,18 +293,11 @@ ast::FunctionDecl* Parser::parse_function_decl(ast::Type* type) {
 
     // Optional body
     if (lookup_[0].isa(Token::TOK_LBRACE)) {
-        decl->set_body(parse_compound_stmt());
+        sema_.push_env();
+        decl->set_body(parse_compound_stmt(false));
+        sema_.pop_env();
     } else {
         expect(Token::TOK_SEMICOLON);
-    }
-
-    // Add the function to the environment
-    if (decl->name().length()) {
-        if (decl->is_prototype()) {
-            new_decl(decl->name(), decl.node());
-        } else {
-            new_def(decl->name(), decl.node());
-        }
     }
 
     return decl.node();
@@ -971,7 +947,7 @@ ast::Stmt* Parser::parse_stmt() {
             default: break;
         }
     } else if (lookup_[0].isa(Token::TOK_LBRACE)) {
-        return parse_compound_stmt();
+        return parse_compound_stmt(true);
     } else if (lookup_[0].is_ident() && lookup_[1].is_ident()) {
         return parse_decl_stmt();
     }
@@ -979,9 +955,10 @@ ast::Stmt* Parser::parse_stmt() {
     return parse_expr_stmt();
 }
 
-ast::StmtList* Parser::parse_compound_stmt() {
+ast::StmtList* Parser::parse_compound_stmt(bool env) {
     // StmtList ::= { (Stmt)* }
     auto list = new_node<ast::StmtList>();
+    if (env) sema_.push_env();
     eat(Token::TOK_LBRACE);
     while (lookup_[0].isa(Token::TOK_IDENT) ||
            lookup_[0].isa(Token::TOK_LIT) ||
@@ -992,6 +969,8 @@ ast::StmtList* Parser::parse_compound_stmt() {
         list->push_stmt(parse_stmt());
     }
     expect(Token::TOK_RBRACE);
+    list->set_env(sema_.env());
+    if (env) sema_.pop_env();
     return list.node();
 }
 
@@ -1023,7 +1002,7 @@ ast::SwitchStmt* Parser::parse_switch_stmt() {
     stmt->set_expr(parse_expr());
     expect(Token::TOK_RPAREN);
 
-    stmt->set_list(parse_compound_stmt());
+    stmt->set_list(parse_compound_stmt(false));
 
     return stmt.node();
 }

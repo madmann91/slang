@@ -13,6 +13,7 @@
 namespace slang {
 
 class Printer;
+class Sema;
 
 namespace ast {
 
@@ -49,18 +50,33 @@ class HasEnv {
 public:
     virtual ~HasEnv() {}
 
-    void set_env(Environment* env) { env_.reset(env); }
-    Environment* env() { return env_.get(); }
-    const Environment* env() const { return env_.get(); }
+    void set_env(Environment* env) { env_ = env; }
+    Environment* env() { return env_; }
+    const Environment* env() const { return env_; }
 
 protected:
-    Ptr<Environment> env_;
+    Environment* env_;
+};
+
+/// Nodes that have a semantic type associated with them.
+/// Semantic types are assigned when the nodes are type-checked.
+class Typeable {
+public:
+    Typeable() : assigned_type_(nullptr) {}
+    virtual ~Typeable() {}
+
+    void assign_type(slang::Type* type) const { assigned_type_ = type; }
+    slang::Type* assigned_type() const { return assigned_type_; }
+
+private:
+    mutable slang::Type* assigned_type_;
 };
 
 /// Base class for expressions.
-class Expr : public Node {
+class Expr : public Node, public Typeable {
 public:
     virtual ~Expr() {}
+    virtual slang::Type* check(Sema&, TypeExpectation) const = 0;
 };
 
 /// List of expressions separated by a comma.
@@ -70,7 +86,8 @@ public:
     void push_expr(Expr* expr) { exprs_.push_back(expr); }
     int num_exprs() const { return exprs_.size(); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&, TypeExpectation) const override;
 
 private:
     PtrVector<Expr> exprs_;
@@ -79,7 +96,8 @@ private:
 /// An expression that the parser could not parse.
 class ErrorExpr : public Expr {
 public:
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&, TypeExpectation) const override;
 };
 
 /// An expression composed of a literal.
@@ -88,7 +106,8 @@ public:
     Literal lit() const { return lit_; }
     void set_literal(const Literal& lit) { lit_ = lit; }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&, TypeExpectation) const override;
 
 private:
     Literal lit_;
@@ -97,7 +116,8 @@ private:
 /// An expression composed of an identifier.
 class IdentExpr : public Expr, public HasName {
 public:
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&, TypeExpectation) const override;
 };
 
 /// A field selection expression.
@@ -110,7 +130,8 @@ public:
     const std::string& field_name() const { return field_name_; }
     void set_field_name(const std::string& field_name) { field_name_ = field_name; }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&, TypeExpectation) const override;
 
 private:
     std::string field_name_;
@@ -128,7 +149,8 @@ public:
     const Expr* index() const { return index_.get(); }
     void set_index(Expr* index) { index_.reset(index); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&, TypeExpectation) const override;
 
 private:
     Ptr<Expr> left_, index_;
@@ -141,7 +163,8 @@ public:
     void push_arg(Expr* arg) { args_.push_back(arg); }
     int num_args() const { return args_.size(); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&, TypeExpectation) const override;
 
 private:
     PtrVector<Expr> args_;
@@ -171,7 +194,8 @@ public:
     Type type() const { return type_; }
     void set_type(Type type) { type_ = type; }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&, TypeExpectation) const override;
 
 private:
     Type type_;
@@ -193,7 +217,8 @@ public:
     const Expr* if_false() const { return if_false_.get(); }
     void set_if_false(Expr* if_false) { if_false_.reset(if_false); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&, TypeExpectation) const override;
 
 private:
     Ptr<Expr> cond_, if_true_, if_false_;
@@ -230,7 +255,8 @@ public:
     const Expr* right() const { return right_.get(); }
     void set_right(Expr* right) { right_.reset(right); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&, TypeExpectation) const override;
 
 private:
     Type type_;
@@ -275,7 +301,8 @@ public:
     Type type() const { return type_; }
     void set_type(Type type) { type_ = type; }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&, TypeExpectation) const override;
 
 private:
     Type type_;
@@ -289,7 +316,8 @@ public:
     void push_expr(Expr* expr) { exprs_.push_back(expr); }
     int num_exprs() const { return exprs_.size(); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&, TypeExpectation) const override;
 
 private:
     PtrVector<Expr> exprs_;
@@ -312,7 +340,7 @@ public:
     Storage storage() const { return storage_; }
     void set_storage(Storage storage) { storage_ = storage; }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
 
 protected:
     Storage storage_;
@@ -329,7 +357,7 @@ public:
     Precision precision() const { return prec_; }
     void set_precision(Precision prec) { prec_ = prec; }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
 
 private:
     Precision prec_;
@@ -346,7 +374,7 @@ public:
     Interp interp() const { return interp_; }
     void set_interp(Interp interp) { interp_ = interp; }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
 
 private:
     Interp interp_;
@@ -359,7 +387,7 @@ public:
     void push_name(const std::string& name) { names_.push_back(name); }
     int num_names() const { return names_.size(); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
 
 protected:
     std::vector<std::string> names_;
@@ -375,7 +403,7 @@ public:
     }
     int num_layouts() const { return layouts_.size(); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
 
 private:
     PtrMap<std::string, Expr> layouts_;
@@ -384,19 +412,19 @@ private:
 /// Invariance qualifier.
 class InvariantQualifier : public TypeQualifier {
 public:
-    void print(Printer&) const;
+    void print(Printer&) const override;
 };
 
 /// Attribute qualifier (deprecated in GLSL 4.0).
 class AttributeQualifier : public TypeQualifier {
 public:
-    void print(Printer&) const;
+    void print(Printer&) const override;
 };
 
 /// Varying qualifier (deprecated in GLSL 4.0).
 class VaryingQualifier : public TypeQualifier {
 public:
-    void print(Printer&) const;
+    void print(Printer&) const override;
 };
 
 /// Array specifier, can have several dimensions.
@@ -406,7 +434,7 @@ public:
     void push_dim(Expr* dim) { dims_.push_back(dim); }
     int num_dims() const { return dims_.size(); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
 
 private:
     PtrVector<Expr> dims_;
@@ -426,13 +454,17 @@ protected:
 };
 
 /// Base class for types.
-class Type : public Node, public HasArraySpecifier {
+class Type : public Node, public Typeable, public HasArraySpecifier {
 public:
+    virtual ~Type() {}
+
     bool has_qualifier() const { return quals_.size() != 0; }
 
     const PtrVector<TypeQualifier>& qualifiers() const { return quals_; }
     void push_qualifier(TypeQualifier* qual) { quals_.push_back(qual); }
     int num_qualifers() const { return quals_.size(); }
+
+    virtual slang::Type* check(Sema&) const = 0;
 
 protected:
     PtrVector<TypeQualifier> quals_;
@@ -454,7 +486,8 @@ protected:
 /// A type that the parser cannot parse.
 class ErrorType : public Type {
 public:
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&) const override;
 };
 
 /// Primitive type.
@@ -468,7 +501,8 @@ public:
     Prim prim() const { return prim_; }
     void set_prim(Prim prim) { prim_ = prim; }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&) const override;
 
 private:
     Prim prim_;
@@ -477,11 +511,15 @@ private:
 /// A type referenced by a name (can be structure, or typedef).
 class NamedType : public Type, public HasName {
 public:
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&) const override;
 };
 
 /// Base class for declarations.
-class Decl : public Node {
+class Decl : public Node, public Typeable {
+public:
+    virtual ~Decl() {}
+    virtual slang::Type* check(Sema&) const = 0;
 };
 
 /// A list of declarations.
@@ -491,7 +529,7 @@ public:
     void push_decl(Decl* d) { decls_.push_back(d); }
     int num_decls() const { return decls_.size(); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
 
 private:
     PtrVector<Decl> decls_;
@@ -501,16 +539,18 @@ private:
 class Stmt : public Node {
 public:
     virtual ~Stmt() {}
+    virtual void check(Sema&) const = 0;
 };
 
 /// A list of statements.
-class StmtList : public Stmt {
+class StmtList : public Stmt, public HasEnv {
 public:
     const PtrVector<Stmt>& stmts() const { return stmts_; }
     void push_stmt(Stmt* s) { stmts_.push_back(s); }
     int num_stmts() const { return stmts_.size(); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    void check(Sema&) const override;
 
 private:
     PtrVector<Stmt> stmts_;
@@ -527,7 +567,8 @@ public:
     const PrecisionQualifier* precision() const { return prec_.get(); }
     void set_precision(PrecisionQualifier* prec) { prec_.reset(prec); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&) const override;
 
 private:
     Ptr<Type> type_;
@@ -535,13 +576,14 @@ private:
 };
 
 /// A variable declaration.
-class Variable : public Node, public HasName, public HasArraySpecifier {
+class Variable : public Node, public Typeable, public HasName, public HasArraySpecifier {
 public:
     Expr* init() { return init_.get(); }
     const Expr* init() const { return init_.get(); }
     void set_init(Expr* init) { init_.reset(init); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&, slang::Type*) const;
 
 private:
     Ptr<Expr> init_;
@@ -554,14 +596,15 @@ public:
     void push_var(Variable* var) { vars_.push_back(var); }
     int num_vars() const { return vars_.size(); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&) const override;
 
 private:
     PtrVector<Variable> vars_;
 };
 
 /// Compound type : structure or interface block.
-class CompoundType : public Type {
+class CompoundType : public Type, public HasName {
 public:
     const PtrVector<VariableDecl>& fields() const { return fields_; }
     void push_field(VariableDecl* field) { fields_.push_back(field); }
@@ -572,37 +615,41 @@ protected:
 };
 
 /// Structure type.
-class StructType : public CompoundType, public HasName {
+class StructType : public CompoundType {
 public:
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&) const override;
 };
 
 /// Interface block type.
-class InterfaceType : public CompoundType, public HasName {
+class InterfaceType : public CompoundType {
 public:
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&) const override;
 };
 
 /// Function argument.
-class Arg : public Node, public HasName, public HasType, public HasArraySpecifier {
+class Arg : public Node, public Typeable, public HasName, public HasType, public HasArraySpecifier {
 public:
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&) const;
 };
 
 /// Function prototype of function definition.
 class FunctionDecl : public Decl, public HasType, public HasName {
 public:
-    bool is_prototype() const { return static_cast<bool>(body_); }
+    bool is_prototype() const { return !static_cast<bool>(body_); }
 
     StmtList* body() { return body_.get(); }
     const StmtList* body() const { return body_.get(); }
     void set_body(StmtList* body) { body_.reset(body); }
 
-    const PtrVector<Arg>& args() { return args_; }
+    const PtrVector<Arg>& args() const { return args_; }
     void push_arg(Arg* arg) { args_.push_back(arg); }
     int num_args() const { return args_.size(); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    slang::Type* check(Sema&) const override;
 
 private:
     PtrVector<Arg> args_;
@@ -627,7 +674,7 @@ public:
     const Variable* var() const { return var_.get(); }
     void set_var(Variable* var) { var_.reset(var); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
 
 private:
     Ptr<Expr> expr_;
@@ -642,7 +689,8 @@ public:
     const Decl* decl() const { return decl_.get(); }
     void set_decl(Decl* decl) { decl_.reset(decl); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    void check(Sema&) const override;
 
 private:
     Ptr<Decl> decl_;
@@ -655,7 +703,8 @@ public:
     const Expr* expr() const { return expr_.get(); }
     void set_expr(Expr* expr) { expr_.reset(expr); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    void check(Sema&) const override;
 
 private:
     Ptr<Expr> expr_;
@@ -676,7 +725,8 @@ public:
     const Stmt* if_false() const { return if_false_.get(); }
     void set_if_false(Stmt* if_false) { if_false_.reset(if_false); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    void check(Sema&) const override;
 
 private:
     Ptr<Expr> cond_;
@@ -694,7 +744,8 @@ public:
     const StmtList* list() const { return list_.get(); }
     void set_list(StmtList* list) { list_.reset(list); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    void check(Sema&) const override;
 
 private:
     Ptr<StmtList> list_;
@@ -710,7 +761,8 @@ public:
 
     bool is_default() const { return !static_cast<bool>(expr_); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    void check(Sema&) const override;
 
 private:
     Ptr<Expr> expr_;
@@ -745,7 +797,8 @@ public:
     const Expr* iter() const { return iter_.get(); }
     void set_iter(Expr* iter) { iter_.reset(iter); }
 
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    void check(Sema&) const override;
 
 private:
     Ptr<Stmt> init_;
@@ -755,31 +808,36 @@ private:
 /// While loop statement.
 class WhileLoopStmt : public LoopStmt {
 public:
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    void check(Sema&) const override;
 };
 
 /// Do-While loop statement.
 class DoWhileLoopStmt : public LoopStmt {
 public:
-    void print(Printer&) const;
+    void print(Printer&) const override;
+    void check(Sema&) const override;
 };
 
 /// Break statement.
 class BreakStmt : public Stmt {
 public:
-    void print(Printer& out) const;
+    void print(Printer& out) const override;
+    void check(Sema&) const override;
 };
 
 /// Continue statement.
 class ContinueStmt : public Stmt {
 public:
-    void print(Printer& out) const;
+    void print(Printer& out) const override;
+    void check(Sema&) const override;
 };
 
 /// Discard statement
 class DiscardStmt : public Stmt {
 public:
-    void print(Printer& out) const;
+    void print(Printer& out) const override;
+    void check(Sema&) const override;
 };
 
 /// Return statement.
@@ -791,7 +849,8 @@ public:
 
     bool has_value() const { return static_cast<bool>(value_);}
 
-    void print(Printer& out) const;
+    void print(Printer& out) const override;
+    void check(Sema&) const override;
 
 private:
     Ptr<Expr> value_;

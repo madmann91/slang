@@ -21,7 +21,7 @@ public:
 
     void inc_line() { line_++; }
     void inc_col() { col_++; }
-    void reset_col() { col_ = 0; }
+    void reset_col() { col_ = 1; }
 
 private:
     int line_, col_;
