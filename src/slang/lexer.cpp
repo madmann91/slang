@@ -53,11 +53,13 @@ Lexer::Lexer(std::istream& stream, const Keywords& keys, Logger& logger, int lin
         if (c_ == 0xBB) {
             next();
             if (c_ == 0xBF) {
-                prev_ = Position(line, 0);
-                cur_  = Position(line, -1);
+                prev_ = Position(line, 1);
+                cur_  = Position(line, 0);
                 next();
+                return;
             }
         }
+        error() << "Unknown BOM (Byte Order Mark), only UTF-8 is supported\n";
     }
 }
 
