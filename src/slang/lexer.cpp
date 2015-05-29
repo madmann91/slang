@@ -46,6 +46,19 @@ Lexer::Lexer(std::istream& stream, const Keywords& keys, Logger& logger, int lin
     cur_  = Position(line, -1);
     c_ = 0;
     next();
+
+    // Parse UTF-8 byte order mark, if present
+    if (c_ == 0xEF) {
+        next();
+        if (c_ == 0xBB) {
+            next();
+            if (c_ == 0xBF) {
+                prev_ = Position(line, 0);
+                cur_  = Position(line, -1);
+                next();
+            }
+        }
+    }
 }
 
 Token Lexer::lex() {
