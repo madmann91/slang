@@ -4,7 +4,6 @@ Error in parser/invalid/bad-qualifiers.glsl (1, 10 - 1, 11) : 'a' is not a valid
 Error in parser/invalid/bad-qualifiers.glsl (2, 19) : Variable name expected
 Error in parser/invalid/bad-qualifiers.glsl (2, 19) : ';' expected
 Error in parser/invalid/bad-qualifiers.glsl (2, 1 - 2, 18) : 'invalid_qualifier' is not a valid type name
-Error in parser/invalid/bad-qualifiers.glsl (2, 19 - 2, 18) : Identifier '' has already been defined (line 1)
 Error in parser/invalid/bad-qualifiers.glsl (2, 23 - 2, 24) : 'b' is not a valid type name
 Error in parser/invalid/bad-qualifiers.glsl (3, 12) : Empty subroutine qualifier
-Error in parser/invalid/bad-qualifiers.glsl (4, 10) : Empty layout qualifier
+Error in parser/invalid/bad-qualifiers.glsl (4, 8) : Empty layout qualifier

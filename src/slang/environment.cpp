@@ -16,8 +16,8 @@ bool Symbol::is_interface() const { return is_node<ast::InterfaceType>(defs_); }
 bool Symbol::is_variable() const { return is_node<ast::Variable>(defs_); }
 bool Symbol::is_argument() const { return is_node<ast::Arg>(defs_); }
 
-const slang::Type* Symbol::type() const { assert(defs_.size() >= 1); return defs_.begin()->first; }
-const Location& Symbol::location() const { assert(defs_.size() >= 1); return defs_.begin()->second->loc(); }
+const slang::Type* Symbol::type() const { assert(!defs_.empty()); return defs_.begin()->first; }
+const Location& Symbol::location() const { assert(!defs_.empty()); return defs_.begin()->second->loc(); }
 
 Symbol* Environment::lookup_symbol(const std::string& name) {
     if (auto symbol = find_symbol(name))

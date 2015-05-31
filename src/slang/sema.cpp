@@ -573,6 +573,9 @@ const slang::Type* Arg::check(Sema& sema) const {
 
 const slang::Type* Variable::check(Sema& sema, const slang::Type* var_type) const {
     const slang::Type* type = array_specifier() ? array_type(sema, var_type, array_specifier()) : var_type;
+    if (name().empty())
+        return type;
+
     sema.new_identifier(this, name(), Symbol({std::make_pair(type, this)}));
     return type;
 }

@@ -461,11 +461,10 @@ ast::LayoutQualifier* Parser::parse_layout_qualifier() {
         eat(Token::TOK_COMMA);
     }
 
-    expect(Token::TOK_RPAREN);
-
     if (layout->num_layouts() == 0)
         error() << "Empty layout qualifier\n";
 
+    expect(Token::TOK_RPAREN);
     return layout.node();
 }
 
