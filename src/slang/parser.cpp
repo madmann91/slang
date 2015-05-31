@@ -57,7 +57,6 @@ std::ostream& Parser::error() {
 ast::DeclList* Parser::parse_root() {
     auto root = new_node<ast::DeclList>();
 
-    sema_.push_env();
     while (!lookup_[0].is_eof()) {
         if (lookup_[0].isa(Token::TOK_IDENT)) {
             ast::Decl* decl = parse_decl();
@@ -68,8 +67,6 @@ ast::DeclList* Parser::parse_root() {
             next();
         }
     }
-    root->set_env(sema_.env());
-    sema_.pop_env();
 
     return root.node();
 }
@@ -187,12 +184,10 @@ ast::StructType* Parser::parse_struct_type() {
 
     expect(Token::TOK_LBRACE);
     
-    sema_.push_env();
     while (lookup_[0].isa(Token::TOK_IDENT)) {
         ast::Type* field_type = parse_type();
         type->push_field(parse_variable_decl(field_type));
     }
-    sema_.pop_env();
 
     expect(Token::TOK_RBRACE);
 
@@ -293,9 +288,7 @@ ast::FunctionDecl* Parser::parse_function_decl(ast::Type* type) {
 
     // Optional body
     if (lookup_[0].isa(Token::TOK_LBRACE)) {
-        sema_.push_env();
-        decl->set_body(parse_compound_stmt(false));
-        sema_.pop_env();
+        decl->set_body(parse_compound_stmt());
     } else {
         expect(Token::TOK_SEMICOLON);
     }
@@ -947,7 +940,7 @@ ast::Stmt* Parser::parse_stmt() {
             default: break;
         }
     } else if (lookup_[0].isa(Token::TOK_LBRACE)) {
-        return parse_compound_stmt(true);
+        return parse_compound_stmt();
     } else if (lookup_[0].is_ident() && lookup_[1].is_ident()) {
         return parse_decl_stmt();
     }
@@ -955,10 +948,9 @@ ast::Stmt* Parser::parse_stmt() {
     return parse_expr_stmt();
 }
 
-ast::StmtList* Parser::parse_compound_stmt(bool env) {
+ast::StmtList* Parser::parse_compound_stmt() {
     // StmtList ::= { (Stmt)* }
     auto list = new_node<ast::StmtList>();
-    if (env) sema_.push_env();
     eat(Token::TOK_LBRACE);
     while (lookup_[0].isa(Token::TOK_IDENT) ||
            lookup_[0].isa(Token::TOK_LIT) ||
@@ -969,8 +961,6 @@ ast::StmtList* Parser::parse_compound_stmt(bool env) {
         list->push_stmt(parse_stmt());
     }
     expect(Token::TOK_RBRACE);
-    list->set_env(sema_.env());
-    if (env) sema_.pop_env();
     return list.node();
 }
 
@@ -1002,7 +992,7 @@ ast::SwitchStmt* Parser::parse_switch_stmt() {
     stmt->set_expr(parse_expr());
     expect(Token::TOK_RPAREN);
 
-    stmt->set_list(parse_compound_stmt(false));
+    stmt->set_list(parse_compound_stmt());
 
     return stmt.node();
 }

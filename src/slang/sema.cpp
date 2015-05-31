@@ -406,6 +406,7 @@ const slang::Type* NamedType::check(Sema& sema) const {
 
 inline bool compound_members(Sema& sema, const CompoundType* compound, slang::CompoundType::MemberMap& members) {
     // Creates the member list of a compound type from the AST node
+    sema.push_env();
     for (auto field : compound->fields()) {
         sema.check(field);
         for (auto var : field->vars()) {
@@ -416,6 +417,7 @@ inline bool compound_members(Sema& sema, const CompoundType* compound, slang::Co
             members.insert(std::make_pair(var->name(), var->assigned_type()));
         }
     }
+    sema.pop_env();
 
     return true;
 }

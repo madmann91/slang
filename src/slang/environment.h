@@ -33,7 +33,9 @@ public:
     bool is_variable() const;
     bool is_argument() const;
 
+    /// Returns the type of the first definition associated with this symbol.
     const slang::Type* type() const;
+    /// Returns the location of the first definition associated with this symbol.
     const Location& location() const;
 
     const DefMap& defs() const { return defs_; }

@@ -1,7 +1,7 @@
-Error in preprocessor/invalid/concat.glsl (3, 16) : Invalid tokens for concatenation operator
-Error in preprocessor/invalid/concat.glsl (4, 17) : Invalid tokens for concatenation operator
-Error in preprocessor/invalid/concat.glsl (5, 12) : Invalid tokens for concatenation operator
-Error in preprocessor/invalid/concat.glsl (6, 12) : Invalid tokens for concatenation operator
-Error in preprocessor/invalid/concat.glsl (8, 29) : Concatenation operator '##' cannot appear at the beginnning or the end of a macro body
-Error in preprocessor/invalid/concat.glsl (9, 29) : Concatenation operator '##' cannot appear at the beginnning or the end of a macro body
-Error in preprocessor/invalid/concat.glsl (10, 32) : Cannot have two concatenation operators '##' next to each other
+Error in preprocessor/invalid/concat.glsl (3, 17) : Invalid tokens for concatenation operator
+Error in preprocessor/invalid/concat.glsl (4, 18) : Invalid tokens for concatenation operator
+Error in preprocessor/invalid/concat.glsl (5, 13) : Invalid tokens for concatenation operator
+Error in preprocessor/invalid/concat.glsl (6, 13) : Invalid tokens for concatenation operator
+Error in preprocessor/invalid/concat.glsl (8, 30) : Concatenation operator '##' cannot appear at the beginnning or the end of a macro body
+Error in preprocessor/invalid/concat.glsl (9, 30) : Concatenation operator '##' cannot appear at the beginnning or the end of a macro body
+Error in preprocessor/invalid/concat.glsl (10, 33) : Cannot have two concatenation operators '##' next to each other

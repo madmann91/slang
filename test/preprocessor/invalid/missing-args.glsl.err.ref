@@ -1,1 +1,1 @@
-Error in preprocessor/invalid/missing-args.glsl (3, 9) : Missing arguments in invocation of macro 'A'
+Error in preprocessor/invalid/missing-args.glsl (3, 10) : Missing arguments in invocation of macro 'A'

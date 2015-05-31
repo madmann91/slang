@@ -18,10 +18,12 @@ namespace slang {
 class Sema {
 public:
     Sema(Logger& logger)
-        : logger_(logger), env_(nullptr)
-    {}
+        : logger_(logger), env_(nullptr) {
+        push_env();
+    }
 
     ~Sema() {
+        pop_env();
         for (auto type : types_)
             delete type;
     }

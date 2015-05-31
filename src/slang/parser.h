@@ -101,7 +101,7 @@ private:
     ast::LoopCond* parse_loop_cond();
 
     ast::Stmt* parse_stmt();
-    ast::StmtList* parse_compound_stmt(bool);
+    ast::StmtList* parse_compound_stmt();
     ast::IfStmt* parse_if_stmt();
     ast::SwitchStmt* parse_switch_stmt();
     ast::WhileLoopStmt* parse_while_stmt();

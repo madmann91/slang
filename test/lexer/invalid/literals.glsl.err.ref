@@ -1,9 +1,9 @@
-Error in lexer/invalid/literals.glsl (1, 7) : Invalid literal suffix
-Error in lexer/invalid/literals.glsl (1, 13) : Invalid suffix on integer constant
-Error in lexer/invalid/literals.glsl (1, 20) : Invalid literal suffix
-Error in lexer/invalid/literals.glsl (1, 27) : Invalid suffix on floating point constant
-Error in lexer/invalid/literals.glsl (1, 34) : Invalid suffix on floating point constant
-Error in lexer/invalid/literals.glsl (1, 40) : Invalid literal suffix
-Error in lexer/invalid/literals.glsl (1, 46) : Invalid literal suffix
-Error in lexer/invalid/literals.glsl (1, 52) : Invalid literal suffix
-Error in lexer/invalid/literals.glsl (1, 57) : Invalid literal suffix
+Error in lexer/invalid/literals.glsl (1, 8) : Invalid literal suffix
+Error in lexer/invalid/literals.glsl (1, 14) : Invalid suffix on integer constant
+Error in lexer/invalid/literals.glsl (1, 21) : Invalid literal suffix
+Error in lexer/invalid/literals.glsl (1, 28) : Invalid suffix on floating point constant
+Error in lexer/invalid/literals.glsl (1, 35) : Invalid suffix on floating point constant
+Error in lexer/invalid/literals.glsl (1, 41) : Invalid literal suffix
+Error in lexer/invalid/literals.glsl (1, 47) : Invalid literal suffix
+Error in lexer/invalid/literals.glsl (1, 53) : Invalid literal suffix
+Error in lexer/invalid/literals.glsl (1, 58) : Invalid literal suffix

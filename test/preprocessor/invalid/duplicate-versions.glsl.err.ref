@@ -1,1 +1,1 @@
-Error in preprocessor/invalid/duplicate-versions.glsl (2, 1) : Version directive must occur before anything else
+Error in preprocessor/invalid/duplicate-versions.glsl (2, 2) : Version directive must occur before anything else

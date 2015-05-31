@@ -1,1 +1,1 @@
-Warning in preprocessor/invalid/redef.glsl (2, 11) : Redefinition of macro 'A'
+Warning in preprocessor/invalid/redef.glsl (2, 12) : Redefinition of macro 'A'

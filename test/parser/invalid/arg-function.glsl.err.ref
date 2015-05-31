@@ -1,2 +1,2 @@
-Error in parser/invalid/arg-function.glsl (2, 0) : ')' expected
-Error in parser/invalid/arg-function.glsl (2, 0) : ';' expected
+Error in parser/invalid/arg-function.glsl (2, 1) : ')' expected
+Error in parser/invalid/arg-function.glsl (2, 1) : ';' expected
