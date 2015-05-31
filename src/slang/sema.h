@@ -45,19 +45,11 @@ public:
         env_ = env_->parent();
     }
 
-    /// Returns the type of the given symbol, if present in the current environment.
-    slang::Type* symbol_type(const std::string& name) {
-        if (Symbol* sym = env()->lookup_symbol(name)) {
-            assert(sym->type() && "Identifier without type");
-            return sym->type();
-        }
-        return nullptr;
-    }
-
     /// Creates a new identifier, if the name is not already used in the current environment.
     void new_identifier(const ast::Node* node, const std::string& name, Symbol&& symbol) {
-        if (env()->find_symbol(name) != nullptr) {
-            error(node) << "Identifier \'" << name << "\' has already been used.\n";
+        if (auto prev_symbol = env()->find_symbol(name)) {
+            error(node) << "Identifier \'" << name << "\' has already been defined (line "
+                        << prev_symbol->location().start().line() << ")\n";
         } else {
             env()->push_symbol(name, std::forward<Symbol>(symbol));
         }
@@ -69,33 +61,33 @@ public:
     }
 
     /// Creates an error type. For expressions that fail typechecking.
-    ErrorType* error_type() { return new_type<ErrorType>(); }
+    const ErrorType* error_type() { return new_type<ErrorType>(); }
     /// Creates a primitive type.
-    PrimType* prim_type(PrimType::Prim prim) { return new_type<PrimType>(prim); }
+    const PrimType* prim_type(PrimType::Prim prim) { return new_type<PrimType>(prim); }
     /// Creates a function type from a return type and a list of arguments.
-    FunctionType* function_type(Type* ret, const FunctionType::ArgList& args) {
+    const FunctionType* function_type(const Type* ret, const FunctionType::ArgList& args) {
         return new_type<FunctionType>(ret, args);
     }
     /// Creates a structure type from a list of members and a name.
-    StructType* struct_type(const std::string& name, const StructType::MemberMap& members) {
+    const StructType* struct_type(const std::string& name, const StructType::MemberMap& members) {
         return new_type<StructType>(name, members);
     }
     /// Creates an interface type type from a list of members and a name.
-    InterfaceType* interface_type(const std::string& name, const InterfaceType::MemberMap& members) {
+    const InterfaceType* interface_type(const std::string& name, const InterfaceType::MemberMap& members) {
         return new_type<InterfaceType>(name, members);
     }
     /// Creates an array whose size is unknown.
-    IndefiniteArrayType* indefinite_array_type(Type* elem) {
+    const IndefiniteArrayType* indefinite_array_type(const Type* elem) {
         return new_type<IndefiniteArrayType>(elem);
     }
     /// Creates an array of known size.
-    DefiniteArrayType* definite_array_type(Type* elem, int size) {
+    const DefiniteArrayType* definite_array_type(const Type* elem, int size) {
         return new_type<DefiniteArrayType>(elem, size);
     }
 
     /// Checks the type of an expression, and expects the given type as a result.
-    Type* check(const ast::Expr* expr, TypeExpectation expected) {
-        Type* found = expr->check(*this, expected);
+    const Type* check(const ast::Expr* expr, TypeExpectation expected) {
+        const Type* found = expr->check(*this, expected);
         expr->assign_type(found);
         if (expected.type() && found != expected.type()) {
             error(expr) << "Expected \'" << expected.type()->to_string()
@@ -106,60 +98,60 @@ public:
     }
 
     /// Checks the type of an expression, without any constraint on the result type.
-    Type* check(const ast::Expr* expr) { return check_assign(expr, TypeExpectation(nullptr)); }
+    const Type* check(const ast::Expr* expr) { return check_assign(expr, TypeExpectation(nullptr)); }
     /// Checks the type of an AST type.
-    Type* check(const ast::Type* type) { return check_assign(type); }
+    const Type* check(const ast::Type* type) { return check_assign(type); }
     /// Checks the type of a declaration.
-    Type* check(const ast::Decl* decl) { return check_assign(decl); }
+    const Type* check(const ast::Decl* decl) { return check_assign(decl); }
     /// Checks a statement.
     void check(const ast::Stmt* stmt) { stmt->check(*this); }
     /// Checks the type of a function argument.
-    Type* check(const ast::Arg* arg) { return check_assign(arg); }
+    const Type* check(const ast::Arg* arg) { return check_assign(arg); }
     /// Checks the type of a variable, given the type of the corresponding declaration.
-    Type* check(const ast::Variable* var, slang::Type* var_type) { return check_assign(var, var_type); }
+    const Type* check(const ast::Variable* var, const slang::Type* var_type) { return check_assign(var, var_type); }
 
 private:
     template <typename T>
-    Type* check_assign(const T* t) {
-        Type* found = t->check(*this);
+    const Type* check_assign(const T* t) {
+        const Type* found = t->check(*this);
         t->assign_type(found);
         return found;
     }
 
     template <typename T, typename... Args>
-    Type* check_assign(const T* t, Args... args) {
-        Type* found = t->check(*this, args...);
+    const Type* check_assign(const T* t, Args... args) {
+        const Type* found = t->check(*this, args...);
         t->assign_type(found);
         return found;
     }
 
     template <typename T, typename... Args>
-    T* new_type(Args... args) {
+    const T* new_type(Args... args) {
         T t(std::forward<Args>(args)...);
         auto it = types_.find(&t);
         if (it != types_.end())
             return (*it)->as<T>();
 
-        T* pt = new T(t);
+        const T* pt = new T(t);
         types_.emplace(pt);
         return pt;
     }
 
     struct HashType {
-        size_t operator () (Type* t) const {
+        size_t operator () (const Type* t) const {
             return t->hash();
         }
     };
 
     struct EqualType {
-        bool operator () (Type* t1, Type* t2) const {
+        bool operator () (const Type* t1, const Type* t2) const {
             return t1->equals(t2);
         }
     };
 
     Logger& logger_;
 
-    std::unordered_set<Type*, HashType, EqualType> types_;
+    std::unordered_set<const Type*, HashType, EqualType> types_;
     PtrVector<Environment> env_list_;
     Environment* env_;
 };

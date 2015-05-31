@@ -16,6 +16,7 @@ set(HEADER_FILES
     types.h)
 
 set(SOURCE_FILES
+    environment.cpp
     lexer.cpp
     parser.cpp
     preprocessor.cpp

@@ -65,18 +65,18 @@ public:
     Typeable() : assigned_type_(nullptr) {}
     virtual ~Typeable() {}
 
-    void assign_type(slang::Type* type) const { assigned_type_ = type; }
-    slang::Type* assigned_type() const { return assigned_type_; }
+    void assign_type(const slang::Type* type) const { assigned_type_ = type; }
+    const slang::Type* assigned_type() const { return assigned_type_; }
 
 private:
-    mutable slang::Type* assigned_type_;
+    mutable const slang::Type* assigned_type_;
 };
 
 /// Base class for expressions.
 class Expr : public Node, public Typeable {
 public:
     virtual ~Expr() {}
-    virtual slang::Type* check(Sema&, TypeExpectation) const = 0;
+    virtual const slang::Type* check(Sema&, TypeExpectation) const = 0;
 };
 
 /// List of expressions separated by a comma.
@@ -87,7 +87,7 @@ public:
     int num_exprs() const { return exprs_.size(); }
 
     void print(Printer&) const override;
-    slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, TypeExpectation) const override;
 
 private:
     PtrVector<Expr> exprs_;
@@ -97,7 +97,7 @@ private:
 class ErrorExpr : public Expr {
 public:
     void print(Printer&) const override;
-    slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, TypeExpectation) const override;
 };
 
 /// An expression composed of a literal.
@@ -107,7 +107,7 @@ public:
     void set_literal(const Literal& lit) { lit_ = lit; }
 
     void print(Printer&) const override;
-    slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, TypeExpectation) const override;
 
 private:
     Literal lit_;
@@ -117,7 +117,7 @@ private:
 class IdentExpr : public Expr, public HasName {
 public:
     void print(Printer&) const override;
-    slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, TypeExpectation) const override;
 };
 
 /// A field selection expression.
@@ -131,7 +131,7 @@ public:
     void set_field_name(const std::string& field_name) { field_name_ = field_name; }
 
     void print(Printer&) const override;
-    slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, TypeExpectation) const override;
 
 private:
     std::string field_name_;
@@ -150,7 +150,7 @@ public:
     void set_index(Expr* index) { index_.reset(index); }
 
     void print(Printer&) const override;
-    slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, TypeExpectation) const override;
 
 private:
     Ptr<Expr> left_, index_;
@@ -164,7 +164,7 @@ public:
     int num_args() const { return args_.size(); }
 
     void print(Printer&) const override;
-    slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, TypeExpectation) const override;
 
 private:
     PtrVector<Expr> args_;
@@ -195,7 +195,7 @@ public:
     void set_type(Type type) { type_ = type; }
 
     void print(Printer&) const override;
-    slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, TypeExpectation) const override;
 
 private:
     Type type_;
@@ -218,7 +218,7 @@ public:
     void set_if_false(Expr* if_false) { if_false_.reset(if_false); }
 
     void print(Printer&) const override;
-    slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, TypeExpectation) const override;
 
 private:
     Ptr<Expr> cond_, if_true_, if_false_;
@@ -256,7 +256,7 @@ public:
     void set_right(Expr* right) { right_.reset(right); }
 
     void print(Printer&) const override;
-    slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, TypeExpectation) const override;
 
 private:
     Type type_;
@@ -302,7 +302,7 @@ public:
     void set_type(Type type) { type_ = type; }
 
     void print(Printer&) const override;
-    slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, TypeExpectation) const override;
 
 private:
     Type type_;
@@ -317,7 +317,7 @@ public:
     int num_exprs() const { return exprs_.size(); }
 
     void print(Printer&) const override;
-    slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, TypeExpectation) const override;
 
 private:
     PtrVector<Expr> exprs_;
@@ -464,7 +464,7 @@ public:
     void push_qualifier(TypeQualifier* qual) { quals_.push_back(qual); }
     int num_qualifers() const { return quals_.size(); }
 
-    virtual slang::Type* check(Sema&) const = 0;
+    virtual const slang::Type* check(Sema&) const = 0;
 
 protected:
     PtrVector<TypeQualifier> quals_;
@@ -487,7 +487,7 @@ protected:
 class ErrorType : public Type {
 public:
     void print(Printer&) const override;
-    slang::Type* check(Sema&) const override;
+    const slang::Type* check(Sema&) const override;
 };
 
 /// Primitive type.
@@ -502,7 +502,7 @@ public:
     void set_prim(Prim prim) { prim_ = prim; }
 
     void print(Printer&) const override;
-    slang::Type* check(Sema&) const override;
+    const slang::Type* check(Sema&) const override;
 
 private:
     Prim prim_;
@@ -512,14 +512,14 @@ private:
 class NamedType : public Type, public HasName {
 public:
     void print(Printer&) const override;
-    slang::Type* check(Sema&) const override;
+    const slang::Type* check(Sema&) const override;
 };
 
 /// Base class for declarations.
 class Decl : public Node, public Typeable {
 public:
     virtual ~Decl() {}
-    virtual slang::Type* check(Sema&) const = 0;
+    virtual const slang::Type* check(Sema&) const = 0;
 };
 
 /// A list of declarations.
@@ -568,7 +568,7 @@ public:
     void set_precision(PrecisionQualifier* prec) { prec_.reset(prec); }
 
     void print(Printer&) const override;
-    slang::Type* check(Sema&) const override;
+    const slang::Type* check(Sema&) const override;
 
 private:
     Ptr<Type> type_;
@@ -583,7 +583,7 @@ public:
     void set_init(Expr* init) { init_.reset(init); }
 
     void print(Printer&) const override;
-    slang::Type* check(Sema&, slang::Type*) const;
+    const slang::Type* check(Sema&, const slang::Type*) const;
 
 private:
     Ptr<Expr> init_;
@@ -597,7 +597,7 @@ public:
     int num_vars() const { return vars_.size(); }
 
     void print(Printer&) const override;
-    slang::Type* check(Sema&) const override;
+    const slang::Type* check(Sema&) const override;
 
 private:
     PtrVector<Variable> vars_;
@@ -618,21 +618,21 @@ protected:
 class StructType : public CompoundType {
 public:
     void print(Printer&) const override;
-    slang::Type* check(Sema&) const override;
+    const slang::Type* check(Sema&) const override;
 };
 
 /// Interface block type.
 class InterfaceType : public CompoundType {
 public:
     void print(Printer&) const override;
-    slang::Type* check(Sema&) const override;
+    const slang::Type* check(Sema&) const override;
 };
 
 /// Function argument.
 class Arg : public Node, public Typeable, public HasName, public HasType, public HasArraySpecifier {
 public:
     void print(Printer&) const override;
-    slang::Type* check(Sema&) const;
+    const slang::Type* check(Sema&) const;
 };
 
 /// Function prototype of function definition.
@@ -649,7 +649,7 @@ public:
     int num_args() const { return args_.size(); }
 
     void print(Printer&) const override;
-    slang::Type* check(Sema&) const override;
+    const slang::Type* check(Sema&) const override;
 
 private:
     PtrVector<Arg> args_;

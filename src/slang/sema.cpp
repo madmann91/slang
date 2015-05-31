@@ -5,7 +5,7 @@ namespace slang {
 
 namespace ast {
 
-slang::Type* ExprList::check(Sema& sema, TypeExpectation expected) const {
+const slang::Type* ExprList::check(Sema& sema, TypeExpectation expected) const {
     if (exprs().empty())
         return sema.error_type();
 
@@ -15,11 +15,11 @@ slang::Type* ExprList::check(Sema& sema, TypeExpectation expected) const {
     return exprs()[0]->assigned_type();
 }
 
-slang::Type* ErrorExpr::check(Sema& sema, TypeExpectation) const {
+const slang::Type* ErrorExpr::check(Sema& sema, TypeExpectation) const {
     return sema.error_type();
 }
 
-slang::Type* LiteralExpr::check(Sema& sema, TypeExpectation) const {
+const slang::Type* LiteralExpr::check(Sema& sema, TypeExpectation) const {
     switch (lit_.type()) {
         case Literal::LIT_DOUBLE: return sema.prim_type(slang::PrimType::PRIM_DOUBLE);
         case Literal::LIT_FLOAT:  return sema.prim_type(slang::PrimType::PRIM_FLOAT);
@@ -29,17 +29,16 @@ slang::Type* LiteralExpr::check(Sema& sema, TypeExpectation) const {
     }
 }
 
-slang::Type* IdentExpr::check(Sema& sema, TypeExpectation) const {
-    if (auto type = sema.symbol_type(name())) {
-        return type;
-    } else {
-        sema.error(this) << "Unknown identifier \'" << name() << "\'\n";
+const slang::Type* IdentExpr::check(Sema& sema, TypeExpectation) const {
+    if (auto symbol = sema.env()->lookup_symbol(name())) {
+        return symbol->type();
     }
 
+    sema.error(this) << "Unknown identifier \'" << name() << "\'\n";
     return sema.error_type();
 }
 
-slang::Type* FieldExpr::check(Sema& sema, TypeExpectation) const {
+const slang::Type* FieldExpr::check(Sema& sema, TypeExpectation) const {
     if (auto compound = sema.check(left())->isa<slang::CompoundType>()) {
         auto field = compound->args().find(field_name());
         if (field != compound->args().end()) {
@@ -54,8 +53,8 @@ slang::Type* FieldExpr::check(Sema& sema, TypeExpectation) const {
     return sema.error_type();
 }
 
-slang::Type* IndexExpr::check(Sema& sema, TypeExpectation expected) const {
-    ArrayType* array = sema.check(left())->isa<slang::ArrayType>();
+const slang::Type* IndexExpr::check(Sema& sema, TypeExpectation expected) const {
+    const slang::ArrayType* array = sema.check(left())->isa<slang::ArrayType>();
 
     if (!array) {
         sema.error(this) << "Expected an array in left operand of index expression\n";
@@ -70,33 +69,51 @@ slang::Type* IndexExpr::check(Sema& sema, TypeExpectation expected) const {
     return sema.error_type();
 }
 
-slang::Type* CallExpr::check(Sema& sema, TypeExpectation) const {
-    if (auto type = sema.symbol_type(name())) {
-        if (auto fn_type = type->isa<slang::FunctionType>()) {
-            if (fn_type->num_args() != num_args()) {
-                sema.error(this) << "Expected " << fn_type->num_args() << " arguments, got " << num_args() << "\n";
-            } else {
-                for (int i = 0; i < num_args(); i++) {
-                    sema.check(args()[i], fn_type->args()[i]);
-                }
-                return fn_type;
-            }
-        } else {
+const slang::Type* CallExpr::check(Sema& sema, TypeExpectation) const {
+    if (auto symbol = sema.env()->lookup_symbol(name())) {
+        if (!symbol->is_function()) {
             sema.error(this) << "Identifier \'" << name() << "\' is not a function\n";
+            return sema.error_type();
         }
+
+        // Check arguments
+        for (int i = 0; i < num_args(); i++) {
+            sema.check(args()[i]);
+        }
+
+        // Find the correct overloaded function to call
+        for (auto def : symbol->defs()) {
+            const slang::FunctionType* fn_type = def.first->as<slang::FunctionType>();
+            if (fn_type->num_args() != num_args()) {
+                continue;
+            } else {
+                bool valid_call = true;
+                for (int i = 0; i < valid_call && num_args(); i++) {
+                    if (args()[i]->assigned_type() != fn_type->args()[i]) {
+                        valid_call = false;
+                        break;
+                    }
+                }
+
+                if (valid_call)
+                    return fn_type->ret();
+            }
+        }
+
+        sema.error(this) << "No overloaded function \'" << name()
+                         << "\' was found with this signature\n";
     } else {
-        // TODO : handle constructors
         sema.error(this) << "Unknown function \'" << name() << "\'\n";
     }
 
     return sema.error_type();
 }
 
-slang::Type* CondExpr::check(Sema& sema, TypeExpectation expected) const {
+const slang::Type* CondExpr::check(Sema& sema, TypeExpectation expected) const {
     sema.check(cond(), sema.prim_type(slang::PrimType::PRIM_BOOL));
 
-    slang::Type* type_true = sema.check(if_true(), expected);
-    slang::Type* type_false = sema.check(if_false(), expected);
+    const slang::Type* type_true = sema.check(if_true(), expected);
+    const slang::Type* type_false = sema.check(if_false(), expected);
     if (type_true == type_false) {
         return type_true;
     } else {
@@ -106,7 +123,7 @@ slang::Type* CondExpr::check(Sema& sema, TypeExpectation expected) const {
     return sema.error_type();
 }
 
-inline bool is_numeric(slang::Type* type) {
+inline bool is_numeric(const slang::Type* type) {
     if (auto prim = type->isa<slang::PrimType>()) {
         switch (prim->prim()) {
             case slang::PrimType::PRIM_VOID:
@@ -122,7 +139,7 @@ inline bool is_numeric(slang::Type* type) {
     return false;
 }
 
-inline bool is_logic(slang::Type* type) {
+inline bool is_logic(const slang::Type* type) {
     if (auto prim = type->isa<slang::PrimType>()) {
         switch (prim->prim()) {
             case slang::PrimType::PRIM_IVEC4:
@@ -145,7 +162,7 @@ inline bool is_logic(slang::Type* type) {
     return false;
 }
 
-inline bool is_integer(slang::Type* type) {
+inline bool is_integer(const slang::Type* type) {
     if (auto prim = type->isa<slang::PrimType>()) {
         switch (prim->prim()) {
             case slang::PrimType::PRIM_IVEC4:
@@ -164,7 +181,7 @@ inline bool is_integer(slang::Type* type) {
     return false;
 }
 
-inline bool is_ordered(slang::Type* type) {
+inline bool is_ordered(const slang::Type* type) {
     if (auto prim = type->isa<slang::PrimType>()) {
         switch (prim->prim()) {
             case slang::PrimType::PRIM_IVEC4:
@@ -191,7 +208,7 @@ inline bool is_ordered(slang::Type* type) {
     return false;
 }
 
-inline bool is_boolean(slang::Type* type) {
+inline bool is_boolean(const slang::Type* type) {
     if (auto prim = type->isa<slang::PrimType>()) {
         switch (prim->prim()) {
             case slang::PrimType::PRIM_BVEC4:
@@ -206,7 +223,7 @@ inline bool is_boolean(slang::Type* type) {
     return false;
 }
 
-inline bool is_floating(slang::Type* type) {
+inline bool is_floating(const slang::Type* type) {
     if (auto prim = type->isa<slang::PrimType>()) {
         switch (prim->prim()) {
             case slang::PrimType::PRIM_VEC4:
@@ -226,21 +243,21 @@ inline bool is_floating(slang::Type* type) {
 }
 
 template <typename T>
-void expect(Sema& sema, const ast::Node* node, T f, slang::Type* type, const std::string& msg) {
+void expect(Sema& sema, const ast::Node* node, T f, const slang::Type* type, const std::string& msg) {
     if (!f(type)) {
         sema.error(node) << "Expected " << msg << ", but got \'" << type->to_string() << "\'\n";
     }
 }
 
-inline void expect_numeric(Sema& sema, const ast::Node* node, slang::Type* type) { expect(sema, node, is_numeric, type, "numeric type"); }
-inline void expect_logic(Sema& sema, const ast::Node* node, slang::Type* type) { expect(sema, node, is_logic, type, "boolean or integer type"); }
-inline void expect_integer(Sema& sema, const ast::Node* node, slang::Type* type) { expect(sema, node, is_integer, type, "integer type"); }
-inline void expect_ordered(Sema& sema, const ast::Node* node, slang::Type* type) { expect(sema, node, is_ordered, type, "comparable type"); }
-inline void expect_boolean(Sema& sema, const ast::Node* node, slang::Type* type) { expect(sema, node, is_boolean, type, "boolean type"); }
-inline void expect_floating(Sema& sema, const ast::Node* node, slang::Type* type) { expect(sema, node, is_floating, type, "floating point type"); }
+inline void expect_numeric(Sema& sema, const ast::Node* node, const slang::Type* type) { expect(sema, node, is_numeric, type, "numeric type"); }
+inline void expect_logic(Sema& sema, const ast::Node* node, const slang::Type* type) { expect(sema, node, is_logic, type, "boolean or integer type"); }
+inline void expect_integer(Sema& sema, const ast::Node* node, const slang::Type* type) { expect(sema, node, is_integer, type, "integer type"); }
+inline void expect_ordered(Sema& sema, const ast::Node* node, const slang::Type* type) { expect(sema, node, is_ordered, type, "comparable type"); }
+inline void expect_boolean(Sema& sema, const ast::Node* node, const slang::Type* type) { expect(sema, node, is_boolean, type, "boolean type"); }
+inline void expect_floating(Sema& sema, const ast::Node* node, const slang::Type* type) { expect(sema, node, is_floating, type, "floating point type"); }
 
-slang::Type* UnOpExpr::check(Sema& sema, TypeExpectation expected) const {
-    slang::Type* op_type = sema.check(operand(), expected);
+const slang::Type* UnOpExpr::check(Sema& sema, TypeExpectation expected) const {
+    const slang::Type* op_type = sema.check(operand(), expected);
     
     // TODO : l-value for ++ --
 
@@ -265,9 +282,9 @@ slang::Type* UnOpExpr::check(Sema& sema, TypeExpectation expected) const {
     return sema.error_type();
 }
 
-slang::Type* AssignOpExpr::check(Sema& sema, TypeExpectation expected) const {
-    slang::Type* left_type = sema.check(left(), expected);
-    slang::Type* right_type = sema.check(right(), expected);
+const slang::Type* AssignOpExpr::check(Sema& sema, TypeExpectation expected) const {
+    const slang::Type* left_type = sema.check(left(), expected);
+    const slang::Type* right_type = sema.check(right(), expected);
 
     if (left_type != right_type) {
         sema.error(this) << "Operands must be of the same type in assignment expression\n";
@@ -306,9 +323,9 @@ slang::Type* AssignOpExpr::check(Sema& sema, TypeExpectation expected) const {
     return sema.error_type();
 }
 
-slang::Type* BinOpExpr::check(Sema& sema, TypeExpectation expected) const {
-    slang::Type* left_type = sema.check(left(), expected);
-    slang::Type* right_type = sema.check(right(), expected);
+const slang::Type* BinOpExpr::check(Sema& sema, TypeExpectation expected) const {
+    const slang::Type* left_type = sema.check(left(), expected);
+    const slang::Type* right_type = sema.check(right(), expected);
 
     if (left_type != right_type) {
         sema.error(this) << "Operands must be of the same type in binary expression\n";
@@ -358,16 +375,16 @@ slang::Type* BinOpExpr::check(Sema& sema, TypeExpectation expected) const {
     return sema.error_type();
 }
 
-slang::Type* InitExpr::check(Sema& sema, TypeExpectation expected) const {
+const slang::Type* InitExpr::check(Sema& sema, TypeExpectation expected) const {
     // TODO : Fix this
     return sema.error_type();
 }
 
-slang::Type* ErrorType::check(Sema& sema) const {
+const slang::Type* ErrorType::check(Sema& sema) const {
     return sema.error_type();
 }
 
-slang::Type* PrimType::check(Sema& sema) const {
+const slang::Type* PrimType::check(Sema& sema) const {
     switch (prim()) {
 #define SLANG_KEY_DATA(key, str) case PRIM_##key: return sema.prim_type(slang::PrimType::PRIM_##key);
 #include "slang/keywordlist.h"
@@ -376,15 +393,19 @@ slang::Type* PrimType::check(Sema& sema) const {
     return sema.error_type();
 }
 
-slang::Type* NamedType::check(Sema& sema) const {
-    if (auto type = sema.symbol_type(name())) {
-        return type;
+const slang::Type* NamedType::check(Sema& sema) const {
+    if (auto symbol = sema.env()->lookup_symbol(name())) {
+        if (symbol->is_structure()) {
+            return symbol->type();
+        }
     }
-    sema.error(this) << "\'" << name() << "\' is not a valid type name\n";
+
+    sema.error(this) << "\'" << name() << "\' is not a valid type name\n";  
     return sema.error_type();
 }
 
 inline bool compound_members(Sema& sema, const CompoundType* compound, slang::CompoundType::MemberMap& members) {
+    // Creates the member list of a compound type from the AST node
     for (auto field : compound->fields()) {
         sema.check(field);
         for (auto var : field->vars()) {
@@ -399,10 +420,10 @@ inline bool compound_members(Sema& sema, const CompoundType* compound, slang::Co
     return true;
 }
 
-slang::Type* StructType::check(Sema& sema) const {
+const slang::Type* StructType::check(Sema& sema) const {
     slang::CompoundType::MemberMap members;
 
-    slang::Type* type;
+    const slang::Type* type;
     if (compound_members(sema, this, members)) {
         type = sema.struct_type(name(), members);
     } else {
@@ -411,13 +432,13 @@ slang::Type* StructType::check(Sema& sema) const {
 
     // Register the structure in the environment if it has a name
     if (name().length() > 0) {
-        sema.new_identifier(this, name(), Symbol(this, nullptr, type));
+        sema.new_identifier(this, name(), Symbol({std::make_pair(type, this)}));
     }
 
     return type;
 }
 
-slang::Type* InterfaceType::check(Sema& sema) const {
+const slang::Type* InterfaceType::check(Sema& sema) const {
     slang::CompoundType::MemberMap members;
     if (compound_members(sema, this, members)) {
         return sema.interface_type(name(), members);
@@ -425,63 +446,85 @@ slang::Type* InterfaceType::check(Sema& sema) const {
     return sema.error_type();
 }
 
-slang::Type* PrecisionDecl::check(Sema& sema) const {
-    slang::Type* prim = sema.check(type());
+const slang::Type* PrecisionDecl::check(Sema& sema) const {
+    const slang::Type* prim = sema.check(type());
     expect_floating(sema, this, prim);
     return prim;
 }
 
-slang::Type* VariableDecl::check(Sema& sema) const {
-    slang::Type* var_type = sema.check(type());
+const slang::Type* VariableDecl::check(Sema& sema) const {
+    const slang::Type* var_type = sema.check(type());
     for (auto var : vars())
         sema.check(var, var_type);
     return var_type;
 }
 
-inline void expect_overload(Sema& sema, const ast::FunctionDecl* decl,
-                            slang::FunctionType* fn_a, slang::FunctionType* fn_b) {
-    if (fn_a->args().size() == fn_b->args().size()) {
-        for (size_t i = 0; i < fn_a->args().size(); i++) {
-            if (fn_a->args()[i] != fn_b->args()[i])
+static bool arguments_differ(const slang::FunctionType* fn_a,
+                             const slang::FunctionType* fn_b) {
+
+    if (fn_a->args().size() != fn_b->args().size())
+        return true;
+
+    for (size_t i = 0; i < fn_a->args().size(); i++) {
+        if (fn_a->args()[i] != fn_b->args()[i])
+            return true;
+    }
+
+    return false;
+}
+
+static void expect_overload(Sema& sema, const ast::FunctionDecl* decl,
+                            const slang::FunctionType* fn_type, Symbol* symbol) {
+    // If this is not a prototype, make sure the function is not redefined
+    if (!decl->is_prototype()) {
+        auto range = symbol->defs().equal_range(fn_type);
+        for (auto it = range.first; it != range.second; it++) {
+            const ast::FunctionDecl* other_fn_decl = it->second->as<ast::FunctionDecl>();
+            if (!other_fn_decl->is_prototype()) {
+                sema.error(decl) << "Redefinition of function \'" << decl->name() << "\'\n";
                 return;
+            }
         }
-        sema.error(decl) << "Cannot overload function \'" << decl->name() << "\', argument types must differ\n";
+    }
+
+    // Check function overloading rules
+    for (auto def : symbol->defs()) {
+        const slang::FunctionType* other_fn_type = def.first->as<FunctionType>();
+        const ast::FunctionDecl* other_fn_decl = def.second->as<ast::FunctionDecl>();
+
+        // If the function has already a prototype, we are done checking
+        if (other_fn_decl->is_prototype() && other_fn_type == fn_type)
+            return;
+
+        // We have to check that arguments differ
+        if (!arguments_differ(fn_type, other_fn_type)) {
+            sema.error(decl) << "Cannot overload function \'" << decl->name() << "\', argument types must differ\n";
+            return;
+        }
     }
 }
 
-slang::Type* FunctionDecl::check(Sema& sema) const {
+const slang::Type* FunctionDecl::check(Sema& sema) const {
     slang::FunctionType::ArgList arg_types;
 
-    slang::Type* ret_type = sema.check(type());
+    const slang::Type* ret_type = sema.check(type());
     for (auto arg : args())
         arg_types.push_back(sema.check(arg));
 
-    slang::FunctionType* fn_type = sema.function_type(ret_type, arg_types);
+    const slang::FunctionType* fn_type = sema.function_type(ret_type, arg_types);
 
     if (!name().length())
         return fn_type;
 
     Symbol* symbol = sema.env()->find_symbol(name());
     if (!symbol) {
-        sema.env()->push_symbol(name(), Symbol(nullptr, nullptr, fn_type));
-        symbol = sema.env()->find_symbol(name());
+        sema.env()->push_symbol(name(), Symbol({std::make_pair(fn_type, this)}));
     } else {
-        // Check that the prototype has the same type as the definition
-        slang::FunctionType* type = symbol->type()->isa<slang::FunctionType>();
-        if (!type) {
-            sema.error(this) << "Identifier name \'" << name() << "\' cannot be redefined as a function\n";
-        } else if (fn_type != type) {
-            expect_overload(sema, this, fn_type, type);
-        }
-    }
-
-    if (is_prototype()) {
-        symbol->set_decl(this);
-    } else {
-        if (symbol->def()) {
-            sema.error(this) << "Redefinition of function \'" << name() << "\'\n";
+        // The symbol has to be a function, and has to follow the function overloading rules
+        if (!symbol->is_function()) {
+            sema.error(this) << "Identifier \'" << name() << "\' cannot be redefined as a function\n";
         } else {
-            symbol->set_def(this);
+            expect_overload(sema, this, fn_type, symbol);
         }
     }
     
@@ -489,7 +532,7 @@ slang::Type* FunctionDecl::check(Sema& sema) const {
 }
 
 inline bool integer_value(Sema& sema, const Expr* expr, int& result) {
-    slang::Type* type = sema.check(expr);
+    const slang::Type* type = sema.check(expr);
     if (auto prim = type->isa<slang::PrimType>()) {
         if (prim->prim() == slang::PrimType::PRIM_INT ||
             prim->prim() == slang::PrimType::PRIM_UINT) {
@@ -502,8 +545,9 @@ inline bool integer_value(Sema& sema, const Expr* expr, int& result) {
     return false;
 }
 
-inline slang::Type* array_type(Sema& sema, slang::Type* type, const ArraySpecifier* array) {
-    slang::Type* cur_type = type;
+inline const slang::Type* array_type(Sema& sema, const slang::Type* type, const ArraySpecifier* array) {
+    // Creates an array type from an element type and a list of dimensions
+    const slang::Type* cur_type = type;
     for (auto dim : array->dims()) {
         if (dim) {
             int size;
@@ -518,16 +562,16 @@ inline slang::Type* array_type(Sema& sema, slang::Type* type, const ArraySpecifi
     return cur_type;
 }
 
-slang::Type* Arg::check(Sema& sema) const {
-    slang::Type* arg_type = sema.check(type());
+const slang::Type* Arg::check(Sema& sema) const {
+    const slang::Type* arg_type = sema.check(type());
     if (array_specifier())
         return array_type(sema, arg_type, array_specifier());
     return arg_type;
 }
 
-slang::Type* Variable::check(Sema& sema, slang::Type* var_type) const {
-    slang::Type* type = array_specifier() ? array_type(sema, var_type, array_specifier()) : var_type;
-    sema.new_identifier(this, name(), Symbol(this, nullptr, type));
+const slang::Type* Variable::check(Sema& sema, const slang::Type* var_type) const {
+    const slang::Type* type = array_specifier() ? array_type(sema, var_type, array_specifier()) : var_type;
+    sema.new_identifier(this, name(), Symbol({std::make_pair(type, this)}));
     return type;
 }
 
@@ -589,18 +633,18 @@ void DiscardStmt::check(Sema& sema) const {}
 
 void ReturnStmt::check(Sema& sema) const {
     const FunctionDecl* fn_decl = sema.env()->scope()->as<FunctionDecl>();
-    slang::FunctionType* fn_type = sema.symbol_type(fn_decl->name())->as<FunctionType>();
+    const slang::Type* ret_type = fn_decl->type()->assigned_type();
     if (value()) {
-        slang::Type* type = sema.check(value());
-        if (type != fn_type->ret()) {
-            sema.error(this) << "Expected \'" << fn_type->ret()->to_string() << "\' as return type, got \'"
+        const slang::Type* type = sema.check(value());
+        if (type != ret_type) {
+            sema.error(this) << "Expected \'" << ret_type->to_string() << "\' as return type, got \'"
                              << type->to_string() << "\'\n";
         }
     } else {
-        slang::PrimType* prim = fn_type->ret()->isa<slang::PrimType>();
+        const slang::PrimType* prim = ret_type->isa<slang::PrimType>();
         if (!prim || prim->prim() != slang::PrimType::PRIM_VOID) {
             sema.error(this) << "Function \'" << fn_decl->name() << "\' returns void, got \'"
-                             << fn_type->ret()->to_string() << "\'\n";
+                             << ret_type->to_string() << "\'\n";
         }
     }
 }

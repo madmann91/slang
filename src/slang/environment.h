@@ -8,6 +8,7 @@
 #include "slang/ptr.h"
 #include "slang/cast.h"
 #include "slang/types.h"
+#include "slang/location.h"
 
 namespace slang {
 
@@ -15,25 +16,32 @@ namespace ast {
     class Node;
 }
 
-/// Holds a declaration (function, variable or datatype).
+/// Holds a declaration (function, variable or datatype). Structures,
+/// interfaces, or variables have only one definition in one environment.
+/// Functions can have multiple definitions : prototypes and overloads.
 class Symbol {
 public:
-    Symbol(const ast::Node* decl, const ast::Node* def, Type* type)
-        : decl_(decl), def_(def), type_(type)
+    typedef std::unordered_multimap<const Type*, const ast::Node*> DefMap;
+
+    Symbol(std::initializer_list<DefMap::value_type> defs)
+        : defs_(defs)
     {}
 
-    const ast::Node* decl() const { return decl_; }
-    const ast::Node* def() const { return def_; }
-    Type* type() const { return type_; }
+    bool is_function() const;
+    bool is_structure() const;
+    bool is_interface() const;
+    bool is_variable() const;
+    bool is_argument() const;
 
-    void set_def(const ast::Node* def) { def_ = def; }
-    void set_decl(const ast::Node* decl) { decl_ = decl; }
-    void set_type(Type* type) { type_ = type; }
+    const slang::Type* type() const;
+    const Location& location() const;
+
+    const DefMap& defs() const { return defs_; }
+    void push_def(Type* type, const ast::Node* node) { defs_.insert(std::make_pair(type, node)); }
+    const int num_defs() const { return defs_.size(); }
 
 private:
-    const ast::Node* decl_;
-    const ast::Node* def_;
-    Type* type_;
+    DefMap defs_;
 };
 
 /// An environment : holds variables, structures and functions names.
@@ -44,27 +52,9 @@ public:
     {}
 
     /// Lookup for a symbol in this environment and its parents (returns nullptr if not found).
-    Symbol* lookup_symbol(const std::string& name) {
-        if (auto symbol = find_symbol(name))
-            return symbol;
-
-        Environment* p = parent_;
-        while (p) {
-            Symbol* s = p->find_symbol(name);
-            if (s) return s;
-            p = p->parent_;
-        }
-
-        return nullptr;
-    }
-
+    Symbol* lookup_symbol(const std::string& name);
     /// Find a symbol in this environment only (and not its parents), returns nullptr if not found.
-    Symbol* find_symbol(const std::string& name) {
-        auto it = symbols_.find(name);
-        if (it != symbols_.end())
-            return &it->second;
-        return nullptr;
-    }
+    Symbol* find_symbol(const std::string& name);
 
     /// Returns the symbol table of this environment.
     const std::unordered_map<std::string, Symbol>& symbols() const { return symbols_; }

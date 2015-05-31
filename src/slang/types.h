@@ -23,26 +23,26 @@ public:
 class TypeExpectation {
 public:
     TypeExpectation() : type_(nullptr) {}
-    TypeExpectation(Type* type) : type_(type) {}
+    TypeExpectation(const Type* type) : type_(type) {}
 
-    Type* type() { return type_; }
+    const Type* type() const { return type_; }
 
     template <typename T>
-    Type* isa() {
+    const Type* isa() const {
         if (type_)
             return type_->isa<T>();
         return nullptr;
     }
 
     template <typename T>
-    Type* as() {
+    const Type* as() const {
         if (type_)
             return type_->as<T>();
         return nullptr;
     }
 
 private:
-    Type* type_;
+    const Type* type_;
 };
 
 /// Error type. For types that cannot be determined.
@@ -56,9 +56,9 @@ public:
 /// Function type (equality based on return type and arguments).
 class FunctionType : public Type {
 public:
-    typedef std::vector<Type*> ArgList;
+    typedef std::vector<const Type*> ArgList;
 
-    FunctionType(Type* ret, const ArgList& args)
+    FunctionType(const Type* ret, const ArgList& args)
         : ret_(ret), args_(args)
     {}
 
@@ -84,12 +84,8 @@ public:
         return ret()->hash() ^ h;
     }
 
-    void set_ret(Type* ret) { ret_ = ret; }
-    Type* ret() { return ret_; }
     const Type* ret() const { return ret_; }
-
     const ArgList& args() const { return args_; }
-    void push_arg(Type* arg) { args_.push_back(arg); }
     int num_args() const { return args_.size(); }
 
     std::string to_string() const override {
@@ -102,14 +98,14 @@ public:
     }
 
 private:
-    Type* ret_;
+    const Type* ret_;
     ArgList args_;
 };
 
 /// Compound type (interface or structure).
 class CompoundType : public Type {
 public:
-    typedef std::unordered_map<std::string, Type*> MemberMap;
+    typedef std::unordered_map<std::string, const Type*> MemberMap;
 
     CompoundType(const std::string& name, const MemberMap& args)
         : name_(name), args_(args)
@@ -126,12 +122,7 @@ public:
     }
 
     const MemberMap& args() const { return args_; }
-    void push_arg(const std::string& name, Type* arg) { args_.emplace(name, arg); }
-    int num_args() const { return args_.size(); }
-
     const std::string& name() const { return name_; }
-    void set_name(const std::string& name) { name_ = name; }
-
     std::string to_string() const override { return name_; }
 
 protected:
@@ -142,7 +133,7 @@ protected:
 /// Structure type (equality decided from name only).
 class StructType : public CompoundType {
 public:
-    StructType(const std::string& name, const std::unordered_map<std::string, Type*>& args)
+    StructType(const std::string& name, const MemberMap& args)
         : CompoundType(name, args)
     {}
 
@@ -157,7 +148,7 @@ public:
 /// Interface type (cannot be equal to another type).
 class InterfaceType : public CompoundType {
 public:
-    InterfaceType(const std::string& name, const std::unordered_map<std::string, Type*>& args)
+    InterfaceType(const std::string& name, const MemberMap& args)
         : CompoundType(name, args)
     {}
 
@@ -190,7 +181,6 @@ public:
     }
 
     Prim prim() const { return prim_; }
-    void set_prim(Prim prim) { prim_ = prim; }
 
     std::string to_string() const override {
         switch (prim()) {
@@ -208,23 +198,21 @@ private:
 /// Base class for array types.
 class ArrayType : public Type {
 public:
-    ArrayType(Type* elem)
+    ArrayType(const Type* elem)
         : elem_(elem)
     {}
     virtual ~ArrayType() {}
 
-    Type* elem() { return elem_; }
     const Type* elem() const { return elem_; }
-    void set_elem(Type* elem) { elem_ = elem; }
 
 protected:
-    Type* elem_;
+    const Type* elem_;
 };
 
 /// Array with unknown size.
 class IndefiniteArrayType : public ArrayType {
 public:
-    IndefiniteArrayType(Type* elem)
+    IndefiniteArrayType(const Type* elem)
         : ArrayType(elem)
     {}
 
@@ -247,12 +235,11 @@ public:
 /// Array with known size.
 class DefiniteArrayType : public ArrayType {
 public:
-    DefiniteArrayType(Type* elem, int size)
+    DefiniteArrayType(const Type* elem, int size)
         : ArrayType(elem), size_(size)
     {}
 
     int size() const { return size_; }
-    void set_size(int size) { size_ = size; }
 
     bool equals(const Type* other) const override {
         if (auto def = other->isa<DefiniteArrayType>()) {
