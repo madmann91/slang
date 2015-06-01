@@ -42,9 +42,12 @@ public:
     }
 
     /// Pops an environment from the stack.
-    void pop_env() {
-        assert(env_ != nullptr);
-        env_ = env_->parent();
+    void pop_env(int n = 1) {
+        while (n > 0) {
+            assert(env_ != nullptr);
+            env_ = env_->parent();
+            n--;
+        }
     }
 
     /// Creates a new identifier, if the name is not already used in the current environment.

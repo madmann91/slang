@@ -569,8 +569,7 @@ const slang::Type* FunctionDecl::check(Sema& sema) const {
 
         sema.push_env(this);
         sema.check(body());
-        sema.pop_env();
-        sema.pop_env();
+        sema.pop_env(2);
     }
     
     return fn_type;
@@ -684,8 +683,7 @@ void ForLoopStmt::check(Sema& sema) const {
     if (iter()) sema.check(iter());
     sema.push_env(this);
     sema.check(body());
-    sema.pop_env();
-    sema.pop_env();
+    sema.pop_env(2);
 }
 
 void WhileLoopStmt::check(Sema& sema) const {
