@@ -22,7 +22,7 @@ public:
     std::unique_ptr<ast::DeclList> parse();
 
     /// Returns the number of errors generated during parsing.
-    int error_count() const { return err_count_; }
+    size_t error_count() const { return err_count_; }
 
 private:
     template <typename T>
@@ -112,7 +112,7 @@ private:
     ast::ExprStmt* parse_expr_stmt();
     ast::ReturnStmt* parse_return_stmt();
 
-    int err_count_;
+    size_t err_count_;
 
     std::function<Token()> input_;
 

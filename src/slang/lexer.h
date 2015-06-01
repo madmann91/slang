@@ -20,7 +20,7 @@ public:
     Token lex();
 
     /// Returns the number of errors generated during lexing.
-    int error_count() const { return err_count_; }
+    size_t error_count() const { return err_count_; }
 
     /// Sets the current line index.
     void set_line_index(int line);
@@ -51,7 +51,7 @@ private:
 
     std::ostream& error();
 
-    int err_count_;
+    size_t err_count_;
 
     int c_;
     bool new_line_;

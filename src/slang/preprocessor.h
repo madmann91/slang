@@ -122,9 +122,9 @@ public:
     }
 
     /// Returns the number of errors generated during preprocessing.
-    int error_count() const { return err_count_; }
+    size_t error_count() const { return err_count_; }
     /// Returns the number of warnings generated during preprocessing.
-    int warn_count() const { return warn_count_; }
+    size_t warn_count() const { return warn_count_; }
 
     /// Default version directive handler (does nothing).
     static void default_version_handler(int, Profile) {}
@@ -243,7 +243,7 @@ private:
     std::ostream& error();
     std::ostream& warn();
 
-    int err_count_, warn_count_;
+    size_t err_count_, warn_count_;
 
     Lexer& lexer_;
     Logger& logger_;
