@@ -84,6 +84,7 @@ const slang::Type* CallExpr::check(Sema& sema, TypeExpectation) const {
         // Find the correct overloaded function to call
         for (auto def : symbol->defs()) {
             const slang::FunctionType* fn_type = def.first->as<slang::FunctionType>();
+
             if (fn_type->num_args() != num_args()) {
                 continue;
             } else {
@@ -257,7 +258,7 @@ inline void expect_boolean(Sema& sema, const ast::Node* node, const slang::Type*
 inline void expect_floating(Sema& sema, const ast::Node* node, const slang::Type* type) { expect(sema, node, is_floating, type, "floating point type"); }
 
 const slang::Type* UnOpExpr::check(Sema& sema, TypeExpectation expected) const {
-    const slang::Type* op_type = sema.check(operand(), expected);
+    const slang::Type* op_type = sema.check(operand());
     
     // TODO : l-value for ++ --
 
@@ -283,8 +284,8 @@ const slang::Type* UnOpExpr::check(Sema& sema, TypeExpectation expected) const {
 }
 
 const slang::Type* AssignOpExpr::check(Sema& sema, TypeExpectation expected) const {
-    const slang::Type* left_type = sema.check(left(), expected);
-    const slang::Type* right_type = sema.check(right(), expected);
+    const slang::Type* left_type = sema.check(left());
+    const slang::Type* right_type = sema.check(right());
 
     if (left_type != right_type) {
         sema.error(this) << "Operands must be of the same type in assignment expression\n";
@@ -324,8 +325,8 @@ const slang::Type* AssignOpExpr::check(Sema& sema, TypeExpectation expected) con
 }
 
 const slang::Type* BinOpExpr::check(Sema& sema, TypeExpectation expected) const {
-    const slang::Type* left_type = sema.check(left(), expected);
-    const slang::Type* right_type = sema.check(right(), expected);
+    const slang::Type* left_type = sema.check(left());
+    const slang::Type* right_type = sema.check(right());
 
     if (left_type != right_type) {
         sema.error(this) << "Operands must be of the same type in binary expression\n";
@@ -335,7 +336,7 @@ const slang::Type* BinOpExpr::check(Sema& sema, TypeExpectation expected) const 
     switch (type()) {
         case BINOP_EQ:
         case BINOP_NEQ:
-            return left_type;
+            return sema.prim_type(slang::PrimType::PRIM_BOOL);
 
         case BINOP_MUL:
         case BINOP_DIV:
@@ -355,7 +356,7 @@ const slang::Type* BinOpExpr::check(Sema& sema, TypeExpectation expected) const 
         case BINOP_LEQ:
         case BINOP_GEQ:
             expect_ordered(sema, this, left_type);
-            return left_type;
+            return sema.prim_type(slang::PrimType::PRIM_BOOL);
 
         case BINOP_AND:
         case BINOP_XOR:
@@ -434,7 +435,7 @@ const slang::Type* StructType::check(Sema& sema) const {
 
     // Register the structure in the environment if it has a name
     if (name().length() > 0) {
-        sema.new_identifier(this, name(), Symbol({std::make_pair(type, this)}));
+        sema.new_symbol(name(), this, type);
     }
 
     return type;
@@ -506,6 +507,27 @@ static void expect_overload(Sema& sema, const ast::FunctionDecl* decl,
     }
 }
 
+inline slang::FunctionType::ArgList normalize_args(Sema& sema, const ast::FunctionDecl* fn_decl,
+                                                   const slang::FunctionType::ArgList& args) {
+    // Ensure there is only one void parameter
+    int void_count = 0;
+    for (size_t i = 0; i < args.size(); i++) {
+        if (auto prim = args[i]->isa<slang::PrimType>()) {
+            if (prim->prim() == slang::PrimType::PRIM_VOID) {
+                void_count++;
+            }
+        }
+        if (void_count == 1 && i != 0)
+            sema.error(fn_decl) << "\'void\' must be the only parameter\n";
+    }
+
+    // Remove the void parameter
+    if (args.size() == 1 && void_count == 1)
+        return slang::FunctionType::ArgList();
+
+    return args;
+}
+
 const slang::Type* FunctionDecl::check(Sema& sema) const {
     slang::FunctionType::ArgList arg_types;
 
@@ -513,14 +535,14 @@ const slang::Type* FunctionDecl::check(Sema& sema) const {
     for (auto arg : args())
         arg_types.push_back(sema.check(arg));
 
-    const slang::FunctionType* fn_type = sema.function_type(ret_type, arg_types);
+    const slang::FunctionType* fn_type = sema.function_type(ret_type, normalize_args(sema, this, arg_types));
 
     if (!name().length())
         return fn_type;
 
     Symbol* symbol = sema.env()->find_symbol(name());
     if (!symbol) {
-        sema.env()->push_symbol(name(), Symbol({std::make_pair(fn_type, this)}));
+        sema.new_symbol(name(), this, fn_type);
     } else {
         // The symbol has to be a function, and has to follow the function overloading rules
         if (!symbol->is_function()) {
@@ -528,6 +550,22 @@ const slang::Type* FunctionDecl::check(Sema& sema) const {
         } else {
             expect_overload(sema, this, fn_type, symbol);
         }
+    }
+
+    if (body()) {
+        sema.push_env();
+
+        // Push the arguments and their types into the environment
+        for (int i = 0; i < num_args(); i++) {
+            if (!args()[i]->name().empty()) {
+                sema.new_symbol(args()[i]->name(), args()[i], arg_types[i]);
+            }
+        }
+
+        sema.push_env(this);
+        sema.check(body());
+        sema.pop_env();
+        sema.pop_env();
     }
     
     return fn_type;
@@ -564,10 +602,24 @@ inline const slang::Type* array_type(Sema& sema, const slang::Type* type, const 
     return cur_type;
 }
 
+inline void expect_nonvoid(Sema& sema, const ast::Node* node, const std::string& name, const slang::Type* type) {
+    assert(!name.empty());
+    if (auto prim = type->isa<slang::PrimType>()) {
+        if (prim->prim() == slang::PrimType::PRIM_VOID) {
+            sema.error(node) << "Argument or variable \'" << name << "\' of type \'void\'\n";
+        }
+    }
+}
+
 const slang::Type* Arg::check(Sema& sema) const {
     const slang::Type* arg_type = sema.check(type());
+
+    if (!name().empty())
+        expect_nonvoid(sema, this, name(), arg_type);
+
     if (array_specifier())
         return array_type(sema, arg_type, array_specifier());
+
     return arg_type;
 }
 
@@ -576,8 +628,18 @@ const slang::Type* Variable::check(Sema& sema, const slang::Type* var_type) cons
     if (name().empty())
         return type;
 
-    sema.new_identifier(this, name(), Symbol({std::make_pair(type, this)}));
+    expect_nonvoid(sema, this, name(), type);
+    sema.new_symbol(name(), this, type);
     return type;
+}
+
+void LoopCond::check(Sema& sema) const {
+    if (is_var()) {
+        sema.check(var(), sema.check(var_type()));
+    } else {
+        assert(is_expr());
+        sema.check(expr());
+    }
 }
 
 void StmtList::check(Sema& sema) const {
@@ -596,11 +658,13 @@ void ExprStmt::check(Sema& sema) const {
 void IfStmt::check(Sema& sema) const {
     sema.check(cond(), sema.prim_type(slang::PrimType::PRIM_BOOL));
     sema.check(if_true());
-    sema.check(if_false());
+    if (if_false()) sema.check(if_false());
 }
 
 void SwitchStmt::check(Sema& sema) const {
+    sema.push_env(this);
     sema.check(list());
+    sema.pop_env();
 }
 
 void CaseLabelStmt::check(Sema& sema) const {
@@ -609,35 +673,45 @@ void CaseLabelStmt::check(Sema& sema) const {
 }
 
 void ForLoopStmt::check(Sema& sema) const {
+    sema.push_env();
+    if (init()) sema.check(init());
+    if (cond()) sema.check(cond());
+    if (iter()) sema.check(iter());
+    sema.push_env(this);
     sema.check(body());
+    sema.pop_env();
+    sema.pop_env();
 }
 
 void WhileLoopStmt::check(Sema& sema) const {
+    sema.check(cond());
+    sema.push_env(this);
     sema.check(body());
+    sema.pop_env();
 }
 
 void DoWhileLoopStmt::check(Sema& sema) const {
+    sema.push_env(this);
     sema.check(body());
-}
-
-inline void expect_loop(Sema& sema, const ast::Stmt* stmt, const ast::Node* node) {
-    if (!node->isa<LoopStmt>()) {
-        sema.error(stmt) << "continue or break statements are only allowed inside a loop\n";
-    }
+    sema.pop_env();
+    sema.check(cond());
 }
 
 void BreakStmt::check(Sema& sema) const {
-    expect_loop(sema, this, sema.env()->scope());
+    if (!sema.env()->closest_loop() &&
+        !sema.env()->closest_switch())
+        sema.error(this) << "\'break\' statements are only allowed inside a loop or a switch\n";
 }
 
 void ContinueStmt::check(Sema& sema) const {
-    expect_loop(sema, this, sema.env()->scope());
+    if (!sema.env()->closest_loop())
+        sema.error(this) << "\'continue\' statements are only allowed inside a loop\n";
 }
 
 void DiscardStmt::check(Sema& sema) const {}
 
 void ReturnStmt::check(Sema& sema) const {
-    const FunctionDecl* fn_decl = sema.env()->scope()->as<FunctionDecl>();
+    const FunctionDecl* fn_decl = sema.env()->closest_function()->as<FunctionDecl>();
     const slang::Type* ret_type = fn_decl->type()->assigned_type();
     if (value()) {
         const slang::Type* type = sema.check(value());
@@ -648,8 +722,7 @@ void ReturnStmt::check(Sema& sema) const {
     } else {
         const slang::PrimType* prim = ret_type->isa<slang::PrimType>();
         if (!prim || prim->prim() != slang::PrimType::PRIM_VOID) {
-            sema.error(this) << "Function \'" << fn_decl->name() << "\' returns void, got \'"
-                             << ret_type->to_string() << "\'\n";
+            sema.error(this) << "Expected \'" << ret_type->to_string() << "\' as return type, got \'void\'\n";
         }
     }
 }

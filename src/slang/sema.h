@@ -48,12 +48,13 @@ public:
     }
 
     /// Creates a new identifier, if the name is not already used in the current environment.
-    void new_identifier(const ast::Node* node, const std::string& name, Symbol&& symbol) {
+    void new_symbol(const std::string& name, const ast::Node* node, const slang::Type* type) {
+        assert(!name.empty());
         if (auto prev_symbol = env()->find_symbol(name)) {
             error(node) << "Identifier \'" << name << "\' has already been defined (line "
                         << prev_symbol->location().start().line() << ")\n";
         } else {
-            env()->push_symbol(name, std::forward<Symbol>(symbol));
+            env()->push_symbol(name, Symbol({std::make_pair(type, node)}));
         }
     }
 
@@ -107,6 +108,8 @@ public:
     const Type* check(const ast::Decl* decl) { return check_assign(decl); }
     /// Checks a statement.
     void check(const ast::Stmt* stmt) { stmt->check(*this); }
+    /// Checks a loop condition.
+    void check(const ast::LoopCond* cond) { cond->check(*this); }
     /// Checks the type of a function argument.
     const Type* check(const ast::Arg* arg) { return check_assign(arg); }
     /// Checks the type of a variable, given the type of the corresponding declaration.

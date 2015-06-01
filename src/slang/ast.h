@@ -675,6 +675,7 @@ public:
     void set_var(Variable* var) { var_.reset(var); }
 
     void print(Printer&) const override;
+    void check(Sema& sema) const;
 
 private:
     Ptr<Expr> expr_;

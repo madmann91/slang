@@ -40,4 +40,16 @@ Symbol* Environment::find_symbol(const std::string& name) {
     return nullptr;
 }
 
+template <typename T>
+inline const ast::Node* closest_node(const Environment* env) {
+    while (env && !env->scope()->isa<T>()) {
+        env = env->parent();
+    }
+    return env ? env->scope() : nullptr;
+}
+
+const ast::Node* Environment::closest_function() const { return closest_node<ast::FunctionDecl>(this); }
+const ast::Node* Environment::closest_loop() const { return closest_node<ast::LoopStmt>(this); }
+const ast::Node* Environment::closest_switch() const { return closest_node<ast::SwitchStmt>(this); }
+
 } // namespace slang

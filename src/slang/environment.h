@@ -76,6 +76,12 @@ public:
 
     /// Returns the enclosing scope AST node, if any.
     const ast::Node* scope() const { return scope_; }
+    /// Returns the nearest enclosing function, if any.
+    const ast::Node* closest_function() const;
+    /// Returns the nearest enclosing loop, if any.
+    const ast::Node* closest_loop() const;
+    /// Returns the nearest enclosing switch statement, if any.
+    const ast::Node* closest_switch() const;
 
 private:
     std::unordered_map<std::string, Symbol> symbols_;
