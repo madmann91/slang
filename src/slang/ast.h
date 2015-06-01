@@ -84,7 +84,7 @@ class ExprList : public Expr {
 public:
     const PtrVector<Expr>& exprs() const { return exprs_; }
     void push_expr(Expr* expr) { exprs_.push_back(expr); }
-    int num_exprs() const { return exprs_.size(); }
+    size_t num_exprs() const { return exprs_.size(); }
 
     void print(Printer&) const override;
     const slang::Type* check(Sema&, TypeExpectation) const override;
@@ -161,7 +161,7 @@ class CallExpr : public Expr, public HasName {
 public:
     const PtrVector<Expr>& args() const { return args_; }
     void push_arg(Expr* arg) { args_.push_back(arg); }
-    int num_args() const { return args_.size(); }
+    size_t num_args() const { return args_.size(); }
 
     void print(Printer&) const override;
     const slang::Type* check(Sema&, TypeExpectation) const override;
@@ -314,7 +314,7 @@ class InitExpr : public Expr {
 public:
     const PtrVector<Expr>& exprs() const { return exprs_; }
     void push_expr(Expr* expr) { exprs_.push_back(expr); }
-    int num_exprs() const { return exprs_.size(); }
+    size_t num_exprs() const { return exprs_.size(); }
 
     void print(Printer&) const override;
     const slang::Type* check(Sema&, TypeExpectation) const override;
@@ -385,7 +385,7 @@ class SubroutineQualifier : public TypeQualifier {
 public:
     const std::vector<std::string>& names() const { return names_; }
     void push_name(const std::string& name) { names_.push_back(name); }
-    int num_names() const { return names_.size(); }
+    size_t num_names() const { return names_.size(); }
 
     void print(Printer&) const override;
 
@@ -401,7 +401,7 @@ public:
         assert(layouts_.find(name) == layouts_.end());
         layouts_.emplace(name, expr);
     }
-    int num_layouts() const { return layouts_.size(); }
+    size_t num_layouts() const { return layouts_.size(); }
 
     void print(Printer&) const override;
 
@@ -432,7 +432,7 @@ class ArraySpecifier : public Node {
 public:
     const PtrVector<Expr>& dims() const { return dims_; }
     void push_dim(Expr* dim) { dims_.push_back(dim); }
-    int num_dims() const { return dims_.size(); }
+    size_t num_dims() const { return dims_.size(); }
 
     void print(Printer&) const override;
 
@@ -462,7 +462,7 @@ public:
 
     const PtrVector<TypeQualifier>& qualifiers() const { return quals_; }
     void push_qualifier(TypeQualifier* qual) { quals_.push_back(qual); }
-    int num_qualifers() const { return quals_.size(); }
+    size_t num_qualifers() const { return quals_.size(); }
 
     virtual const slang::Type* check(Sema&) const = 0;
 
@@ -527,7 +527,7 @@ class DeclList : public Node, public HasEnv {
 public:
     const PtrVector<Decl>& decls() const { return decls_; }
     void push_decl(Decl* d) { decls_.push_back(d); }
-    int num_decls() const { return decls_.size(); }
+    size_t num_decls() const { return decls_.size(); }
 
     void print(Printer&) const override;
 
@@ -547,7 +547,7 @@ class StmtList : public Stmt, public HasEnv {
 public:
     const PtrVector<Stmt>& stmts() const { return stmts_; }
     void push_stmt(Stmt* s) { stmts_.push_back(s); }
-    int num_stmts() const { return stmts_.size(); }
+    size_t num_stmts() const { return stmts_.size(); }
 
     void print(Printer&) const override;
     void check(Sema&) const override;
@@ -594,7 +594,7 @@ class VariableDecl : public Decl, public HasType {
 public:
     const PtrVector<Variable>& vars() const { return vars_; }
     void push_var(Variable* var) { vars_.push_back(var); }
-    int num_vars() const { return vars_.size(); }
+    size_t num_vars() const { return vars_.size(); }
 
     void print(Printer&) const override;
     const slang::Type* check(Sema&) const override;
@@ -608,7 +608,7 @@ class CompoundType : public Type, public HasName {
 public:
     const PtrVector<VariableDecl>& fields() const { return fields_; }
     void push_field(VariableDecl* field) { fields_.push_back(field); }
-    int num_fields() const { return fields_.size(); }
+    size_t num_fields() const { return fields_.size(); }
 
 protected:
     PtrVector<VariableDecl> fields_;
@@ -646,7 +646,7 @@ public:
 
     const PtrVector<Arg>& args() const { return args_; }
     void push_arg(Arg* arg) { args_.push_back(arg); }
-    int num_args() const { return args_.size(); }
+    size_t num_args() const { return args_.size(); }
 
     void print(Printer&) const override;
     const slang::Type* check(Sema&) const override;

@@ -40,7 +40,7 @@ public:
 
     const DefMap& defs() const { return defs_; }
     void push_def(Type* type, const ast::Node* node) { defs_.insert(std::make_pair(type, node)); }
-    const int num_defs() const { return defs_.size(); }
+    size_t num_defs() const { return defs_.size(); }
 
 private:
     DefMap defs_;
@@ -65,7 +65,7 @@ public:
         symbols_.emplace(name, std::move(symbol));
     }
     /// Returns the number of symbols in this environment.
-    int num_symbols() const { return symbols_.size(); }
+    size_t num_symbols() const { return symbols_.size(); }
 
     /// Sets the parent of this environment.
     void set_parent(Environment* parent) { parent_ = parent; }

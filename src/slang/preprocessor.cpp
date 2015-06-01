@@ -311,7 +311,7 @@ void Preprocessor::parse_define() {
     }
 
     // Parse macro arguments
-    std::unordered_map<std::string, int> args;
+    std::unordered_map<std::string, size_t> args;
     if (lookup_.isa(Token::TOK_LPAREN) && !lookup_.new_line()) {
         eat(Token::TOK_LPAREN);
 

@@ -86,11 +86,11 @@ public:
 
     const Type* ret() const { return ret_; }
     const ArgList& args() const { return args_; }
-    int num_args() const { return args_.size(); }
+    size_t num_args() const { return args_.size(); }
 
     std::string to_string() const override {
         std::string str = ret()->to_string() + " (";
-        for (int i = 0; i < num_args(); i++) {
+        for (size_t i = 0; i < num_args(); i++) {
             str += args()[i]->to_string();
             if (i != num_args() - 1) str += ", ";
         }

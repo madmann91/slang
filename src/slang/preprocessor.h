@@ -30,19 +30,19 @@ public:
     {}
 
     /// Builds a macro with the given map from argument name to argument index and the given rule.
-    Macro(const std::unordered_map<std::string, int>& args,
+    Macro(const std::unordered_map<std::string, size_t>& args,
           const std::vector<Token>& rule)
         : args_(args), rule_(rule)
     {}
 
     /// Builds a macro with the given map from argument name to argument index and the builtin function.
-    Macro(const std::unordered_map<std::string, int>& args,
+    Macro(const std::unordered_map<std::string, size_t>& args,
           std::function<std::vector<Token>(const std::vector<Arg>&)> builtin)
         : args_(args), builtin_(builtin)
     {}
 
     /// Returns the arguments of the macro.
-    const std::unordered_map<std::string, int>& args() const { return args_; }
+    const std::unordered_map<std::string, size_t>& args() const { return args_; }
     /// Returns the expansion rule of the macro.
     const std::vector<Token>& rule() const { assert(!is_builtin()); return rule_; }
     /// Calls the builtin function associated with this macro (e.g. __FILE__ returns the source index).
@@ -51,13 +51,13 @@ public:
     /// Determines if the macro has any arguments.
     bool has_args() const { return args_.size() != 0; }
     /// Returns the number of arguments of the macro.
-    int num_args() const { return args_.size(); }
+    size_t num_args() const { return args_.size(); }
 
     /// Returns true if the macro is a builtin macro (like __FILE__, or __LINE__).
     bool is_builtin() const { return static_cast<bool>(builtin_); }
 
 private:
-    std::unordered_map<std::string, int> args_;
+    std::unordered_map<std::string, size_t> args_;
     std::function<std::vector<Token>(const std::vector<Arg>&)> builtin_;
     std::vector<Token> rule_;
 };

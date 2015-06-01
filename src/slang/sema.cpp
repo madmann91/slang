@@ -70,6 +70,8 @@ const slang::Type* IndexExpr::check(Sema& sema, TypeExpectation expected) const 
 }
 
 const slang::Type* CallExpr::check(Sema& sema, TypeExpectation) const {
+    // TODO : Handle constructors
+
     if (auto symbol = sema.env()->lookup_symbol(name())) {
         if (!symbol->is_function()) {
             sema.error(this) << "Identifier \'" << name() << "\' is not a function\n";
@@ -77,7 +79,7 @@ const slang::Type* CallExpr::check(Sema& sema, TypeExpectation) const {
         }
 
         // Check arguments
-        for (int i = 0; i < num_args(); i++) {
+        for (size_t i = 0; i < num_args(); i++) {
             sema.check(args()[i]);
         }
 
@@ -293,6 +295,7 @@ const slang::Type* AssignOpExpr::check(Sema& sema, TypeExpectation expected) con
     }
 
     // TODO : Make sure left_type is a l-value
+    // TODO : Rules for multiplication
 
     switch (type()) {
         case ASSIGN_EQUAL:
@@ -332,6 +335,8 @@ const slang::Type* BinOpExpr::check(Sema& sema, TypeExpectation expected) const 
         sema.error(this) << "Operands must be of the same type in binary expression\n";
         return sema.error_type();
     }
+
+    // TODO : Rules for multiplication
 
     switch (type()) {
         case BINOP_EQ:
@@ -556,7 +561,7 @@ const slang::Type* FunctionDecl::check(Sema& sema) const {
         sema.push_env();
 
         // Push the arguments and their types into the environment
-        for (int i = 0; i < num_args(); i++) {
+        for (size_t i = 0; i < num_args(); i++) {
             if (!args()[i]->name().empty()) {
                 sema.new_symbol(args()[i]->name(), args()[i], arg_types[i]);
             }
@@ -576,7 +581,7 @@ inline bool integer_value(Sema& sema, const Expr* expr, int& result) {
     if (auto prim = type->isa<slang::PrimType>()) {
         if (prim->prim() == slang::PrimType::PRIM_INT ||
             prim->prim() == slang::PrimType::PRIM_UINT) {
-            // TODO : reduce expressions using codegen
+            // TODO : Reduce expressions using codegen
             auto lit = expr->as<LiteralExpr>();
             result = lit->lit().as_int();
             return true;
