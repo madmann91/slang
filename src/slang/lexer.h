@@ -43,6 +43,8 @@ private:
     Literal parse_literal();
     std::string parse_ident();
 
+    bool try_parse(const std::string&);
+
     bool eat_suffix();
     
     Token make_literal(const Literal&);

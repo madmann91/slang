@@ -80,6 +80,9 @@ Token Lexer::lex() {
         str_.clear();
 
         if (std::isalpha(c_) || c_ == '_') {
+            if (try_parse("true"))  return make_literal(Literal(true));
+            if (try_parse("false")) return make_literal(Literal(false));
+
             // Begins with a letter, must be an identifier
             return make_ident(parse_ident());
         }
@@ -433,13 +436,21 @@ Literal Lexer::parse_literal() {
 }
 
 std::string Lexer::parse_ident() {
-    next();
-
     while (std::isalnum(c_) || c_ == '_') {
         next();
     }
 
     return str_;
+}
+
+bool Lexer::try_parse(const std::string& str) {
+    for (auto c : str) {
+        if (c_ != c)
+            return false;
+        next();
+    }
+
+    return !std::isalnum(c_) && c_ != '_';
 }
 
 bool Lexer::eat_suffix() {

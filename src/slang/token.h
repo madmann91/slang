@@ -17,15 +17,17 @@ public:
         LIT_FLOAT,
         LIT_INT,
         LIT_UINT,
+        LIT_BOOL,
         LIT_UNKNOWN
     };
 
     Literal() : type_(LIT_UNKNOWN) {}
 
-    Literal(double d, bool s)   : type_(LIT_DOUBLE), suffix_(s) { value_.dbl_val = d; }
-    Literal(float f, bool s)    : type_(LIT_FLOAT),  suffix_(s) { value_.flt_val = f; }
-    Literal(int i, bool s)      : type_(LIT_INT),    suffix_(s) { value_.int_val = i; }
-    Literal(unsigned u, bool s) : type_(LIT_UINT),   suffix_(s) { value_.uint_val = u; }
+    Literal(double d, bool s)   : type_(LIT_DOUBLE), suffix_(s)     { value_.dbl_val = d; }
+    Literal(float f, bool s)    : type_(LIT_FLOAT),  suffix_(s)     { value_.flt_val = f; }
+    Literal(int i, bool s)      : type_(LIT_INT),    suffix_(s)     { value_.int_val = i; }
+    Literal(unsigned u, bool s) : type_(LIT_UINT),   suffix_(s)     { value_.uint_val = u; }
+    Literal(bool b)             : type_(LIT_BOOL),   suffix_(false) { value_.bool_val = b; }
 
     bool isa(Type type) const { return type_ == type; }
     bool valid() const { return type_ != LIT_UNKNOWN; }
@@ -37,6 +39,7 @@ public:
     float    as_float()  const { assert(isa(LIT_FLOAT));  return value_.flt_val;  }
     int      as_int()    const { assert(isa(LIT_INT));    return value_.int_val;  }
     unsigned as_uint()   const { assert(isa(LIT_UINT));   return value_.uint_val; }
+    bool     as_bool()   const { assert(isa(LIT_BOOL));   return value_.bool_val; }
 
     double value() const {
         switch (type_) {
@@ -59,6 +62,7 @@ private:
         float    flt_val;
         int      int_val;
         unsigned uint_val;
+        bool     bool_val;
     } value_;
 };
 
@@ -137,6 +141,10 @@ inline std::ostream& operator << (std::ostream& out, const Literal& lit) {
         case Literal::LIT_UINT:
             out << lit.as_uint();
             if (lit.has_suffix()) out << "u";
+            break;
+        case Literal::LIT_BOOL:
+            if (lit.as_bool()) out << "true";
+            else out << "false";
             break;
         default:
         case Literal::LIT_UNKNOWN:

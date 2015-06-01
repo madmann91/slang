@@ -792,7 +792,6 @@ Preprocessor::ExprValue Preprocessor::evaluate_primary() {
                 eat(Token::TOK_IDENT);
             } else {
                 error() << "Macro identifier expected in operator \'defined\'\n";
-                value = ExprValue();
             }
             expect(Token::TOK_RPAREN);
             return value;
@@ -812,7 +811,6 @@ Preprocessor::ExprValue Preprocessor::evaluate_primary() {
             case Literal::LIT_INT:  value = ExprValue(lit.as_int());  break;
             case Literal::LIT_UINT: value = ExprValue(lit.as_uint()); break;
             default:
-                value = ExprValue();
                 error() << "Integer literal expected in preprocessor condition\n";
         }
         return value;

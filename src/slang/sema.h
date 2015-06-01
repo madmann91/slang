@@ -66,6 +66,11 @@ public:
         return logger_.error(node->loc());
     }
 
+    /// Displays an error message with the Logger object.
+    std::ostream& warn(const ast::Node* node) {
+        return logger_.warn(node->loc());
+    }
+
     /// Creates an error type. For expressions that fail typechecking.
     const ErrorType* error_type() { return new_type<ErrorType>(); }
     /// Creates a primitive type.

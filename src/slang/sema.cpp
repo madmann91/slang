@@ -25,7 +25,10 @@ const slang::Type* LiteralExpr::check(Sema& sema, TypeExpectation) const {
         case Literal::LIT_FLOAT:  return sema.prim_type(slang::PrimType::PRIM_FLOAT);
         case Literal::LIT_INT:    return sema.prim_type(slang::PrimType::PRIM_INT);
         case Literal::LIT_UINT:   return sema.prim_type(slang::PrimType::PRIM_UINT);
-        default:                  return sema.error_type();
+        case Literal::LIT_BOOL:   return sema.prim_type(slang::PrimType::PRIM_BOOL);
+        default:
+            assert(0 && "Unknown literal type");
+            return sema.error_type();
     }
 }
 
@@ -124,6 +127,17 @@ const slang::Type* CondExpr::check(Sema& sema, TypeExpectation expected) const {
     }
 
     return sema.error_type();
+}
+
+inline bool is_primtype(const slang::Type* type, slang::PrimType::Prim prim) {
+    if (auto prim_type = type->isa<slang::PrimType>()) {
+        return prim_type->prim() == prim;
+    }
+    return false;
+}
+
+inline bool is_void(const slang::Type* type) {
+    return is_primtype(type, slang::PrimType::PRIM_VOID);
 }
 
 inline bool is_numeric(const slang::Type* type) {
@@ -514,6 +528,8 @@ static void expect_overload(Sema& sema, const ast::FunctionDecl* decl,
 
 inline slang::FunctionType::ArgList normalize_args(Sema& sema, const ast::FunctionDecl* fn_decl,
                                                    const slang::FunctionType::ArgList& args) {
+    assert(fn_decl->args().size() == args.size());
+
     // Ensure there is only one void parameter
     int void_count = 0;
     for (size_t i = 0; i < args.size(); i++) {
@@ -523,7 +539,7 @@ inline slang::FunctionType::ArgList normalize_args(Sema& sema, const ast::Functi
             }
         }
         if (void_count == 1 && i != 0)
-            sema.error(fn_decl) << "\'void\' must be the only parameter\n";
+            sema.error(fn_decl->args()[i]) << "\'void\' must be the only parameter\n";
     }
 
     // Remove the void parameter
@@ -562,14 +578,16 @@ const slang::Type* FunctionDecl::check(Sema& sema) const {
 
         // Push the arguments and their types into the environment
         for (size_t i = 0; i < num_args(); i++) {
-            if (!args()[i]->name().empty()) {
+            if (!args()[i]->name().empty())
                 sema.new_symbol(args()[i]->name(), args()[i], arg_types[i]);
-            }
         }
 
         sema.push_env(this);
         sema.check(body());
         sema.pop_env(2);
+
+        if (!is_void(ret_type) && !body()->has_return())
+            sema.warn(this) << "Function \'" << name() << "\' does not contain a return statement\n";
     }
     
     return fn_type;
@@ -723,10 +741,9 @@ void ReturnStmt::check(Sema& sema) const {
                              << type->to_string() << "\'\n";
         }
     } else {
-        const slang::PrimType* prim = ret_type->isa<slang::PrimType>();
-        if (!prim || prim->prim() != slang::PrimType::PRIM_VOID) {
-            sema.error(this) << "Expected \'" << ret_type->to_string() << "\' as return type, got \'void\'\n";
-        }
+        if (!is_void(ret_type))
+            sema.error(this) << "Return value expected, function \'" << fn_decl->name()
+                             << "\' returns \'" << ret_type->to_string() << "\'\n";
     }
 }
 
