@@ -28,14 +28,14 @@ public:
     const Type* type() const { return type_; }
 
     template <typename T>
-    const Type* isa() const {
+    const T* isa() const {
         if (type_)
             return type_->isa<T>();
         return nullptr;
     }
 
     template <typename T>
-    const Type* as() const {
+    const T* as() const {
         if (type_)
             return type_->as<T>();
         return nullptr;
@@ -105,36 +105,45 @@ private:
 /// Compound type (interface or structure).
 class CompoundType : public Type {
 public:
-    typedef std::unordered_map<std::string, const Type*> MemberMap;
+    typedef std::pair<std::string, const Type*> Member;
+    typedef std::vector<Member> MemberList;
 
-    CompoundType(const std::string& name, const MemberMap& args)
-        : name_(name), args_(args)
+    CompoundType(const std::string& name, const MemberList& members)
+        : name_(name), members_(members)
     {}
     virtual ~CompoundType() {}
 
     size_t hash() const override {
         std::hash<std::string> hash_string;
         size_t h = hash_string(name());
-        for (auto arg : args()) {
-            h += hash_string(arg.first) ^ arg.second->hash();
+        for (auto member : members()) {
+            h += hash_string(member.first) ^ member.second->hash();
         }
         return h;
     }
 
-    const MemberMap& args() const { return args_; }
+    const MemberList& members() const { return members_; }
     const std::string& name() const { return name_; }
     std::string to_string() const override { return name_; }
 
+    const Type* member_type(const std::string& name) const {
+        auto it = std::find_if(members_.begin(), members_.end(),
+            [name] (const std::pair<std::string, const Type*>& member) {
+                return member.first == name;
+            });
+        return it != members_.end() ? it->second : nullptr;
+    }
+
 protected:
     std::string name_;
-    MemberMap args_;
+    MemberList members_;
 };
 
 /// Structure type (equality decided from name only).
 class StructType : public CompoundType {
 public:
-    StructType(const std::string& name, const MemberMap& args)
-        : CompoundType(name, args)
+    StructType(const std::string& name, const MemberList& members)
+        : CompoundType(name, members)
     {}
 
     bool equals(const Type* other) const override {
@@ -148,8 +157,8 @@ public:
 /// Interface type (cannot be equal to another type).
 class InterfaceType : public CompoundType {
 public:
-    InterfaceType(const std::string& name, const MemberMap& args)
-        : CompoundType(name, args)
+    InterfaceType(const std::string& name, const MemberList& members)
+        : CompoundType(name, members)
     {}
 
     bool equals(const Type* other) const override {
@@ -161,7 +170,7 @@ public:
 class PrimType : public Type {
 public:
     enum Prim {
-#define SLANG_KEY_DATA(key, str) PRIM_##key,
+#define SLANG_KEY_DATA(key, str, rows, cols) PRIM_##key,
 #include "slang/keywordlist.h"
     };
 
@@ -183,15 +192,109 @@ public:
     Prim prim() const { return prim_; }
 
     std::string to_string() const override {
+        static const std::unordered_map<Prim, std::string, HashPrim> prim_to_str(
+            {
+        #define SLANG_KEY_DATA(key, str, rows, cols) {PRIM_##key, str},
+        #include "slang/keywordlist.h"
+            }, 256);
+        auto it = prim_to_str.find(prim());
+        assert(it != prim_to_str.end());
+        return it->second;
+    }
+
+    /// Returns the total number of components in this type.
+    size_t size() const { return rows() * cols(); }
+    /// Determines if this type is a vector type.
+    bool is_vector() const { return cols() == 1 && rows() > 1; }
+    /// Determines if this type is a matrix type.
+    bool is_matrix() const { return cols() > 1 && rows() > 1; }
+
+    /// Returns the number of rows in this type.
+    size_t rows() const {
+        static const std::unordered_map<Prim, size_t, HashPrim> prim_to_rows(
+            {
+        #define SLANG_KEY_DATA(key, str, rows, cols) {PRIM_##key, rows},
+        #include "slang/keywordlist.h"
+            }, 256);
+        auto it = prim_to_rows.find(prim());
+        assert(it != prim_to_rows.end());
+        return it->second;
+    }
+
+    /// Returns the number of columns in this type.
+    size_t cols() const {
+        static const std::unordered_map<Prim, size_t, HashPrim> prim_to_cols(
+            {
+        #define SLANG_KEY_DATA(key, str, rows, cols) {PRIM_##key, rows},
+        #include "slang/keywordlist.h"
+            }, 256);
+        auto it = prim_to_cols.find(prim());
+        assert(it != prim_to_cols.end());
+        return it->second;
+    }
+
+    /// Returns the type of a component in this type.
+    Prim component() const {
         switch (prim()) {
-#define SLANG_KEY_DATA(key, str) case PRIM_##key: return str;
-#include "slang/keywordlist.h"
-            default: assert(0 && "Unknown type");
+            case PRIM_VOID:    return PRIM_VOID;
+            case PRIM_INT:
+            case PRIM_IVEC2:
+            case PRIM_IVEC3:
+            case PRIM_IVEC4:   return PRIM_INT;
+            case PRIM_BOOL:
+            case PRIM_BVEC2:
+            case PRIM_BVEC3:
+            case PRIM_BVEC4:   return PRIM_BOOL;
+            case PRIM_UINT:
+            case PRIM_UVEC2:
+            case PRIM_UVEC3:
+            case PRIM_UVEC4:   return PRIM_UINT;
+            case PRIM_MAT4X4:
+            case PRIM_MAT4X3:
+            case PRIM_MAT4X2:
+            case PRIM_MAT3X4:
+            case PRIM_MAT3X3:
+            case PRIM_MAT3X2:
+            case PRIM_MAT2X4:
+            case PRIM_MAT2X3:
+            case PRIM_MAT2X2:
+            case PRIM_MAT4:
+            case PRIM_MAT3:
+            case PRIM_MAT2:
+            case PRIM_FLOAT:
+            case PRIM_VEC2:
+            case PRIM_VEC3:
+            case PRIM_VEC4:    return PRIM_FLOAT;
+            case PRIM_DMAT4X4:
+            case PRIM_DMAT4X3:
+            case PRIM_DMAT4X2:
+            case PRIM_DMAT3X4:
+            case PRIM_DMAT3X3:
+            case PRIM_DMAT3X2:
+            case PRIM_DMAT2X4:
+            case PRIM_DMAT2X3:
+            case PRIM_DMAT2X2:
+            case PRIM_DMAT4:
+            case PRIM_DMAT3:
+            case PRIM_DMAT2:
+            case PRIM_DOUBLE:
+            case PRIM_DVEC2:
+            case PRIM_DVEC3:
+            case PRIM_DVEC4:   return slang::PrimType::PRIM_DOUBLE;
+
+            default:
+                assert(0 && "Unknown primitive type");
+                return prim();
         }
-        return std::string();
     }
 
 private:
+    struct HashPrim {
+        size_t operator () (Prim prim) const {
+            return (size_t)prim;
+        }
+    };
+
     Prim prim_;
 };
 

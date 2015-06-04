@@ -39,7 +39,7 @@ public:
     const Location& location() const;
 
     const DefMap& defs() const { return defs_; }
-    void push_def(Type* type, const ast::Node* node) { defs_.insert(std::make_pair(type, node)); }
+    void push_def(const Type* type, const ast::Node* node) { defs_.insert(std::make_pair(type, node)); }
     size_t num_defs() const { return defs_.size(); }
 
 private:

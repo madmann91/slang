@@ -58,7 +58,7 @@ public:
 
     /// Adds all data type keywords to the dictionary
     void add_data_keywords() {
-#define SLANG_KEY_DATA(key, str) add_keyword(str, Key::KEY_##key);
+#define SLANG_KEY_DATA(key, str, rows, cols) add_keyword(str, Key::KEY_##key);
 #include "slang/keywordlist.h"
     }
 

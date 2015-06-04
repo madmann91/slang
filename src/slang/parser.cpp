@@ -128,7 +128,7 @@ ast::Type* Parser::parse_type() {
             type = parse_struct_type();
             break;
 
-#define SLANG_KEY_DATA(key, str) case Key::KEY_##key:
+#define SLANG_KEY_DATA(key, str, rows, cols) case Key::KEY_##key:
 #include "slang/keywordlist.h"
             type = parse_prim_type();
             break;
@@ -223,7 +223,7 @@ ast::PrimType* Parser::parse_prim_type() {
     auto prim = new_node<ast::PrimType>();
 
     switch (lookup_[0].key().type()) {
-#define SLANG_KEY_DATA(key, str) \
+#define SLANG_KEY_DATA(key, str, rows, cols) \
         case Key::KEY_##key: prim->set_prim(ast::PrimType::PRIM_##key); break;
 #include "slang/keywordlist.h"
 
@@ -930,7 +930,7 @@ ast::Stmt* Parser::parse_stmt() {
 
 #undef PARSE_JUMP_STMT
 
-#define SLANG_KEY_DATA(key, str) case Key::KEY_##key:
+#define SLANG_KEY_DATA(key, str, rows, cols) case Key::KEY_##key:
 #define SLANG_KEY_QUAL(key, str) case Key::KEY_##key:
 #include "slang/keywordlist.h"
             case Key::KEY_STRUCT:

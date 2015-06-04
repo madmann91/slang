@@ -41,7 +41,7 @@ public:
         env_ = env;
     }
 
-    /// Pops an environment from the stack.
+    /// Pops one or several environments from the stack.
     void pop_env(int n = 1) {
         while (n > 0) {
             assert(env_ != nullptr);
@@ -80,11 +80,11 @@ public:
         return new_type<FunctionType>(ret, args);
     }
     /// Creates a structure type from a list of members and a name.
-    const StructType* struct_type(const std::string& name, const StructType::MemberMap& members) {
+    const StructType* struct_type(const std::string& name, const StructType::MemberList& members) {
         return new_type<StructType>(name, members);
     }
     /// Creates an interface type type from a list of members and a name.
-    const InterfaceType* interface_type(const std::string& name, const InterfaceType::MemberMap& members) {
+    const InterfaceType* interface_type(const std::string& name, const InterfaceType::MemberList& members) {
         return new_type<InterfaceType>(name, members);
     }
     /// Creates an array whose size is unknown.
