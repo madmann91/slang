@@ -61,14 +61,17 @@ const slang::Type* IndexExpr::check(Sema& sema, TypeExpectation expected) const 
 
     if (!array) {
         sema.error(this) << "Expected an array in left operand of index expression\n";
-    } else if (auto prim = index()->check(sema, nullptr)->isa<slang::PrimType>()) {
-        if (!prim->prim() == slang::PrimType::PRIM_INT) {
-            sema.error(this) << "Expected an integer as array index\n";
-        } else {
+        return sema.error_type();
+    }
+
+    if (auto prim = index()->check(sema, nullptr)->isa<slang::PrimType>()) {
+        if (prim->prim() == slang::PrimType::PRIM_INT ||
+            prim->prim() == slang::PrimType::PRIM_UINT) {
             return array->elem();
         }
     }
 
+    sema.error(this) << "Expected an integer as array index\n";
     return sema.error_type();
 }
 
@@ -275,7 +278,7 @@ inline void expect_floating(Sema& sema, const ast::Node* node, const slang::Type
 
 const slang::Type* UnOpExpr::check(Sema& sema, TypeExpectation expected) const {
     const slang::Type* op_type = sema.check(operand());
-    
+
     // TODO : l-value for ++ --
 
     switch (type()) {
@@ -420,7 +423,7 @@ const slang::Type* NamedType::check(Sema& sema) const {
         }
     }
 
-    sema.error(this) << "\'" << name() << "\' is not a valid type name\n";  
+    sema.error(this) << "\'" << name() << "\' is not a valid type name\n";
     return sema.error_type();
 }
 
@@ -589,7 +592,7 @@ const slang::Type* FunctionDecl::check(Sema& sema) const {
         if (!is_void(ret_type) && !body()->has_return())
             sema.warn(this) << "Function \'" << name() << "\' does not contain a return statement\n";
     }
-    
+
     return fn_type;
 }
 
