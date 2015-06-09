@@ -92,15 +92,16 @@ public:
         return new_type<IndefiniteArrayType>(elem);
     }
     /// Creates an array of known size.
-    const DefiniteArrayType* definite_array_type(const Type* elem, int size) {
-        return new_type<DefiniteArrayType>(elem, size);
+    const DefiniteArrayType* definite_array_type(const Type* elem, int dim) {
+        return new_type<DefiniteArrayType>(elem, dim);
     }
 
     /// Checks the type of an expression, and expects the given type as a result.
     const Type* check(const ast::Expr* expr, TypeExpectation expected) {
         const Type* found = expr->check(*this, expected);
         expr->assign_type(found);
-        if (expected.type() && found != expected.type()) {
+        if (expected.type() && !found->isa<ErrorType>() &&
+            !found->subtype(expected.type())) {
             error(expr) << "Expected \'" << expected.type()->to_string()
                         << "\', but found \'" << found->to_string()
                         << "\'\n";
@@ -121,7 +122,9 @@ public:
     /// Checks the type of a function argument.
     const Type* check(const ast::Arg* arg) { return check_assign(arg); }
     /// Checks the type of a variable, given the type of the corresponding declaration.
-    const Type* check(const ast::Variable* var, const slang::Type* var_type) { return check_assign(var, var_type); }
+    const Type* check(const ast::Variable* var, const Type* var_type) { return check_assign(var, var_type); }
+    /// Checks an array specifier, returns an array or the original type.
+    const Type* check(const ast::ArraySpecifier* array, const Type* type) { return array ? array->check(*this, type) : type; }
 
 private:
     template <typename T>

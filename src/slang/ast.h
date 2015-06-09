@@ -435,6 +435,7 @@ public:
     size_t num_dims() const { return dims_.size(); }
 
     void print(Printer&) const override;
+    const slang::Type* check(Sema&, const slang::Type*) const;
 
 private:
     PtrVector<Expr> dims_;

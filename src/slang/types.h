@@ -14,9 +14,14 @@ namespace slang {
 class Type : public Cast<Type> {
 public:
     virtual ~Type() {}
-    virtual bool equals(const Type* other) const = 0;
+    virtual bool equals(const Type*) const { return false; }
+    virtual bool subtype(const Type* type) const { return this == type; }
     virtual size_t hash() const = 0;
-    virtual std::string to_string() const = 0;
+    virtual std::string type_name() const { return ""; }
+    virtual std::string type_dims() const { return ""; }
+    std::string to_string() const {
+        return type_name() + type_dims();
+    }
 };
 
 /// Type expectation. Contains nullptr when no type is expected.
@@ -48,9 +53,8 @@ private:
 /// Error type. For types that cannot be determined.
 class ErrorType : public Type {
 public:
-    bool equals(const Type* other) const override { return false; }
     size_t hash() const override { return 0; }
-    std::string to_string() const override { return "<error>"; }
+    std::string type_name() const override { return "<error>"; }
 };
 
 /// Function type (equality based on return type and arguments).
@@ -88,7 +92,7 @@ public:
     const ArgList& args() const { return args_; }
     size_t num_args() const { return args_.size(); }
 
-    std::string to_string() const override {
+    std::string type_name() const override {
         std::string str = ret()->to_string() + " (";
         for (size_t i = 0; i < num_args(); i++) {
             str += args()[i]->to_string();
@@ -124,7 +128,6 @@ public:
 
     const MemberList& members() const { return members_; }
     const std::string& name() const { return name_; }
-    std::string to_string() const override { return name_; }
 
     const Type* member_type(const std::string& name) const {
         auto it = std::find_if(members_.begin(), members_.end(),
@@ -133,6 +136,8 @@ public:
             });
         return it != members_.end() ? it->second : nullptr;
     }
+
+    std::string type_name() const override { return name_; }
 
 protected:
     std::string name_;
@@ -162,6 +167,9 @@ public:
     {}
 
     bool equals(const Type* other) const override {
+        if (auto interface = other->isa<InterfaceType>()) {
+            return interface->name() == name_;
+        }
         return false;
     }
 };
@@ -185,22 +193,39 @@ public:
         return false;
     }
 
+    bool subtype(const Type* other) const override {
+        if (this == other)
+            return true;
+
+        const PrimType* prim_type = other->isa<PrimType>();
+        if (!prim_type)
+            return false;
+
+        // Vector or matrices of the same size, whose components are
+        // subtypes, are subtypes themselves.
+        if (prim_type->cols() == cols() &&
+            prim_type->rows() == rows()) {
+            Prim comp1 = component();
+            Prim comp2 = prim_type->component();
+            switch (comp1) {
+                case PRIM_UINT:
+                case PRIM_INT:
+                    return comp2 == PRIM_UINT || comp2 == PRIM_FLOAT || comp2 == PRIM_DOUBLE;
+                case PRIM_FLOAT:
+                    return comp2 == PRIM_DOUBLE;
+                default:
+                    break;
+            }
+        }
+
+        return false;
+    }
+
     size_t hash() const override {
         return (size_t)prim() + 1;
     }
 
     Prim prim() const { return prim_; }
-
-    std::string to_string() const override {
-        static const std::unordered_map<Prim, std::string, HashPrim> prim_to_str(
-            {
-        #define SLANG_KEY_DATA(key, str, rows, cols) {PRIM_##key, str},
-        #include "slang/keywordlist.h"
-            }, 256);
-        auto it = prim_to_str.find(prim());
-        assert(it != prim_to_str.end());
-        return it->second;
-    }
 
     /// Returns the total number of components in this type.
     size_t size() const { return rows() * cols(); }
@@ -225,11 +250,22 @@ public:
     size_t cols() const {
         static const std::unordered_map<Prim, size_t, HashPrim> prim_to_cols(
             {
-        #define SLANG_KEY_DATA(key, str, rows, cols) {PRIM_##key, rows},
+        #define SLANG_KEY_DATA(key, str, rows, cols) {PRIM_##key, cols},
         #include "slang/keywordlist.h"
             }, 256);
         auto it = prim_to_cols.find(prim());
         assert(it != prim_to_cols.end());
+        return it->second;
+    }
+
+    std::string type_name() const override {
+        static const std::unordered_map<Prim, std::string, HashPrim> prim_to_str(
+            {
+        #define SLANG_KEY_DATA(key, str, rows, cols) {PRIM_##key, str},
+        #include "slang/keywordlist.h"
+            }, 256);
+        auto it = prim_to_str.find(prim());
+        assert(it != prim_to_str.end());
         return it->second;
     }
 
@@ -280,7 +316,7 @@ public:
             case PRIM_DOUBLE:
             case PRIM_DVEC2:
             case PRIM_DVEC3:
-            case PRIM_DVEC4:   return slang::PrimType::PRIM_DOUBLE;
+            case PRIM_DVEC4:   return PRIM_DOUBLE;
 
             default:
                 assert(0 && "Unknown primitive type");
@@ -308,6 +344,10 @@ public:
 
     const Type* elem() const { return elem_; }
 
+    std::string type_name() const override {
+        return elem()->type_name();
+    }
+
 protected:
     const Type* elem_;
 };
@@ -330,8 +370,8 @@ public:
         return elem()->hash();
     }
 
-    std::string to_string() const override {
-        return elem()->to_string() + "[]";
+    std::string type_dims() const override {
+        return "[]" + elem()->type_dims();
     }
 };
 
@@ -351,12 +391,28 @@ public:
         return false;
     }
 
+    bool subtype(const Type* other) const override {
+        if (this == other)
+            return true;
+
+        if (auto indef = other->isa<IndefiniteArrayType>()) {
+            return elem() == indef->elem() ||
+                   (indef->elem()->isa<ArrayType>() && elem()->subtype(indef->elem()));
+        } else if (auto def = other->isa<DefiniteArrayType>()) {
+            return def->size() == size() &&
+                   def->elem()->isa<ArrayType>() &&
+                   elem()->subtype(def->elem());
+        }
+
+        return false;
+    }
+
     size_t hash() const override {
         return elem()->hash() ^ size();
     }
 
-    std::string to_string() const override {
-        return elem()->to_string() + "[" + std::to_string(size()) + "]";
+    std::string type_dims() const override {
+        return '[' + std::to_string(size_) + ']' + elem()->type_dims();
     }
 
 private:

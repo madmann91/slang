@@ -19,17 +19,23 @@ const slang::Type* ErrorExpr::check(Sema& sema, TypeExpectation) const {
     return sema.error_type();
 }
 
-const slang::Type* LiteralExpr::check(Sema& sema, TypeExpectation) const {
+const slang::Type* LiteralExpr::check(Sema& sema, TypeExpectation expected) const {
+    const slang::Type* type = nullptr;
     switch (lit_.type()) {
-        case Literal::LIT_DOUBLE: return sema.prim_type(slang::PrimType::PRIM_DOUBLE);
-        case Literal::LIT_FLOAT:  return sema.prim_type(slang::PrimType::PRIM_FLOAT);
-        case Literal::LIT_INT:    return sema.prim_type(slang::PrimType::PRIM_INT);
-        case Literal::LIT_UINT:   return sema.prim_type(slang::PrimType::PRIM_UINT);
-        case Literal::LIT_BOOL:   return sema.prim_type(slang::PrimType::PRIM_BOOL);
+        case Literal::LIT_DOUBLE: type = sema.prim_type(slang::PrimType::PRIM_DOUBLE); break;
+        case Literal::LIT_FLOAT:  type = sema.prim_type(slang::PrimType::PRIM_FLOAT);  break;
+        case Literal::LIT_INT:    type = sema.prim_type(slang::PrimType::PRIM_INT);    break;
+        case Literal::LIT_UINT:   type = sema.prim_type(slang::PrimType::PRIM_UINT);   break;
+        case Literal::LIT_BOOL:   type = sema.prim_type(slang::PrimType::PRIM_BOOL);   break;
         default:
             assert(0 && "Unknown literal type");
             return sema.error_type();
     }
+
+    if (expected.type() && type->subtype(expected.type()))
+        return expected.type();
+
+    return type;
 }
 
 const slang::Type* IdentExpr::check(Sema& sema, TypeExpectation) const {
@@ -398,9 +404,22 @@ const slang::Type* InitExpr::check(Sema& sema, TypeExpectation expected) const {
     assert(expected.type());
 
     if (auto array_type = expected.isa<slang::ArrayType>()) {
-        // TODO : Handle this
-        (void)array_type;
-        return expected.type();
+        if (num_exprs() == 0)
+            return sema.definite_array_type(array_type->elem(), 0);
+
+        // Find the minimum element type (according to the subtype relation)
+        auto elem = sema.check(exprs()[0], array_type->elem());
+        for (size_t i = 1; i < num_exprs(); i++) {
+            auto cur_elem = sema.check(exprs()[i], array_type->elem());
+            if (cur_elem->subtype(elem)){
+                elem = cur_elem;
+            } else if (!elem->subtype(cur_elem)) {
+                // Prevent other errors
+                sema.error(this) << "Element types do not match in array initializer\n";
+                break;
+            }
+        }
+        return sema.definite_array_type(elem, num_exprs());
     } else if (auto struct_type = expected.isa<slang::StructType>()) {
         if (exprs().size() != struct_type->members().size()) {
             sema.error(this) << "Invalid number of components in structure initializer\n";
@@ -415,9 +434,7 @@ const slang::Type* InitExpr::check(Sema& sema, TypeExpectation expected) const {
             if (prim_type->is_vector() && exprs().size() != prim_type->rows()) {
                 sema.error(this) << "Invalid number of components in vector initializer\n";
                 return sema.error_type();
-            }
-
-            if (prim_type->is_matrix() && exprs().size() != prim_type->cols()) {
+            } else if (prim_type->is_matrix() && exprs().size() != prim_type->cols()) {
                 sema.error(this) << "Invalid number of components in matrix initializer\n";
                 return sema.error_type();
             }
@@ -433,23 +450,62 @@ const slang::Type* InitExpr::check(Sema& sema, TypeExpectation expected) const {
     return sema.error_type();
 }
 
+inline bool integer_value(Sema& sema, const Expr* expr, int& result) {
+    const slang::Type* type = sema.check(expr);
+    if (auto prim = type->isa<slang::PrimType>()) {
+        if (prim->prim() == slang::PrimType::PRIM_INT ||
+            prim->prim() == slang::PrimType::PRIM_UINT) {
+            // TODO : Reduce expressions using codegen
+            auto lit = expr->as<LiteralExpr>();
+            result = lit->lit().as_int();
+            return true;
+        }
+    }
+    return false;
+}
+
+const slang::Type* ArraySpecifier::check(Sema& sema, const slang::Type* type) const {
+    const slang::Type* cur_type = type;
+
+    for (size_t i = 0; i < num_dims(); i++) {
+        const Expr* dim = dims()[num_dims() - 1 - i];
+        if (dim) {
+            int size;
+            if (integer_value(sema, dim, size) && size >= 0) {
+                cur_type = sema.definite_array_type(cur_type, size);
+                continue;
+            } else {
+                sema.error(this) << "Invalid array dimension\n";
+            }
+        }
+
+        cur_type = sema.indefinite_array_type(cur_type);
+    }
+
+    return cur_type;
+}
+
 const slang::Type* ErrorType::check(Sema& sema) const {
     return sema.error_type();
 }
 
 const slang::Type* PrimType::check(Sema& sema) const {
+    const slang::Type* type = nullptr;
     switch (prim()) {
-#define SLANG_KEY_DATA(key, str, cols, rows) case PRIM_##key: return sema.prim_type(slang::PrimType::PRIM_##key);
+#define SLANG_KEY_DATA(key, str, cols, rows) \
+        case PRIM_##key: type = sema.prim_type(slang::PrimType::PRIM_##key); break;
 #include "slang/keywordlist.h"
-        default: assert(0 && "Unknown type");
+        default:
+            assert(0 && "Unknown type");
+            return sema.error_type();
     }
-    return sema.error_type();
+    return sema.check(array_specifier(), type);
 }
 
 const slang::Type* NamedType::check(Sema& sema) const {
     if (auto symbol = sema.env()->lookup_symbol(name())) {
         if (symbol->is_structure()) {
-            return symbol->type();
+            return sema.check(array_specifier(), symbol->type());
         }
     }
 
@@ -633,37 +689,6 @@ const slang::Type* FunctionDecl::check(Sema& sema) const {
     return fn_type;
 }
 
-inline bool integer_value(Sema& sema, const Expr* expr, int& result) {
-    const slang::Type* type = sema.check(expr);
-    if (auto prim = type->isa<slang::PrimType>()) {
-        if (prim->prim() == slang::PrimType::PRIM_INT ||
-            prim->prim() == slang::PrimType::PRIM_UINT) {
-            // TODO : Reduce expressions using codegen
-            auto lit = expr->as<LiteralExpr>();
-            result = lit->lit().as_int();
-            return true;
-        }
-    }
-    return false;
-}
-
-inline const slang::Type* array_type(Sema& sema, const slang::Type* type, const ArraySpecifier* array) {
-    // Creates an array type from an element type and a list of dimensions
-    const slang::Type* cur_type = type;
-    for (auto dim : array->dims()) {
-        if (dim) {
-            int size;
-            if (integer_value(sema, dim, size))
-                cur_type = sema.definite_array_type(cur_type, size);
-            else
-                cur_type = sema.indefinite_array_type(cur_type);
-        } else {
-            cur_type = sema.indefinite_array_type(cur_type);
-        }
-    }
-    return cur_type;
-}
-
 inline void expect_nonvoid(Sema& sema, const ast::Node* node, const std::string& name, const slang::Type* type) {
     assert(!name.empty());
     if (auto prim = type->isa<slang::PrimType>()) {
@@ -679,14 +704,11 @@ const slang::Type* Arg::check(Sema& sema) const {
     if (!name().empty())
         expect_nonvoid(sema, this, name(), arg_type);
 
-    if (array_specifier())
-        return array_type(sema, arg_type, array_specifier());
-
-    return arg_type;
+    return sema.check(array_specifier(), arg_type);
 }
 
 const slang::Type* Variable::check(Sema& sema, const slang::Type* var_type) const {
-    const slang::Type* type = array_specifier() ? array_type(sema, var_type, array_specifier()) : var_type;
+    const slang::Type* type = sema.check(array_specifier(), var_type);
     if (name().empty())
         return type;
 
