@@ -91,7 +91,7 @@ void PrimType::print(Printer& printer) const {
     }
 
     switch (prim_) {
-#define SLANG_KEY_DATA(key, str, rows, cols) case PRIM_##key: printer << str; break;
+#define SLANG_KEY_DATA(key, str, type, rows, cols) case PRIM_##key: printer << str; break;
 #include "slang/keywordlist.h"
         default: assert(0 && "Unknown primitive type");
     }

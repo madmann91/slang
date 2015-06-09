@@ -178,17 +178,23 @@ public:
 class PrimType : public Type {
 public:
     enum Prim {
-#define SLANG_KEY_DATA(key, str, rows, cols) PRIM_##key,
-#include "slang/keywordlist.h"
+        PRIM_INT,
+        PRIM_UINT,
+        PRIM_BOOL,
+        PRIM_FLOAT,
+        PRIM_DOUBLE,
+        PRIM_VOID
     };
 
-    PrimType(Prim prim)
-        : prim_(prim)
+    PrimType(Prim prim, int rows = 1, int cols = 1)
+        : prim_(prim), rows_(rows), cols_(cols)
     {}
 
     bool equals(const Type* other) const override {
-        if (auto prim = other->isa<PrimType>()) {
-            return prim->prim() == prim_;
+        if (auto prim_type = other->isa<PrimType>()) {
+            return prim_type->prim() == prim() &&
+                   prim_type->rows() == rows() &&
+                   prim_type->cols() == cols();
         }
         return false;
     }
@@ -205,14 +211,14 @@ public:
         // subtypes, are subtypes themselves.
         if (prim_type->cols() == cols() &&
             prim_type->rows() == rows()) {
-            Prim comp1 = component();
-            Prim comp2 = prim_type->component();
-            switch (comp1) {
+            switch (prim()) {
                 case PRIM_UINT:
                 case PRIM_INT:
-                    return comp2 == PRIM_UINT || comp2 == PRIM_FLOAT || comp2 == PRIM_DOUBLE;
+                    return prim_type->prim() == PRIM_UINT ||
+                           prim_type->prim() == PRIM_FLOAT ||
+                           prim_type->prim() == PRIM_DOUBLE;
                 case PRIM_FLOAT:
-                    return comp2 == PRIM_DOUBLE;
+                    return prim_type->prim() == PRIM_DOUBLE;
                 default:
                     break;
             }
@@ -222,7 +228,7 @@ public:
     }
 
     size_t hash() const override {
-        return (size_t)prim() + 1;
+        return (size_t)prim() + cols() * 8 + rows() + 1;
     }
 
     Prim prim() const { return prim_; }
@@ -235,93 +241,47 @@ public:
     bool is_matrix() const { return cols() > 1 && rows() > 1; }
 
     /// Returns the number of rows in this type.
-    size_t rows() const {
-        static const std::unordered_map<Prim, size_t, HashPrim> prim_to_rows(
-            {
-        #define SLANG_KEY_DATA(key, str, rows, cols) {PRIM_##key, rows},
-        #include "slang/keywordlist.h"
-            }, 256);
-        auto it = prim_to_rows.find(prim());
-        assert(it != prim_to_rows.end());
-        return it->second;
-    }
-
+    size_t rows() const { return rows_; }
     /// Returns the number of columns in this type.
-    size_t cols() const {
-        static const std::unordered_map<Prim, size_t, HashPrim> prim_to_cols(
-            {
-        #define SLANG_KEY_DATA(key, str, rows, cols) {PRIM_##key, cols},
-        #include "slang/keywordlist.h"
-            }, 256);
-        auto it = prim_to_cols.find(prim());
-        assert(it != prim_to_cols.end());
-        return it->second;
-    }
+    size_t cols() const { return cols_; }
 
     std::string type_name() const override {
-        static const std::unordered_map<Prim, std::string, HashPrim> prim_to_str(
-            {
-        #define SLANG_KEY_DATA(key, str, rows, cols) {PRIM_##key, str},
-        #include "slang/keywordlist.h"
-            }, 256);
-        auto it = prim_to_str.find(prim());
-        assert(it != prim_to_str.end());
-        return it->second;
-    }
-
-    /// Returns the type of a component in this type.
-    Prim component() const {
-        switch (prim()) {
-            case PRIM_VOID:    return PRIM_VOID;
-            case PRIM_INT:
-            case PRIM_IVEC2:
-            case PRIM_IVEC3:
-            case PRIM_IVEC4:   return PRIM_INT;
-            case PRIM_BOOL:
-            case PRIM_BVEC2:
-            case PRIM_BVEC3:
-            case PRIM_BVEC4:   return PRIM_BOOL;
-            case PRIM_UINT:
-            case PRIM_UVEC2:
-            case PRIM_UVEC3:
-            case PRIM_UVEC4:   return PRIM_UINT;
-            case PRIM_MAT4X4:
-            case PRIM_MAT4X3:
-            case PRIM_MAT4X2:
-            case PRIM_MAT3X4:
-            case PRIM_MAT3X3:
-            case PRIM_MAT3X2:
-            case PRIM_MAT2X4:
-            case PRIM_MAT2X3:
-            case PRIM_MAT2X2:
-            case PRIM_MAT4:
-            case PRIM_MAT3:
-            case PRIM_MAT2:
-            case PRIM_FLOAT:
-            case PRIM_VEC2:
-            case PRIM_VEC3:
-            case PRIM_VEC4:    return PRIM_FLOAT;
-            case PRIM_DMAT4X4:
-            case PRIM_DMAT4X3:
-            case PRIM_DMAT4X2:
-            case PRIM_DMAT3X4:
-            case PRIM_DMAT3X3:
-            case PRIM_DMAT3X2:
-            case PRIM_DMAT2X4:
-            case PRIM_DMAT2X3:
-            case PRIM_DMAT2X2:
-            case PRIM_DMAT4:
-            case PRIM_DMAT3:
-            case PRIM_DMAT2:
-            case PRIM_DOUBLE:
-            case PRIM_DVEC2:
-            case PRIM_DVEC3:
-            case PRIM_DVEC4:   return PRIM_DOUBLE;
-
-            default:
-                assert(0 && "Unknown primitive type");
-                return prim();
+        if (rows() == 1 && cols() == 1) {
+            switch (prim()) {
+                case PRIM_INT:    return "int";
+                case PRIM_UINT:   return "uint";
+                case PRIM_BOOL:   return "bool";
+                case PRIM_FLOAT:  return "float";
+                case PRIM_DOUBLE: return "double";
+                case PRIM_VOID:   return "void";
+            }
         }
+
+        if (rows() > 1 && cols() == 1) {
+            switch (prim()) {
+                case PRIM_INT:    return "ivec" + std::to_string(rows());
+                case PRIM_UINT:   return "uvec" + std::to_string(rows());
+                case PRIM_BOOL:   return "bvec" + std::to_string(rows());
+                case PRIM_FLOAT:  return "vec"  + std::to_string(rows());
+                case PRIM_DOUBLE: return "dvec" + std::to_string(rows());
+                default:          assert(0 && "Invalid vector type");
+            }
+        }
+
+        if (rows() > 1 && cols() > 1) {
+            std::string prefix;
+            if (prim() == PRIM_FLOAT) {
+                prefix = "mat";
+            } else if (prim() == PRIM_DOUBLE) {
+                prefix = "dmat";
+            } else {
+                assert(0 && "Invalid matrix type");
+            }
+            return prefix + "mat" + std::to_string(rows()) + "x" + std::to_string(cols());
+        }
+
+        assert(0 && "Unknown primitive type");
+        return "";
     }
 
 private:
@@ -332,6 +292,8 @@ private:
     };
 
     Prim prim_;
+    int rows_;
+    int cols_;
 };
 
 /// Base class for array types.

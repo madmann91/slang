@@ -74,7 +74,7 @@ public:
     /// Creates an error type. For expressions that fail typechecking.
     const ErrorType* error_type() { return new_type<ErrorType>(); }
     /// Creates a primitive type.
-    const PrimType* prim_type(PrimType::Prim prim) { return new_type<PrimType>(prim); }
+    const PrimType* prim_type(PrimType::Prim prim, int rows = 1, int cols = 1) { return new_type<PrimType>(prim, rows, cols); }
     /// Creates a function type from a return type and a list of arguments.
     const FunctionType* function_type(const Type* ret, const FunctionType::ArgList& args) {
         return new_type<FunctionType>(ret, args);

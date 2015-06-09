@@ -47,15 +47,49 @@ const slang::Type* IdentExpr::check(Sema& sema, TypeExpectation) const {
     return sema.error_type();
 }
 
+inline bool check_components(const std::string& components, const std::string& set) {
+    bool ok = true;
+    for (auto c : components) {
+        ok &= set.find(c) != std::string::npos;
+    }
+    return ok;
+}
+
 const slang::Type* FieldExpr::check(Sema& sema, TypeExpectation) const {
-    if (auto compound = sema.check(left())->isa<slang::CompoundType>()) {
+    if (field_name().empty())
+        return sema.error_type();
+
+    const slang::Type* left_type = sema.check(left());
+
+    if (auto compound = left_type->isa<slang::CompoundType>()) {
         auto field_type = compound->member_type(field_name());
         if (field_type)
             return field_type;
         else
             sema.error(this) << "\'" << field_name() << "\' is not a member of \'" << compound->name() << "\'\n";
+    } else if (auto prim_type = left_type->isa<slang::PrimType>()) {
+        if (prim_type->is_vector()) {
+            // Check the number of components
+            if (field_name().length() > 4) {
+                sema.error(this) << "Swizzling operator can only contain 4 elements at most\n";
+                return sema.error_type();
+            }
+
+            // Check the component names
+            std::string rgba("rgba", 0, prim_type->rows());
+            std::string xyzw("xyzw", 0, prim_type->rows());
+            if (!check_components(field_name(), rgba) &&
+                !check_components(field_name(), xyzw)) {
+                sema.error(this) << "Valid components are \'" + xyzw + "\' or \'" + rgba + "\' here\n";
+                return sema.error_type();
+            }
+
+            return sema.prim_type(prim_type->prim(), field_name().length());
+        }
+
+        sema.error(this) << "Swizzling operator can only be used on vectors\n";
     } else {
-        sema.error(this) << "Expected a structure or interface type in left operand of field expression\n";
+        sema.error(this) << "Expected an aggregate type in left operand of field expression\n";
     }
 
     return sema.error_type();
@@ -70,8 +104,9 @@ const slang::Type* IndexExpr::check(Sema& sema, TypeExpectation expected) const 
     }
 
     if (auto prim = index()->check(sema, nullptr)->isa<slang::PrimType>()) {
-        if (prim->prim() == slang::PrimType::PRIM_INT ||
-            prim->prim() == slang::PrimType::PRIM_UINT) {
+        if (prim->size() == 1 &&
+            (prim->prim() == slang::PrimType::PRIM_INT ||
+             prim->prim() == slang::PrimType::PRIM_UINT)) {
             return array->elem();
         }
     }
@@ -111,6 +146,8 @@ const slang::Type* CallExpr::check(Sema& sema, TypeExpectation) const {
             }
         }
 
+        // TODO : Add implicit conversion rules
+
         sema.error(this) << "No overloaded function \'" << name()
                          << "\' was found with this signature\n";
     } else {
@@ -136,7 +173,7 @@ const slang::Type* CondExpr::check(Sema& sema, TypeExpectation expected) const {
 
 inline bool is_primtype(const slang::Type* type, slang::PrimType::Prim prim) {
     if (auto prim_type = type->isa<slang::PrimType>()) {
-        return prim_type->prim() == prim;
+        return prim_type->size() == 1 && prim_type->prim() == prim;
     }
     return false;
 }
@@ -147,119 +184,59 @@ inline bool is_void(const slang::Type* type) {
 
 inline bool is_numeric(const slang::Type* type) {
     if (auto prim = type->isa<slang::PrimType>()) {
-        switch (prim->prim()) {
-            case slang::PrimType::PRIM_VOID:
-            case slang::PrimType::PRIM_BVEC4:
-            case slang::PrimType::PRIM_BVEC3:
-            case slang::PrimType::PRIM_BVEC2:
-            case slang::PrimType::PRIM_BOOL:
-                break;
-            default:
-                return true;
-        }
+        if (prim->prim() == slang::PrimType::PRIM_INT ||
+            prim->prim() == slang::PrimType::PRIM_UINT ||
+            prim->prim() == slang::PrimType::PRIM_FLOAT ||
+            prim->prim() == slang::PrimType::PRIM_DOUBLE)
+            return true;
     }
     return false;
 }
 
 inline bool is_logic(const slang::Type* type) {
     if (auto prim = type->isa<slang::PrimType>()) {
-        switch (prim->prim()) {
-            case slang::PrimType::PRIM_IVEC4:
-            case slang::PrimType::PRIM_IVEC3:
-            case slang::PrimType::PRIM_IVEC2:
-            case slang::PrimType::PRIM_INT:
-            case slang::PrimType::PRIM_UVEC4:
-            case slang::PrimType::PRIM_UVEC3:
-            case slang::PrimType::PRIM_UVEC2:
-            case slang::PrimType::PRIM_UINT:
-            case slang::PrimType::PRIM_BVEC4:
-            case slang::PrimType::PRIM_BVEC3:
-            case slang::PrimType::PRIM_BVEC2:
-            case slang::PrimType::PRIM_BOOL:
-                return true;
-            default:
-                break;
-        }
+        if (prim->prim() == slang::PrimType::PRIM_INT ||
+            prim->prim() == slang::PrimType::PRIM_UINT ||
+            prim->prim() == slang::PrimType::PRIM_BOOL)
+            return true;
     }
     return false;
 }
 
 inline bool is_integer(const slang::Type* type) {
     if (auto prim = type->isa<slang::PrimType>()) {
-        switch (prim->prim()) {
-            case slang::PrimType::PRIM_IVEC4:
-            case slang::PrimType::PRIM_IVEC3:
-            case slang::PrimType::PRIM_IVEC2:
-            case slang::PrimType::PRIM_INT:
-            case slang::PrimType::PRIM_UVEC4:
-            case slang::PrimType::PRIM_UVEC3:
-            case slang::PrimType::PRIM_UVEC2:
-            case slang::PrimType::PRIM_UINT:
-                return true;
-            default:
-                break;
-        }
+        if (prim->prim() == slang::PrimType::PRIM_INT ||
+            prim->prim() == slang::PrimType::PRIM_UINT)
+            return true;
     }
     return false;
 }
 
 inline bool is_ordered(const slang::Type* type) {
     if (auto prim = type->isa<slang::PrimType>()) {
-        switch (prim->prim()) {
-            case slang::PrimType::PRIM_IVEC4:
-            case slang::PrimType::PRIM_IVEC3:
-            case slang::PrimType::PRIM_IVEC2:
-            case slang::PrimType::PRIM_INT:
-            case slang::PrimType::PRIM_UVEC4:
-            case slang::PrimType::PRIM_UVEC3:
-            case slang::PrimType::PRIM_UVEC2:
-            case slang::PrimType::PRIM_UINT:
-            case slang::PrimType::PRIM_VEC4:
-            case slang::PrimType::PRIM_VEC3:
-            case slang::PrimType::PRIM_VEC2:
-            case slang::PrimType::PRIM_FLOAT:
-            case slang::PrimType::PRIM_DVEC4:
-            case slang::PrimType::PRIM_DVEC3:
-            case slang::PrimType::PRIM_DVEC2:
-            case slang::PrimType::PRIM_DOUBLE:
-                return true;
-            default:
-                break;
-        }
+        if (prim->size() == 1 &&
+            (prim->prim() == slang::PrimType::PRIM_INT ||
+             prim->prim() == slang::PrimType::PRIM_UINT ||
+             prim->prim() == slang::PrimType::PRIM_FLOAT ||
+             prim->prim() == slang::PrimType::PRIM_DOUBLE))
+            return true;
     }
     return false;
 }
 
 inline bool is_boolean(const slang::Type* type) {
     if (auto prim = type->isa<slang::PrimType>()) {
-        switch (prim->prim()) {
-            case slang::PrimType::PRIM_BVEC4:
-            case slang::PrimType::PRIM_BVEC3:
-            case slang::PrimType::PRIM_BVEC2:
-            case slang::PrimType::PRIM_BOOL:
-                return true;
-            default:
-                break;
-        }
+        if (prim->size() == 1 && prim->prim() == slang::PrimType::PRIM_BOOL)
+            return true;
     }
     return false;
 }
 
 inline bool is_floating(const slang::Type* type) {
     if (auto prim = type->isa<slang::PrimType>()) {
-        switch (prim->prim()) {
-            case slang::PrimType::PRIM_VEC4:
-            case slang::PrimType::PRIM_VEC3:
-            case slang::PrimType::PRIM_VEC2:
-            case slang::PrimType::PRIM_FLOAT:
-            case slang::PrimType::PRIM_DVEC4:
-            case slang::PrimType::PRIM_DVEC3:
-            case slang::PrimType::PRIM_DVEC2:
-            case slang::PrimType::PRIM_DOUBLE:
-                return true;
-            default:
-                break;
-        }
+        if (prim->prim() == slang::PrimType::PRIM_FLOAT ||
+            prim->prim() == slang::PrimType::PRIM_DOUBLE)
+            return true;
     }
     return false;
 }
@@ -422,7 +399,7 @@ const slang::Type* InitExpr::check(Sema& sema, TypeExpectation expected) const {
         return sema.definite_array_type(elem, num_exprs());
     } else if (auto struct_type = expected.isa<slang::StructType>()) {
         if (exprs().size() != struct_type->members().size()) {
-            sema.error(this) << "Invalid number of components in structure initializer\n";
+            sema.error(this) << "Invalid number of members in structure initializer\n";
             return sema.error_type();
         }
 
@@ -439,7 +416,7 @@ const slang::Type* InitExpr::check(Sema& sema, TypeExpectation expected) const {
                 return sema.error_type();
             }
 
-            const slang::Type* component = sema.prim_type(prim_type->component());
+            const slang::Type* component = sema.prim_type(prim_type->prim());
             for (auto expr : exprs())
                 sema.check(expr, component);
             return expected.type();
@@ -490,16 +467,16 @@ const slang::Type* ErrorType::check(Sema& sema) const {
 }
 
 const slang::Type* PrimType::check(Sema& sema) const {
-    const slang::Type* type = nullptr;
+    const slang::Type* prim_type = nullptr;
     switch (prim()) {
-#define SLANG_KEY_DATA(key, str, cols, rows) \
-        case PRIM_##key: type = sema.prim_type(slang::PrimType::PRIM_##key); break;
+#define SLANG_KEY_DATA(key, str, type, rows, cols) \
+        case PRIM_##key: prim_type = sema.prim_type(slang::PrimType::PRIM_##type, rows, cols); break;
 #include "slang/keywordlist.h"
         default:
             assert(0 && "Unknown type");
             return sema.error_type();
     }
-    return sema.check(array_specifier(), type);
+    return sema.check(array_specifier(), prim_type);
 }
 
 const slang::Type* NamedType::check(Sema& sema) const {

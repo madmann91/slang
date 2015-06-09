@@ -495,7 +495,7 @@ public:
 class PrimType : public Type {
 public:
     enum Prim {
-#define SLANG_KEY_DATA(key, str, rows, cols) PRIM_##key,
+#define SLANG_KEY_DATA(key, str, type, rows, cols) PRIM_##key,
 #include "slang/keywordlist.h"
     };
 
