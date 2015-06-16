@@ -76,7 +76,7 @@ private:
 class Expr : public Node, public Typeable {
 public:
     virtual ~Expr() {}
-    virtual const slang::Type* check(Sema&, TypeExpectation) const = 0;
+    virtual const slang::Type* check(Sema&, const slang::Type*) const = 0;
 };
 
 /// List of expressions separated by a comma.
@@ -87,7 +87,7 @@ public:
     size_t num_exprs() const { return exprs_.size(); }
 
     void print(Printer&) const override;
-    const slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, const slang::Type*) const override;
 
 private:
     PtrVector<Expr> exprs_;
@@ -97,7 +97,7 @@ private:
 class ErrorExpr : public Expr {
 public:
     void print(Printer&) const override;
-    const slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, const slang::Type*) const override;
 };
 
 /// An expression composed of a literal.
@@ -107,7 +107,7 @@ public:
     void set_literal(const Literal& lit) { lit_ = lit; }
 
     void print(Printer&) const override;
-    const slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, const slang::Type*) const override;
 
 private:
     Literal lit_;
@@ -117,7 +117,7 @@ private:
 class IdentExpr : public Expr, public HasName {
 public:
     void print(Printer&) const override;
-    const slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, const slang::Type*) const override;
 };
 
 /// A field selection expression.
@@ -131,7 +131,7 @@ public:
     void set_field_name(const std::string& field_name) { field_name_ = field_name; }
 
     void print(Printer&) const override;
-    const slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, const slang::Type*) const override;
 
 private:
     std::string field_name_;
@@ -150,7 +150,7 @@ public:
     void set_index(Expr* index) { index_.reset(index); }
 
     void print(Printer&) const override;
-    const slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, const slang::Type*) const override;
 
 private:
     Ptr<Expr> left_, index_;
@@ -164,7 +164,7 @@ public:
     size_t num_args() const { return args_.size(); }
 
     void print(Printer&) const override;
-    const slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, const slang::Type*) const override;
 
 private:
     PtrVector<Expr> args_;
@@ -195,7 +195,7 @@ public:
     void set_type(Type type) { type_ = type; }
 
     void print(Printer&) const override;
-    const slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, const slang::Type*) const override;
 
 private:
     Type type_;
@@ -218,7 +218,7 @@ public:
     void set_if_false(Expr* if_false) { if_false_.reset(if_false); }
 
     void print(Printer&) const override;
-    const slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, const slang::Type*) const override;
 
 private:
     Ptr<Expr> cond_, if_true_, if_false_;
@@ -256,7 +256,7 @@ public:
     void set_right(Expr* right) { right_.reset(right); }
 
     void print(Printer&) const override;
-    const slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, const slang::Type*) const override;
 
 private:
     Type type_;
@@ -302,7 +302,7 @@ public:
     void set_type(Type type) { type_ = type; }
 
     void print(Printer&) const override;
-    const slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, const slang::Type*) const override;
 
 private:
     Type type_;
@@ -317,7 +317,7 @@ public:
     size_t num_exprs() const { return exprs_.size(); }
 
     void print(Printer&) const override;
-    const slang::Type* check(Sema&, TypeExpectation) const override;
+    const slang::Type* check(Sema&, const slang::Type*) const override;
 
 private:
     PtrVector<Expr> exprs_;

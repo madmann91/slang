@@ -375,6 +375,7 @@ void LoopCond::print(Printer& printer) const {
     if (is_var()) {
         assert(static_cast<bool>(var_type_) && "Invalid loop condition");
         var_type_->print(printer);
+        printer << " ";
         var_->print(printer);
     } else {
         assert(is_expr() && "Invalid loop condition");

@@ -97,12 +97,10 @@ public:
     }
 
     /// Checks the type of an expression, and expects the given type as a result.
-    const Type* check(const ast::Expr* expr, TypeExpectation expected) {
-        const Type* found = expr->check(*this, expected);
-        expr->assign_type(found);
-        if (expected.type() && !found->isa<ErrorType>() &&
-            !found->subtype(expected.type())) {
-            error(expr) << "Expected \'" << expected.type()->to_string()
+    const Type* check(const ast::Expr* expr, const Type* expected) {
+        const Type* found = check_assign(expr, expected);
+        if (expected && !found->isa<ErrorType>() && !found->subtype(expected)) {
+            error(expr) << "Expected \'" << expected->to_string()
                         << "\', but found \'" << found->to_string()
                         << "\'\n";
         }
@@ -110,7 +108,7 @@ public:
     }
 
     /// Checks the type of an expression, without any constraint on the result type.
-    const Type* check(const ast::Expr* expr) { return check_assign(expr, TypeExpectation(nullptr)); }
+    const Type* check(const ast::Expr* expr) { return check_assign(expr, nullptr); }
     /// Checks the type of an AST type.
     const Type* check(const ast::Type* type) { return check_assign(type); }
     /// Checks the type of a declaration.

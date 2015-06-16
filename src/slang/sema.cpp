@@ -5,7 +5,7 @@ namespace slang {
 
 namespace ast {
 
-const slang::Type* ExprList::check(Sema& sema, TypeExpectation expected) const {
+const slang::Type* ExprList::check(Sema& sema, const slang::Type*) const {
     if (exprs().empty())
         return sema.error_type();
 
@@ -15,11 +15,11 @@ const slang::Type* ExprList::check(Sema& sema, TypeExpectation expected) const {
     return exprs()[0]->assigned_type();
 }
 
-const slang::Type* ErrorExpr::check(Sema& sema, TypeExpectation) const {
+const slang::Type* ErrorExpr::check(Sema& sema, const slang::Type*) const {
     return sema.error_type();
 }
 
-const slang::Type* LiteralExpr::check(Sema& sema, TypeExpectation expected) const {
+const slang::Type* LiteralExpr::check(Sema& sema, const slang::Type* expected) const {
     const slang::Type* type = nullptr;
     switch (lit_.type()) {
         case Literal::LIT_DOUBLE: type = sema.prim_type(slang::PrimType::PRIM_DOUBLE); break;
@@ -32,13 +32,13 @@ const slang::Type* LiteralExpr::check(Sema& sema, TypeExpectation expected) cons
             return sema.error_type();
     }
 
-    if (expected.type() && type->subtype(expected.type()))
-        return expected.type();
+    if (expected && type->subtype(expected))
+        return expected;
 
     return type;
 }
 
-const slang::Type* IdentExpr::check(Sema& sema, TypeExpectation) const {
+const slang::Type* IdentExpr::check(Sema& sema, const slang::Type*) const {
     if (auto symbol = sema.env()->lookup_symbol(name())) {
         return symbol->type();
     }
@@ -55,12 +55,11 @@ inline bool check_components(const std::string& components, const std::string& s
     return ok;
 }
 
-const slang::Type* FieldExpr::check(Sema& sema, TypeExpectation) const {
+const slang::Type* FieldExpr::check(Sema& sema, const slang::Type*) const {
     if (field_name().empty())
         return sema.error_type();
 
     const slang::Type* left_type = sema.check(left());
-
     if (auto compound = left_type->isa<slang::CompoundType>()) {
         auto field_type = compound->member_type(field_name());
         if (field_type)
@@ -68,7 +67,7 @@ const slang::Type* FieldExpr::check(Sema& sema, TypeExpectation) const {
         else
             sema.error(this) << "\'" << field_name() << "\' is not a member of \'" << compound->name() << "\'\n";
     } else if (auto prim_type = left_type->isa<slang::PrimType>()) {
-        if (prim_type->is_vector()) {
+        if (prim_type->cols() == 1) {
             // Check the number of components
             if (field_name().length() > 4) {
                 sema.error(this) << "Swizzling operator can only contain 4 elements at most\n";
@@ -78,16 +77,18 @@ const slang::Type* FieldExpr::check(Sema& sema, TypeExpectation) const {
             // Check the component names
             std::string rgba("rgba", 0, prim_type->rows());
             std::string xyzw("xyzw", 0, prim_type->rows());
+            std::string stpq("stpq", 0, prim_type->rows());
             if (!check_components(field_name(), rgba) &&
-                !check_components(field_name(), xyzw)) {
-                sema.error(this) << "Valid components are \'" + xyzw + "\' or \'" + rgba + "\' here\n";
+                !check_components(field_name(), xyzw) &&
+                !check_components(field_name(), stpq)) {
+                sema.error(this) << "Valid components are \'" + xyzw + "\', \'" + rgba + "\', or \'" + stpq + "\' here\n";
                 return sema.error_type();
             }
 
             return sema.prim_type(prim_type->prim(), field_name().length());
         }
 
-        sema.error(this) << "Swizzling operator can only be used on vectors\n";
+        sema.error(this) << "Swizzling operator can only be used on vectors or scalars\n";
     } else {
         sema.error(this) << "Expected an aggregate type in left operand of field expression\n";
     }
@@ -95,19 +96,25 @@ const slang::Type* FieldExpr::check(Sema& sema, TypeExpectation) const {
     return sema.error_type();
 }
 
-const slang::Type* IndexExpr::check(Sema& sema, TypeExpectation expected) const {
-    const slang::ArrayType* array = sema.check(left())->isa<slang::ArrayType>();
+const slang::Type* IndexExpr::check(Sema& sema, const slang::Type*) const {
+    const slang::Type* left_type = sema.check(left());
+    const slang::Type* index_type = sema.check(index());
 
-    if (!array) {
-        sema.error(this) << "Expected an array in left operand of index expression\n";
-        return sema.error_type();
-    }
-
-    if (auto prim = index()->check(sema, nullptr)->isa<slang::PrimType>()) {
-        if (prim->size() == 1 &&
-            (prim->prim() == slang::PrimType::PRIM_INT ||
-             prim->prim() == slang::PrimType::PRIM_UINT)) {
-            return array->elem();
+    if (auto index_prim = index_type->isa<slang::PrimType>()) {
+        if (index_prim->size() == 1 &&
+            (index_prim->prim() == slang::PrimType::PRIM_INT ||
+             index_prim->prim() == slang::PrimType::PRIM_UINT)) {
+            if (auto array = left_type->isa<slang::ArrayType>()) {
+                return array->elem();
+            } else if (auto prim = left_type->isa<slang::PrimType>()) {
+                if (prim->is_vector()) {
+                    return sema.prim_type(prim->prim());
+                } else if (prim->is_matrix()) {
+                    return sema.prim_type(prim->prim(), prim->rows());
+                }
+            }
+            sema.error(this) << "Expected an array or aggregate type in left operand of index expression\n";
+            return sema.error_type();
         }
     }
 
@@ -115,7 +122,7 @@ const slang::Type* IndexExpr::check(Sema& sema, TypeExpectation expected) const 
     return sema.error_type();
 }
 
-const slang::Type* CallExpr::check(Sema& sema, TypeExpectation) const {
+const slang::Type* CallExpr::check(Sema& sema, const slang::Type*) const {
     // TODO : Handle constructors
 
     if (auto symbol = sema.env()->lookup_symbol(name())) {
@@ -157,7 +164,7 @@ const slang::Type* CallExpr::check(Sema& sema, TypeExpectation) const {
     return sema.error_type();
 }
 
-const slang::Type* CondExpr::check(Sema& sema, TypeExpectation expected) const {
+const slang::Type* CondExpr::check(Sema& sema, const slang::Type* expected) const {
     sema.check(cond(), sema.prim_type(slang::PrimType::PRIM_BOOL));
 
     const slang::Type* type_true = sema.check(if_true(), expected);
@@ -255,7 +262,7 @@ inline void expect_ordered(Sema& sema, const ast::Node* node, const slang::Type*
 inline void expect_boolean(Sema& sema, const ast::Node* node, const slang::Type* type) { expect(sema, node, is_boolean, type, "boolean type"); }
 inline void expect_floating(Sema& sema, const ast::Node* node, const slang::Type* type) { expect(sema, node, is_floating, type, "floating point type"); }
 
-const slang::Type* UnOpExpr::check(Sema& sema, TypeExpectation expected) const {
+const slang::Type* UnOpExpr::check(Sema& sema, const slang::Type*) const {
     const slang::Type* op_type = sema.check(operand());
 
     // TODO : l-value for ++ --
@@ -281,7 +288,7 @@ const slang::Type* UnOpExpr::check(Sema& sema, TypeExpectation expected) const {
     return sema.error_type();
 }
 
-const slang::Type* AssignOpExpr::check(Sema& sema, TypeExpectation expected) const {
+const slang::Type* AssignOpExpr::check(Sema& sema, const slang::Type*) const {
     const slang::Type* left_type = sema.check(left());
     const slang::Type* right_type = sema.check(right());
 
@@ -323,7 +330,7 @@ const slang::Type* AssignOpExpr::check(Sema& sema, TypeExpectation expected) con
     return sema.error_type();
 }
 
-const slang::Type* BinOpExpr::check(Sema& sema, TypeExpectation expected) const {
+const slang::Type* BinOpExpr::check(Sema& sema, const slang::Type*) const {
     const slang::Type* left_type = sema.check(left());
     const slang::Type* right_type = sema.check(right());
 
@@ -377,10 +384,10 @@ const slang::Type* BinOpExpr::check(Sema& sema, TypeExpectation expected) const 
     return sema.error_type();
 }
 
-const slang::Type* InitExpr::check(Sema& sema, TypeExpectation expected) const {
-    assert(expected.type());
+const slang::Type* InitExpr::check(Sema& sema, const slang::Type* expected) const {
+    assert(expected && "Init expressions need a type expectation for type deduction");
 
-    if (auto array_type = expected.isa<slang::ArrayType>()) {
+    if (auto array_type = expected->isa<slang::ArrayType>()) {
         if (num_exprs() == 0)
             return sema.definite_array_type(array_type->elem(), 0);
 
@@ -397,7 +404,7 @@ const slang::Type* InitExpr::check(Sema& sema, TypeExpectation expected) const {
             }
         }
         return sema.definite_array_type(elem, num_exprs());
-    } else if (auto struct_type = expected.isa<slang::StructType>()) {
+    } else if (auto struct_type = expected->isa<slang::StructType>()) {
         if (exprs().size() != struct_type->members().size()) {
             sema.error(this) << "Invalid number of members in structure initializer\n";
             return sema.error_type();
@@ -405,8 +412,8 @@ const slang::Type* InitExpr::check(Sema& sema, TypeExpectation expected) const {
 
         for (size_t i = 0; i < exprs().size(); i++)
             sema.check(exprs()[i], struct_type->members()[i].second);
-        return expected.type();
-    } else if (auto prim_type = expected.isa<slang::PrimType>()) {
+        return expected;
+    } else if (auto prim_type = expected->isa<slang::PrimType>()) {
         if (prim_type->size() > 1) {
             if (prim_type->is_vector() && exprs().size() != prim_type->rows()) {
                 sema.error(this) << "Invalid number of components in vector initializer\n";
@@ -416,10 +423,11 @@ const slang::Type* InitExpr::check(Sema& sema, TypeExpectation expected) const {
                 return sema.error_type();
             }
 
-            const slang::Type* component = sema.prim_type(prim_type->prim());
+            const size_t n = prim_type->is_matrix() ? prim_type->rows() : 1;
+            const slang::Type* component = sema.prim_type(prim_type->prim(), n);
             for (auto expr : exprs())
                 sema.check(expr, component);
-            return expected.type();
+            return expected;
         }
     }
 
@@ -699,10 +707,10 @@ const slang::Type* Variable::check(Sema& sema, const slang::Type* var_type) cons
 
 void LoopCond::check(Sema& sema) const {
     if (is_var()) {
-        sema.check(var(), sema.check(var_type()));
+        expect_boolean(sema, this, sema.check(var(), sema.check(var_type())));
     } else {
         assert(is_expr());
-        sema.check(expr());
+        sema.check(expr(), sema.prim_type(slang::PrimType::PRIM_BOOL));
     }
 }
 
@@ -747,17 +755,21 @@ void ForLoopStmt::check(Sema& sema) const {
 }
 
 void WhileLoopStmt::check(Sema& sema) const {
+    sema.push_env();
     sema.check(cond());
     sema.push_env(this);
     sema.check(body());
-    sema.pop_env();
+    sema.pop_env(2);
 }
 
 void DoWhileLoopStmt::check(Sema& sema) const {
+    // Push two environments, in case a variable is defined in the condition
+    sema.push_env();
     sema.push_env(this);
     sema.check(body());
     sema.pop_env();
     sema.check(cond());
+    sema.pop_env();
 }
 
 void BreakStmt::check(Sema& sema) const {

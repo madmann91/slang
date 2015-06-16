@@ -879,7 +879,7 @@ ast::LoopCond* Parser::parse_loop_cond() {
 
     if (lookup_[0].is_keyword()) {
         switch (lookup_[0].key().type()) {
-#define SLANK_KEY_DATA(key, str) case Key::KEY_##key:
+#define SLANG_KEY_DATA(key, str, type, rows, cols) case Key::KEY_##key:
 #define SLANG_KEY_QUAL(key, str) case Key::KEY_##key:
 #include "slang/keywordlist.h"
             case Key::KEY_STRUCT:
@@ -1042,9 +1042,14 @@ ast::DoWhileLoopStmt* Parser::parse_do_while_stmt() {
     auto stmt = new_node<ast::DoWhileLoopStmt>();
     eat(Key::KEY_DO);
     stmt->set_body(parse_stmt());
+
     expect(Key::KEY_WHILE);
     expect(Token::TOK_LPAREN);
+
     stmt->set_cond(parse_loop_cond());
+    if (stmt->cond()->is_var())
+        error() << "Variable declarations are not allowed in do-while loop conditions\n";
+
     expect(Token::TOK_RPAREN);
     expect(Token::TOK_SEMICOLON);
     return stmt.node();

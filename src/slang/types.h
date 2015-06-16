@@ -24,32 +24,6 @@ public:
     }
 };
 
-/// Type expectation. Contains nullptr when no type is expected.
-class TypeExpectation {
-public:
-    TypeExpectation() : type_(nullptr) {}
-    TypeExpectation(const Type* type) : type_(type) {}
-
-    const Type* type() const { return type_; }
-
-    template <typename T>
-    const T* isa() const {
-        if (type_)
-            return type_->isa<T>();
-        return nullptr;
-    }
-
-    template <typename T>
-    const T* as() const {
-        if (type_)
-            return type_->as<T>();
-        return nullptr;
-    }
-
-private:
-    const Type* type_;
-};
-
 /// Error type. For types that cannot be determined.
 class ErrorType : public Type {
 public:
