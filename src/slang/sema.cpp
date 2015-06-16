@@ -20,22 +20,16 @@ const slang::Type* ErrorExpr::check(Sema& sema, const slang::Type*) const {
 }
 
 const slang::Type* LiteralExpr::check(Sema& sema, const slang::Type* expected) const {
-    const slang::Type* type = nullptr;
     switch (lit_.type()) {
-        case Literal::LIT_DOUBLE: type = sema.prim_type(slang::PrimType::PRIM_DOUBLE); break;
-        case Literal::LIT_FLOAT:  type = sema.prim_type(slang::PrimType::PRIM_FLOAT);  break;
-        case Literal::LIT_INT:    type = sema.prim_type(slang::PrimType::PRIM_INT);    break;
-        case Literal::LIT_UINT:   type = sema.prim_type(slang::PrimType::PRIM_UINT);   break;
-        case Literal::LIT_BOOL:   type = sema.prim_type(slang::PrimType::PRIM_BOOL);   break;
+        case Literal::LIT_DOUBLE: return sema.prim_type(slang::PrimType::PRIM_DOUBLE);
+        case Literal::LIT_FLOAT:  return sema.prim_type(slang::PrimType::PRIM_FLOAT);
+        case Literal::LIT_INT:    return sema.prim_type(slang::PrimType::PRIM_INT);
+        case Literal::LIT_UINT:   return sema.prim_type(slang::PrimType::PRIM_UINT);
+        case Literal::LIT_BOOL:   return sema.prim_type(slang::PrimType::PRIM_BOOL);
         default:
             assert(0 && "Unknown literal type");
             return sema.error_type();
     }
-
-    if (expected && type->subtype(expected))
-        return expected;
-
-    return type;
 }
 
 const slang::Type* IdentExpr::check(Sema& sema, const slang::Type*) const {
@@ -403,6 +397,10 @@ const slang::Type* InitExpr::check(Sema& sema, const slang::Type* expected) cons
                 break;
             }
         }
+
+        if (elem->subtype(array_type->elem()))
+            elem = array_type->elem();
+
         return sema.definite_array_type(elem, num_exprs());
     } else if (auto struct_type = expected->isa<slang::StructType>()) {
         if (exprs().size() != struct_type->members().size()) {
