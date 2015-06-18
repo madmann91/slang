@@ -23,9 +23,7 @@ class Symbol {
 public:
     typedef std::unordered_multimap<const Type*, const ast::Node*> DefMap;
 
-    Symbol(std::initializer_list<DefMap::value_type> defs)
-        : defs_(defs)
-    {}
+    Symbol(std::initializer_list<DefMap::value_type> defs);
 
     bool is_function() const;
     bool is_structure() const;
@@ -33,16 +31,19 @@ public:
     bool is_variable() const;
     bool is_argument() const;
 
-    /// Returns the type of the first definition associated with this symbol.
-    const slang::Type* type() const;
+    /// Returns the type of the first definition associated with this symbol, or
+    /// the minimum type (from the subtype relation) of all the declarations (if they agree).
+    const Type* type() const { return type_; }
     /// Returns the location of the first definition associated with this symbol.
-    const Location& location() const;
+    const Location& location() const { return loc_; }
 
     const DefMap& defs() const { return defs_; }
-    void push_def(const Type* type, const ast::Node* node) { defs_.insert(std::make_pair(type, node)); }
+    void push_def(const Type* type, const ast::Node* node);
     size_t num_defs() const { return defs_.size(); }
 
 private:
+    const Type* type_;
+    Location loc_;
     DefMap defs_;
 };
 

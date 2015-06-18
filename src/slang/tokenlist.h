@@ -25,6 +25,7 @@ SLANG_TOK(XOR, "^")
 SLANG_TOK(OR,  "|")
 
 SLANG_TOK(ANDAND, "&&")
+SLANG_TOK(XORXOR, "^^")
 SLANG_TOK(OROR,   "||")
 
 SLANG_TOK(INC, "++")

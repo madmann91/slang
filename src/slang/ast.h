@@ -170,8 +170,14 @@ private:
     PtrVector<Expr> args_;
 };
 
+class OpExpr : public Expr {
+public:
+    virtual ~OpExpr() {}
+    virtual std::string op_string() const = 0;
+};
+
 /// An unary operation expression.
-class UnOpExpr : public Expr {
+class UnOpExpr : public OpExpr {
 public:
     enum Type {
         UNOP_INC,
@@ -194,6 +200,7 @@ public:
     Type type() const { return type_; }
     void set_type(Type type) { type_ = type; }
 
+    std::string op_string() const override;
     void print(Printer&) const override;
     const slang::Type* check(Sema&, const slang::Type*) const override;
 
@@ -225,7 +232,7 @@ private:
 };
 
 /// An assignment expression (=, +=, -=, ...).
-class AssignOpExpr : public Expr {
+class AssignOpExpr : public OpExpr {
 public:
     enum Type {
         ASSIGN_EQUAL,
@@ -255,6 +262,7 @@ public:
     const Expr* right() const { return right_.get(); }
     void set_right(Expr* right) { right_.reset(right); }
 
+    std::string op_string() const override;
     void print(Printer&) const override;
     const slang::Type* check(Sema&, const slang::Type*) const override;
 
@@ -264,7 +272,7 @@ private:
 };
 
 /// A binary operation expression.
-class BinOpExpr : public Expr {
+class BinOpExpr : public OpExpr {
 public:
     enum Type {
         BINOP_MUL,
@@ -284,6 +292,7 @@ public:
         BINOP_XOR,
         BINOP_OR,
         BINOP_ANDAND,
+        BINOP_XORXOR,
         BINOP_OROR,
         BINOP_UNKNOWN
     };
@@ -301,6 +310,7 @@ public:
     Type type() const { return type_; }
     void set_type(Type type) { type_ = type; }
 
+    std::string op_string() const override;
     void print(Printer&) const override;
     const slang::Type* check(Sema&, const slang::Type*) const override;
 

@@ -14,11 +14,19 @@ namespace slang {
 class Type : public Cast<Type> {
 public:
     virtual ~Type() {}
+
+    /// Tests two types for equality, by inspecting the type.
+    /// This function is used by the type hashtable, you should not use it.
     virtual bool equals(const Type*) const { return false; }
+    /// Determines if this type is a subtype of another one.
     virtual bool subtype(const Type* type) const { return this == type; }
+    /// Computes a hash for this type.
     virtual size_t hash() const = 0;
+    /// Returns the name of the type as a string (i.e. "int").
     virtual std::string type_name() const { return ""; }
+    /// Returns the dimensions of the type as a string (i.e. "[1][3]").
     virtual std::string type_dims() const { return ""; }
+    /// Returns the full type name.
     std::string to_string() const {
         return type_name() + type_dims();
     }
@@ -209,6 +217,8 @@ public:
 
     /// Returns the total number of components in this type.
     size_t size() const { return rows() * cols(); }
+    /// Determines if this type is a scalar type.
+    bool is_scalar() const { return cols() == 1 && rows() == 1; }
     /// Determines if this type is a vector type.
     bool is_vector() const { return cols() == 1 && rows() > 1; }
     /// Determines if this type is a matrix type.

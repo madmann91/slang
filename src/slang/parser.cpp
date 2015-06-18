@@ -549,6 +549,7 @@ static ast::BinOpExpr::Type token_to_binop(Token tok) {
         case Token::TOK_XOR:    return ast::BinOpExpr::BINOP_XOR;
         case Token::TOK_OR:     return ast::BinOpExpr::BINOP_OR;
         case Token::TOK_ANDAND: return ast::BinOpExpr::BINOP_ANDAND;
+        case Token::TOK_XORXOR: return ast::BinOpExpr::BINOP_XORXOR;
         case Token::TOK_OROR:   return ast::BinOpExpr::BINOP_OROR;
         default: break;
     }
@@ -573,10 +574,10 @@ static ast::AssignOpExpr::Type token_to_assignop(Token tok) {
     return ast::AssignOpExpr::ASSIGN_UNKNOWN;
 }
 
-int max_precedence = 12;
+static int max_precedence = 13;
 
 int precedence(ast::BinOpExpr::Type type) {
-    // Taken from GLSL 4.0 spec
+    // Taken from GLSL 4.5 spec
     switch (type) {
         case ast::BinOpExpr::BINOP_MUL:    return 3;
         case ast::BinOpExpr::BINOP_DIV:    return 3;
@@ -595,7 +596,8 @@ int precedence(ast::BinOpExpr::Type type) {
         case ast::BinOpExpr::BINOP_XOR:    return 9;
         case ast::BinOpExpr::BINOP_OR:     return 10;
         case ast::BinOpExpr::BINOP_ANDAND: return 11;
-        case ast::BinOpExpr::BINOP_OROR:   return 12;
+        case ast::BinOpExpr::BINOP_XORXOR: return 12;
+        case ast::BinOpExpr::BINOP_OROR:   return 13;
         default: break;
     }
     assert(0 && "Unknown binary operation");
@@ -603,7 +605,7 @@ int precedence(ast::BinOpExpr::Type type) {
 }
 
 bool left_associative(ast::BinOpExpr::Type type) {
-    // Taken from GLSL 4.0 spec
+    // Taken from GLSL 4.5 spec
     switch (type) {
         case ast::BinOpExpr::BINOP_MUL:    return true;
         case ast::BinOpExpr::BINOP_DIV:    return true;
@@ -622,6 +624,7 @@ bool left_associative(ast::BinOpExpr::Type type) {
         case ast::BinOpExpr::BINOP_XOR:    return true;
         case ast::BinOpExpr::BINOP_OR:     return true;
         case ast::BinOpExpr::BINOP_ANDAND: return true;
+        case ast::BinOpExpr::BINOP_XORXOR: return true;
         case ast::BinOpExpr::BINOP_OROR:   return true;
         default: break;
     }

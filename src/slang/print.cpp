@@ -264,6 +264,20 @@ void IdentExpr::print(Printer& printer) const {
     printer << name_;
 }
 
+std::string UnOpExpr::op_string() const {
+    switch (type_) {
+        case UNOP_INC:     return "++";
+        case UNOP_DEC:     return "--";
+        case UNOP_NOT:     return "!";
+        case UNOP_BIT_NOT: return "~";
+        case UNOP_PLUS:    return "+";
+        case UNOP_MINUS:   return "-";
+        default:
+            assert(0 && "Unknown unary operation");
+            return "";
+    }
+}
+
 void UnOpExpr::print(Printer& printer) const {
      if (type_ == UNOP_POST_INC) {
         op_->print(printer);
@@ -272,15 +286,7 @@ void UnOpExpr::print(Printer& printer) const {
         op_->print(printer);
         printer << "--";
     } else {
-        switch (type_) {
-            case UNOP_INC:     printer << "++ "; break;
-            case UNOP_DEC:     printer << "-- "; break;
-            case UNOP_NOT:     printer << "! ";  break;
-            case UNOP_BIT_NOT: printer << "~ ";  break;
-            case UNOP_PLUS:    printer << "+ ";  break;
-            case UNOP_MINUS:   printer << "- ";  break;
-            default: assert(0 && "Unknown unary operation");
-        }
+        printer << op_string() << " ";
         op_->print(printer);
     }
 }
@@ -293,22 +299,28 @@ void CondExpr::print(Printer& printer) const {
     if_false_->print(printer);
 }
 
+std::string AssignOpExpr::op_string() const {
+    switch (type_) {
+        case ASSIGN_EQUAL:  return "=";
+        case ASSIGN_ADD:    return "+=";
+        case ASSIGN_SUB:    return "-=";
+        case ASSIGN_MUL:    return "*=";
+        case ASSIGN_DIV:    return "/=";
+        case ASSIGN_MOD:    return "%=";
+        case ASSIGN_LSHIFT: return "<<=";
+        case ASSIGN_RSHIFT: return ">>=";
+        case ASSIGN_AND:    return "&=";
+        case ASSIGN_XOR:    return "^=";
+        case ASSIGN_OR:     return "|=";
+        default:
+            assert(0 && "Unknown assign operation");
+            return "";
+    }
+}
+
 void AssignOpExpr::print(Printer& printer) const {
     left_->print(printer);
-    switch (type_) {
-        case ASSIGN_EQUAL:  printer << " = ";   break;
-        case ASSIGN_ADD:    printer << " += ";  break;
-        case ASSIGN_SUB:    printer << " -= ";  break;
-        case ASSIGN_MUL:    printer << " *= ";  break;
-        case ASSIGN_DIV:    printer << " /= ";  break;
-        case ASSIGN_MOD:    printer << " %= ";  break;
-        case ASSIGN_LSHIFT: printer << " <<= "; break;
-        case ASSIGN_RSHIFT: printer << " >>= "; break;
-        case ASSIGN_AND:    printer << " &= ";  break;
-        case ASSIGN_XOR:    printer << " ^= ";  break;
-        case ASSIGN_OR:     printer << " |= ";  break;
-        default: assert(0 && "Unknown assign operation");
-    }
+    printer << " " << op_string() << " ";
     right_->print(printer);
 }
 
@@ -325,32 +337,37 @@ inline void print_expr(const Expr* expr, Printer& printer, int prec) {
     expr->print(printer);
 }
 
+std::string BinOpExpr::op_string() const {
+    switch (type_) {
+        case BINOP_MUL:    return "*";
+        case BINOP_DIV:    return "/";
+        case BINOP_MOD:    return "%";
+        case BINOP_ADD:    return "+";
+        case BINOP_SUB:    return "-";
+        case BINOP_LSHIFT: return "<<";
+        case BINOP_RSHIFT: return ">>";
+        case BINOP_LT:     return "<";
+        case BINOP_GT:     return ">";
+        case BINOP_LEQ:    return "<=";
+        case BINOP_GEQ:    return ">=";
+        case BINOP_EQ:     return "==";
+        case BINOP_NEQ:    return "!=";
+        case BINOP_AND:    return "&";
+        case BINOP_XOR:    return "^";
+        case BINOP_OR:     return "|";
+        case BINOP_ANDAND: return "&&";
+        case BINOP_XORXOR: return "^^";
+        case BINOP_OROR:   return "||";
+        default:
+            assert(0 && "Unknown binary operation");
+            return "";
+    }
+}
+
 void BinOpExpr::print(Printer& printer) const {
     int prec = precedence(type_);
     print_expr(left_.get(), printer, prec);
-    printer << " ";
-    switch (type_) {
-        case BINOP_MUL:    printer << "*";  break;
-        case BINOP_DIV:    printer << "/";  break;
-        case BINOP_MOD:    printer << "%";  break;
-        case BINOP_ADD:    printer << "+";  break;
-        case BINOP_SUB:    printer << "-";  break; 
-        case BINOP_LSHIFT: printer << "<<"; break;
-        case BINOP_RSHIFT: printer << ">>"; break;
-        case BINOP_LT:     printer << "<";  break;
-        case BINOP_GT:     printer << ">";  break;
-        case BINOP_LEQ:    printer << "<="; break;
-        case BINOP_GEQ:    printer << ">="; break;
-        case BINOP_EQ:     printer << "=="; break;
-        case BINOP_NEQ:    printer << "!="; break;
-        case BINOP_AND:    printer << "&";  break;
-        case BINOP_XOR:    printer << "^";  break;
-        case BINOP_OR:     printer << "|";  break;
-        case BINOP_ANDAND: printer << "&&"; break;
-        case BINOP_OROR:   printer << "||"; break;
-        default: assert(0 && "Unknown binary operation");
-    }
-    printer << " ";
+    printer << " " << op_string() << " ";
     print_expr(right_.get(), printer, prec);
 }
 

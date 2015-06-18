@@ -878,7 +878,9 @@ Preprocessor::ExprValue Preprocessor::evaluate_binary(ExprValue left, int preced
         }
 
         // Catch division by zero here
-        if (binop.type == BinOp::BINOP_DIV && !right.error && right.value == 0) {
+        if ((binop.type == BinOp::BINOP_DIV ||
+             binop.type == BinOp::BINOP_MOD) &&
+            !right.error && right.value == 0) {
             error() << "Division by zero in preprocessor condition\n";
             left = ExprValue();
         } else {
