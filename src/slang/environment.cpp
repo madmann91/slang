@@ -24,8 +24,7 @@ bool Symbol::is_interface() const { return is_node<ast::InterfaceType>(defs_); }
 bool Symbol::is_variable() const { return is_node<ast::Variable>(defs_); }
 bool Symbol::is_argument() const { return is_node<ast::Arg>(defs_); }
 
-void Symbol::push_def(const Type* type, const ast::Node* node)
-{
+void Symbol::push_def(const Type* type, const ast::Node* node) {
     if (type->subtype(type_))
         type_ = type;
 

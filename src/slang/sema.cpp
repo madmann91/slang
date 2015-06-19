@@ -895,7 +895,8 @@ void DeclStmt::check(Sema& sema) const {
 }
 
 void ExprStmt::check(Sema& sema) const {
-    sema.check(expr());
+    if (expr())
+        sema.check(expr());
 }
 
 void IfStmt::check(Sema& sema) const {
