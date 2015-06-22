@@ -274,10 +274,11 @@ const slang::Type* CondExpr::check(Sema& sema, const slang::Type* expected) cons
 
     const slang::Type* type_true = sema.check(if_true(), expected);
     const slang::Type* type_false = sema.check(if_false(), expected);
+    implicit_convert(type_true, type_false);
     if (type_true == type_false) {
         return type_true;
     } else {
-        sema.error(this) << "Operands of ternary operator must be of the same type\n";
+        sema.error(this) << "Operands types must match in ternary operator\n";
     }
 
     return sema.error_type();
@@ -961,15 +962,10 @@ void ReturnStmt::check(Sema& sema) const {
     const FunctionDecl* fn_decl = sema.env()->closest_function()->as<FunctionDecl>();
     const slang::Type* ret_type = fn_decl->type()->assigned_type();
     if (value()) {
-        const slang::Type* type = sema.check(value());
-        if (type != ret_type) {
-            sema.error(this) << "Expected \'" << ret_type->to_string() << "\' as return type, got \'"
-                             << type->to_string() << "\'\n";
-        }
-    } else {
-        if (!is_void(ret_type))
-            sema.error(this) << "Return value expected, function \'" << fn_decl->name()
-                             << "\' returns \'" << ret_type->to_string() << "\'\n";
+        sema.check(value(), ret_type);
+    } else if (!is_void(ret_type)) {
+        sema.error(this) << "Return value expected, function \'" << fn_decl->name()
+                         << "\' returns \'" << ret_type->to_string() << "\'\n";
     }
 }
 
