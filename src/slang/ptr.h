@@ -22,6 +22,8 @@ public:
     using Vector::empty;
     using Vector::begin;
     using Vector::end;
+    using Vector::front;
+    using Vector::back;
     using Vector::push_back;
     using Vector::size;
     using Vector::clear;

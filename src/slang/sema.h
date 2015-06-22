@@ -91,23 +91,23 @@ public:
     }
 
     /// Expects identical types in an AST node.
-    void expect_type(const ast::Node*, const Type*, const Type*);
+    bool expect_type(const ast::Node*, const Type*, const Type*);
     /// Expects a non-void type as an argument or variable.
-    void expect_nonvoid(const ast::Node*, const std::string&, const Type*);
+    bool expect_nonvoid(const ast::Node*, const std::string&, const Type*);
     /// Expects equal primitive types inside an operator.
-    void expect_equal(const ast::OpExpr*, const PrimType*, const PrimType*);
+    bool expect_equal(const ast::OpExpr*, const PrimType*, const PrimType*);
     /// Expects compatible primitive types inside an operator (e.g. for scalar vs. vector operators).
-    void expect_compatible(const ast::OpExpr*, const PrimType*, const PrimType*);
+    bool expect_compatible(const ast::OpExpr*, const PrimType*, const PrimType*);
     /// Expects a numeric type in an operator (that can be added, subtracted, ...).
-    void expect_numeric(const ast::OpExpr*, const PrimType*);
+    bool expect_numeric(const ast::OpExpr*, const PrimType*);
     /// Expects an integer type in an operator (uint or int).
-    void expect_integer(const ast::OpExpr*, const PrimType*);
+    bool expect_integer(const ast::OpExpr*, const PrimType*);
     /// Expects a comparable type in an operator (that can be compared with >, <, ...).
-    void expect_ordered(const ast::OpExpr*, const PrimType*);
+    bool expect_ordered(const ast::OpExpr*, const PrimType*);
     /// Expects a boolean type in an operator.
-    void expect_boolean(const ast::OpExpr*, const PrimType*);
+    bool expect_boolean(const ast::OpExpr*, const PrimType*);
     /// Expects a floating point type in an operator (float or double).
-    void expect_floating(const ast::OpExpr*, const PrimType*);
+    bool expect_floating(const ast::OpExpr*, const PrimType*);
 
     /// Checks the type of an expression, and expects the given type as a result.
     const Type* check(const ast::Expr* expr, const Type* expected) {

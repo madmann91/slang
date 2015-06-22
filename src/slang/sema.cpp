@@ -33,19 +33,19 @@ inline bool is_floating(const PrimType* prim) {
 }
 
 static bool is_unsized(const Type* type) {
-    if (type->isa<IndefiniteArrayType>()) {
+    if (type->isa<IndefiniteArrayType>())
         return true;
-    }
-    if (auto array = type->isa<ArrayType>()) {
+
+    if (auto array = type->isa<ArrayType>())
         return is_unsized(array->elem());
-    }
+
     return false;
 }
 
 inline bool is_void(const Type* type) {
-    if (auto prim = type->isa<PrimType>()) {
+    if (auto prim = type->isa<PrimType>())
         return prim->prim() == PrimType::PRIM_VOID;
-    }
+
     return false;
 }
 
@@ -70,49 +70,60 @@ void Sema::symbol_redefinition(const std::string& name, const Symbol* symbol, co
                 << symbol->location().start().line() << ")\n";
 }
 
-void Sema::expect_type(const ast::Node* node, const Type* found, const Type* expected) {
+bool Sema::expect_type(const ast::Node* node, const Type* found, const Type* expected) {
     if (!found->subtype(expected)) {
         error(node) << "Expected \'" << expected->to_string()
                     << "\', but found \'" << found->to_string()
                     << "\'\n";
+        return true;
     }
+    return false;
 }
 
-void Sema::expect_equal(const ast::OpExpr* expr, const PrimType* a, const PrimType* b) {
+bool Sema::expect_equal(const ast::OpExpr* expr, const PrimType* a, const PrimType* b) {
     if (a != b) {
         error(expr) << "Expected \'" << a->to_string() << "\' for operator \'" << expr->op_string()
                     << "\', but got \'" << b->to_string() << "\'\n";
+        return false;
     }
+    return true;
 }
 
-void Sema::expect_compatible(const ast::OpExpr* expr, const PrimType* a, const PrimType* b) {
+bool Sema::expect_compatible(const ast::OpExpr* expr, const PrimType* a, const PrimType* b) {
     if (a->prim() != b->prim()) {
         if (a->is_scalar()) std::swap(a, b);
         const slang::PrimType* c = prim_type(a->prim());
         error(expr) << "Expected \'" << c->to_string() << "\' for operator \'" << expr->op_string()
                     << "\', but got \'" << b->to_string() << "\'\n";
+        return false;
     }
+    return true;
 }
 
-void Sema::expect_nonvoid(const ast::Node* node, const std::string& name, const Type* type) {
+bool Sema::expect_nonvoid(const ast::Node* node, const std::string& name, const Type* type) {
     assert(!name.empty());
-    if (is_void(type))
+    if (is_void(type)) {
         error(node) << "Argument or variable \'" << name << "\' of type \'void\'\n";
+        return false;
+    }
+    return true;
 }
 
 template <typename F>
-void expect_in_op(Sema& sema, const ast::OpExpr* expr, const std::string& msg, const PrimType* type, F f) {
+bool expect_in_op(Sema& sema, const ast::OpExpr* expr, const std::string& msg, const PrimType* type, F f) {
     if (!f(type)) {
         sema.error(expr) << "Expected " << msg << " for operator \'" << expr->op_string()
                          << "\', but got \'" << type->to_string() << "\'\n";
+        return false;
     }
+    return true;
 }
 
-void Sema::expect_numeric(const ast::OpExpr* expr, const PrimType* type) { expect_in_op(*this, expr, "numeric type", type, is_numeric); }
-void Sema::expect_integer(const ast::OpExpr* expr, const PrimType* type) { expect_in_op(*this, expr, "integer type", type, is_integer); }
-void Sema::expect_ordered(const ast::OpExpr* expr, const PrimType* type) { expect_in_op(*this, expr, "comparable type", type, is_ordered); }
-void Sema::expect_boolean(const ast::OpExpr* expr, const PrimType* type) { expect_in_op(*this, expr, "boolean type", type, is_boolean); }
-void Sema::expect_floating(const ast::OpExpr* expr, const PrimType* type) { expect_in_op(*this, expr, "floating point type", type, is_floating); }
+bool Sema::expect_numeric(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "numeric type", type, is_numeric); }
+bool Sema::expect_integer(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "integer type", type, is_integer); }
+bool Sema::expect_ordered(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "comparable type", type, is_ordered); }
+bool Sema::expect_boolean(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "boolean type", type, is_boolean); }
+bool Sema::expect_floating(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "floating point type", type, is_floating); }
 
 namespace ast {
 
@@ -123,7 +134,7 @@ const slang::Type* ExprList::check(Sema& sema, const slang::Type*) const {
     for (auto expr : exprs())
         sema.check(expr);
 
-    return exprs()[0]->assigned_type();
+    return exprs().back()->assigned_type();
 }
 
 const slang::Type* ErrorExpr::check(Sema& sema, const slang::Type*) const {
@@ -144,9 +155,8 @@ const slang::Type* LiteralExpr::check(Sema& sema, const slang::Type* expected) c
 }
 
 const slang::Type* IdentExpr::check(Sema& sema, const slang::Type*) const {
-    if (auto symbol = sema.env()->lookup_symbol(name())) {
+    if (auto symbol = sema.env()->lookup_symbol(name()))
         return symbol->type();
-    }
 
     sema.error(this) << "Unknown identifier \'" << name() << "\'\n";
     return sema.error_type();
@@ -154,9 +164,9 @@ const slang::Type* IdentExpr::check(Sema& sema, const slang::Type*) const {
 
 inline bool check_components(const std::string& components, const std::string& set) {
     bool ok = true;
-    for (auto c : components) {
+    for (auto c : components)
         ok &= set.find(c) != std::string::npos;
-    }
+
     return ok;
 }
 
@@ -294,10 +304,12 @@ static const slang::Type* check_equal(Sema& sema, const OpExpr* expr, const slan
 }
 
 static const slang::Type* check_arithmetic(Sema& sema, const OpExpr* expr, const slang::PrimType* a, const slang::PrimType* b) {
-    implicit_convert(a, b);
+    if (!sema.expect_numeric(expr, a) |
+        !sema.expect_numeric(expr, b)) {
+        return sema.error_type();
+    }
 
-    sema.expect_numeric(expr, a);
-    sema.expect_numeric(expr, b);
+    implicit_convert(a, b);
 
     if ((a->is_scalar() && b->is_scalar()) ||
         (a->is_vector() && b->is_vector()) ||
@@ -316,10 +328,12 @@ static const slang::Type* check_arithmetic(Sema& sema, const OpExpr* expr, const
 }
 
 static const slang::Type* check_product(Sema& sema, const OpExpr* expr, const slang::PrimType* a, const slang::PrimType* b) {
-    implicit_convert(a, b);
+    if (!sema.expect_numeric(expr, a) |
+        !sema.expect_numeric(expr, b)) {
+        return sema.error_type();
+    }
 
-    sema.expect_numeric(expr, a);
-    sema.expect_numeric(expr, b);
+    implicit_convert(a, b);
 
     if ((a->is_scalar() && b->is_scalar()) ||
         (a->is_vector() && b->is_vector())) {
@@ -344,8 +358,10 @@ static const slang::Type* check_product(Sema& sema, const OpExpr* expr, const sl
 }
 
 static const slang::Type* check_shift(Sema& sema, const OpExpr* expr, const slang::PrimType* a, const slang::PrimType* b) {
-    sema.expect_integer(expr, a);
-    sema.expect_integer(expr, b);
+    if (!sema.expect_integer(expr, a) |
+        !sema.expect_integer(expr, b)) {
+        return sema.error_type();
+    }
 
     if (a->is_scalar() && !b->is_scalar()) {
         sema.error(expr) << "If left operand of \'" << expr->op_string()
@@ -359,9 +375,15 @@ static const slang::Type* check_shift(Sema& sema, const OpExpr* expr, const slan
     return a;
 }
 
+template <bool conv = false>
 static const slang::Type* check_bitwise(Sema& sema, const OpExpr* expr, const slang::PrimType* a, const slang::PrimType* b) {
-    sema.expect_integer(expr, a);
-    sema.expect_integer(expr, b);
+    if (!sema.expect_integer(expr, a) |
+        !sema.expect_integer(expr, b)) {
+        return sema.error_type();
+    }
+
+    if (conv)
+        implicit_convert(a, b);
 
     if ((a->is_scalar() && b->is_scalar()) ||
         (a->is_vector() && b->is_vector())) {
@@ -379,14 +401,17 @@ static const slang::Type* check_bitwise(Sema& sema, const OpExpr* expr, const sl
 }
 
 static const slang::Type* check_modulus(Sema& sema, const OpExpr* expr, const slang::PrimType* a, const slang::PrimType* b) {
-    implicit_convert(a, b);
-    return check_bitwise(sema, expr, a, b);
+    return check_bitwise<true>(sema, expr, a, b);
 }
 
 static const slang::Type* check_comparison(Sema& sema, const OpExpr* expr, const slang::PrimType* a, const slang::PrimType* b) {
+    if (!sema.expect_ordered(expr, a) |
+        !sema.expect_ordered(expr, b)) {
+        return sema.error_type();
+    }
+
     implicit_convert(a, b);
-    sema.expect_ordered(expr, a);
-    sema.expect_ordered(expr, b);
+
     sema.expect_equal(expr, a, b);
     return sema.prim_type(slang::PrimType::PRIM_BOOL);
 }
