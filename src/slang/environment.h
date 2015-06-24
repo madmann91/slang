@@ -7,7 +7,6 @@
 
 #include "slang/ptr.h"
 #include "slang/cast.h"
-#include "slang/types.h"
 #include "slang/location.h"
 
 namespace slang {
@@ -15,6 +14,8 @@ namespace slang {
 namespace ast {
     class Node;
 }
+
+class Type;
 
 /// Holds a declaration (function, variable or datatype). Structures,
 /// interfaces, or variables have only one definition in one environment.

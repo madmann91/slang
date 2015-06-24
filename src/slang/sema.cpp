@@ -3,35 +3,6 @@
 
 namespace slang {
 
-inline bool is_numeric(const PrimType* prim) {
-    return prim->prim() == PrimType::PRIM_INT ||
-           prim->prim() == PrimType::PRIM_UINT ||
-           prim->prim() == PrimType::PRIM_FLOAT ||
-           prim->prim() == PrimType::PRIM_DOUBLE;
-}
-
-inline bool is_integer(const PrimType* prim) {
-    return prim->prim() == PrimType::PRIM_INT ||
-           prim->prim() == PrimType::PRIM_UINT;
-}
-
-inline bool is_ordered(const PrimType* prim) {
-    return prim->size() == 1 &&
-           (prim->prim() == PrimType::PRIM_INT ||
-            prim->prim() == PrimType::PRIM_UINT ||
-            prim->prim() == PrimType::PRIM_FLOAT ||
-            prim->prim() == PrimType::PRIM_DOUBLE);
-}
-
-inline bool is_boolean(const PrimType* prim) {
-    return prim->size() == 1 && prim->prim() == PrimType::PRIM_BOOL;
-}
-
-inline bool is_floating(const PrimType* prim) {
-    return prim->prim() == PrimType::PRIM_FLOAT ||
-           prim->prim() == PrimType::PRIM_DOUBLE;
-}
-
 static bool is_unsized(const Type* type) {
     if (type->isa<IndefiniteArrayType>())
         return true;
@@ -119,11 +90,35 @@ bool expect_in_op(Sema& sema, const ast::OpExpr* expr, const std::string& msg, c
     return true;
 }
 
-bool Sema::expect_numeric(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "numeric type", type, is_numeric); }
-bool Sema::expect_integer(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "integer type", type, is_integer); }
-bool Sema::expect_ordered(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "comparable type", type, is_ordered); }
-bool Sema::expect_boolean(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "boolean type", type, is_boolean); }
-bool Sema::expect_floating(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "floating point type", type, is_floating); }
+bool Sema::expect_numeric(const ast::OpExpr* expr, const PrimType* type) {
+    return expect_in_op(*this, expr, "numeric type", type, [] (const PrimType* type) {
+        return type->is_numeric();
+    });
+}
+
+bool Sema::expect_integer(const ast::OpExpr* expr, const PrimType* type) {
+    return expect_in_op(*this, expr, "integer type", type, [] (const PrimType* type) {
+        return type->is_integer();
+    });
+}
+
+bool Sema::expect_ordered(const ast::OpExpr* expr, const PrimType* type) {
+    return expect_in_op(*this, expr, "comparable type", type, [] (const PrimType* type) {
+        return type->is_ordered();
+    });
+}
+
+bool Sema::expect_boolean(const ast::OpExpr* expr, const PrimType* type) {
+    return expect_in_op(*this, expr, "boolean type", type, [] (const PrimType* type) {
+        return type->is_boolean();
+    });
+}
+
+bool Sema::expect_floating(const ast::OpExpr* expr, const PrimType* type) {
+    return expect_in_op(*this, expr, "floating point type", type, [] (const PrimType* type) {
+        return type->is_floating();
+    });
+}
 
 namespace ast {
 
@@ -727,7 +722,7 @@ const slang::Type* InterfaceType::check(Sema& sema) const {
 const slang::Type* PrecisionDecl::check(Sema& sema) const {
     const slang::Type* prim = sema.check(type());
     if (auto type = prim->isa<slang::PrimType>()) {
-        if (is_floating(type))
+        if (type->is_floating())
             return prim;
     }
     sema.error(this) << "Floating point type expected in precision declaration\n";

@@ -1,5 +1,5 @@
-#include "ast.h"
-#include "print.h"
+#include "slang/ast.h"
+#include "slang/print.h"
 
 namespace slang {
 

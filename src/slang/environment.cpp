@@ -1,5 +1,6 @@
-#include "environment.h"
-#include "ast.h"
+#include "slang/environment.h"
+#include "slang/ast.h"
+#include "slang/types.h"
 
 namespace slang {
 

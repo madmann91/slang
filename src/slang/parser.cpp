@@ -713,9 +713,10 @@ ast::CallExpr* Parser::parse_call_expr() {
 }
 
 ast::Expr* Parser::parse_primary_expr() {
-    // PrimExpr ::= ident | lit | (Expr)
+    // PrimExpr ::= CallExpr | ident | lit | (Expr)
     if (lookup_[0].isa(Token::TOK_IDENT)) {
-        if (lookup_[1].isa(Token::TOK_LPAREN))
+        if (lookup_[1].isa(Token::TOK_LPAREN) ||
+            lookup_[2].isa(Token::TOK_LBRACKET))
             return parse_call_expr();
         else
             return parse_ident_expr();

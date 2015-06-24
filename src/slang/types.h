@@ -218,11 +218,45 @@ public:
     /// Returns the total number of components in this type.
     size_t size() const { return rows() * cols(); }
     /// Determines if this type is a scalar type.
-    bool is_scalar() const { return cols() == 1 && rows() == 1; }
+    bool is_scalar() const { return size() == 1; }
     /// Determines if this type is a vector type.
     bool is_vector() const { return cols() == 1 && rows() > 1; }
     /// Determines if this type is a matrix type.
     bool is_matrix() const { return cols() > 1 && rows() > 1; }
+
+    /// Determines if this type can be added, subtracted, ...
+    bool is_numeric() const {
+        return prim() == PrimType::PRIM_INT ||
+               prim() == PrimType::PRIM_UINT ||
+               prim() == PrimType::PRIM_FLOAT ||
+               prim() == PrimType::PRIM_DOUBLE;
+    }
+
+    /// Determines if this type is an integer type.
+    bool is_integer() const {
+        return prim() == PrimType::PRIM_INT ||
+               prim() == PrimType::PRIM_UINT;
+    }
+
+    /// Determines if this type can be compared.
+    bool is_ordered() const {
+        return size() == 1 &&
+               (prim() == PrimType::PRIM_INT ||
+                prim() == PrimType::PRIM_UINT ||
+                prim() == PrimType::PRIM_FLOAT ||
+                prim() == PrimType::PRIM_DOUBLE);
+    }
+
+    /// Determines if this type is a boolean.
+    bool is_boolean() const {
+        return size() == 1 && prim() == PrimType::PRIM_BOOL;
+    }
+
+    /// Determines if this type is a floating point type.
+    bool is_floating() const {
+        return prim() == PrimType::PRIM_FLOAT ||
+               prim() == PrimType::PRIM_DOUBLE;
+    }
 
     /// Returns the number of rows in this type.
     size_t rows() const { return rows_; }
