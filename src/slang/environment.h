@@ -32,9 +32,10 @@ public:
     bool is_variable() const;
     bool is_argument() const;
 
-    /// Returns the type of the first definition associated with this symbol, or
-    /// the minimum type (from the subtype relation) of all the declarations (if they agree).
+    /// Returns the type assigned to this symbol.
     const Type* type() const { return type_; }
+    /// Assigns a type to this symbol.
+    void set_type(const Type* type) { type_ = type; }
     /// Returns the location of the first definition associated with this symbol.
     const Location& location() const { return loc_; }
 
@@ -63,9 +64,7 @@ public:
     /// Returns the symbol table of this environment.
     const std::unordered_map<std::string, Symbol>& symbols() const { return symbols_; }
     /// Pushes a symbol in this environment.
-    void push_symbol(const std::string& name, Symbol&& symbol) {
-        symbols_.emplace(name, std::move(symbol));
-    }
+    void push_symbol(const std::string& name, Symbol&& symbol);
     /// Returns the number of symbols in this environment.
     size_t num_symbols() const { return symbols_.size(); }
 

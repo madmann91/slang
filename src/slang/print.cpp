@@ -247,7 +247,12 @@ void IndexExpr::print(Printer& printer) const {
 }
 
 void CallExpr::print(Printer& printer) const {
-    printer << name_ << "(";
+    if (is_constructor())
+        type_->print(printer);
+    else
+        expr_->print(printer);
+
+    printer << "(";
     for (size_t i = 0; i < args_.size(); i++) {
         args_[i]->print(printer);
         if (i < args_.size() - 1)
@@ -261,7 +266,7 @@ void LiteralExpr::print(Printer& printer) const {
 }
 
 void IdentExpr::print(Printer& printer) const {
-    printer << name_;
+    printer << ident_;
 }
 
 std::string UnOpExpr::op_string() const {

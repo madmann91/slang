@@ -30,10 +30,11 @@ void implicit_convert(const T*& a, const T*& b) {
 
 void Sema::new_symbol(const std::string& name, const Type* type, const ast::Node* node) {
     assert(!name.empty());
-    if (auto prev_symbol = env()->find_symbol(name))
+    if (auto prev_symbol = env()->find_symbol(name)) {
         symbol_redefinition(name, prev_symbol, node);
-    else
+    } else {
         env()->push_symbol(name, Symbol({std::make_pair(type, node)}));
+    }
 }
 
 void Sema::symbol_redefinition(const std::string& name, const Symbol* symbol, const ast::Node* node) {
@@ -80,9 +81,9 @@ bool Sema::expect_nonvoid(const ast::Node* node, const std::string& name, const 
     return true;
 }
 
-template <typename F>
-bool expect_in_op(Sema& sema, const ast::OpExpr* expr, const std::string& msg, const PrimType* type, F f) {
-    if (!f(type)) {
+static bool expect_in_op(Sema& sema, const ast::OpExpr* expr, const std::string& msg,
+                        const PrimType* type, bool (PrimType::*f) () const) {
+    if (!(type->*f)()) {
         sema.error(expr) << "Expected " << msg << " for operator \'" << expr->op_string()
                          << "\', but got \'" << type->to_string() << "\'\n";
         return false;
@@ -90,35 +91,11 @@ bool expect_in_op(Sema& sema, const ast::OpExpr* expr, const std::string& msg, c
     return true;
 }
 
-bool Sema::expect_numeric(const ast::OpExpr* expr, const PrimType* type) {
-    return expect_in_op(*this, expr, "numeric type", type, [] (const PrimType* type) {
-        return type->is_numeric();
-    });
-}
-
-bool Sema::expect_integer(const ast::OpExpr* expr, const PrimType* type) {
-    return expect_in_op(*this, expr, "integer type", type, [] (const PrimType* type) {
-        return type->is_integer();
-    });
-}
-
-bool Sema::expect_ordered(const ast::OpExpr* expr, const PrimType* type) {
-    return expect_in_op(*this, expr, "comparable type", type, [] (const PrimType* type) {
-        return type->is_ordered();
-    });
-}
-
-bool Sema::expect_boolean(const ast::OpExpr* expr, const PrimType* type) {
-    return expect_in_op(*this, expr, "boolean type", type, [] (const PrimType* type) {
-        return type->is_boolean();
-    });
-}
-
-bool Sema::expect_floating(const ast::OpExpr* expr, const PrimType* type) {
-    return expect_in_op(*this, expr, "floating point type", type, [] (const PrimType* type) {
-        return type->is_floating();
-    });
-}
+bool Sema::expect_numeric(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "numeric type", type, PrimType::is_numeric); }
+bool Sema::expect_integer(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "integer type", type, PrimType::is_integer); }
+bool Sema::expect_ordered(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "comparable type", type, PrimType::is_ordered); }
+bool Sema::expect_boolean(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "boolean type", type, PrimType::is_boolean); }
+bool Sema::expect_floating(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "floating point type", type, PrimType::is_floating); }
 
 namespace ast {
 
@@ -150,10 +127,10 @@ const slang::Type* LiteralExpr::check(Sema& sema, const slang::Type* expected) c
 }
 
 const slang::Type* IdentExpr::check(Sema& sema, const slang::Type*) const {
-    if (auto symbol = sema.env()->lookup_symbol(name()))
+    if (auto symbol = sema.env()->lookup_symbol(ident()))
         return symbol->type();
 
-    sema.error(this) << "Unknown identifier \'" << name() << "\'\n";
+    sema.error(this) << "Unknown identifier \'" << ident() << "\'\n";
     return sema.error_type();
 }
 
@@ -232,46 +209,58 @@ const slang::Type* IndexExpr::check(Sema& sema, const slang::Type*) const {
     return sema.error_type();
 }
 
-const slang::Type* CallExpr::check(Sema& sema, const slang::Type*) const {
-    // TODO : Handle constructors
-
-    if (auto symbol = sema.env()->lookup_symbol(name())) {
-        if (!symbol->is_function()) {
-            sema.error(this) << "Identifier \'" << name() << "\' is not a function\n";
-            return sema.error_type();
+inline bool match_signature(const CallExpr* call, const slang::FunctionType* fn_type) {
+    if (fn_type->num_args() == call->num_args()) {
+        for (size_t i = 0; i < call->num_args(); i++) {
+            if (call->args()[i]->assigned_type() != fn_type->args()[i])
+                return false;
         }
+        return true;
+    }
+    return false;
+}
 
-        // Check arguments
-        for (size_t i = 0; i < num_args(); i++)
-            sema.check(args()[i]);
+static const slang::Type* check_function_call(Sema& sema, const CallExpr* call) {
+    const slang::CallableType* call_type = sema.check(call->function())->isa<slang::CallableType>();
+    if (!call_type) {
+        sema.error(call->function()) << "Expression is not callable\n";
+        return sema.error_type();
+    }
 
-        // Find the correct overloaded function to call
-        for (auto def : symbol->defs()) {
-            const slang::FunctionType* fn_type = def.first->as<slang::FunctionType>();
+    // Check arguments
+    for (size_t i = 0; i < call->num_args(); i++)
+        sema.check(call->args()[i]);
 
-            if (fn_type->num_args() == num_args()) {
-                bool valid_call = true;
-                for (size_t i = 0; i < num_args(); i++) {
-                    if (args()[i]->assigned_type() != fn_type->args()[i]) {
-                        valid_call = false;
-                        break;
-                    }
-                }
-
-                if (valid_call)
-                    return fn_type->ret();
-            }
+    std::string candidates;
+    if (auto overloaded = call_type->isa<slang::OverloadedFunctionType>()) {
+        for (auto sign : overloaded->signatures()) {
+            if (match_signature(call, sign))
+                return sign->ret();
         }
 
         // TODO : Add implicit conversion rules
 
-        sema.error(this) << "No overloaded function \'" << name()
-                         << "\' was found with this signature\n";
-    } else {
-        sema.error(this) << "Unknown function \'" << name() << "\'\n";
+        for (size_t i = 0; i < overloaded->num_signatures(); i++) {
+            candidates += "\'" + overloaded->signatures()[i]->to_string() + "\'";
+            if (i < overloaded->num_signatures() - 1) candidates += ", ";
+        }
+    } else if (auto sign = call_type->isa<slang::FunctionType>()) {
+        if (match_signature(call, sign))
+            return sign->ret();
+        candidates = sign->to_string();
     }
 
+    sema.error(call) << "No matching function was found for this call (candidates are : " << candidates << ")\n";
     return sema.error_type();
+}
+
+const slang::Type* CallExpr::check(Sema& sema, const slang::Type*) const {
+    if (is_constructor()) {
+        // TODO : Handle constructors
+        return sema.error_type();
+    } else {
+        return check_function_call(sema, this);
+    }
 }
 
 const slang::Type* CondExpr::check(Sema& sema, const slang::Type* expected) const {
@@ -371,7 +360,7 @@ static const slang::Type* check_shift(Sema& sema, const OpExpr* expr, const slan
 }
 
 template <bool conv = false>
-static const slang::Type* check_bitwise(Sema& sema, const OpExpr* expr, const slang::PrimType* a, const slang::PrimType* b) {
+const slang::Type* check_bitwise(Sema& sema, const OpExpr* expr, const slang::PrimType* a, const slang::PrimType* b) {
     if (!sema.expect_integer(expr, a) |
         !sema.expect_integer(expr, b)) {
         return sema.error_type();
@@ -555,7 +544,7 @@ const slang::Type* InitExpr::check(Sema& sema, const slang::Type* expected) cons
 
     if (auto array_type = expected->isa<slang::ArrayType>()) {
         if (num_exprs() == 0)
-            return sema.definite_array_type(array_type->elem(), 0);
+            return sema.array_type(array_type->elem(), 0);
 
         // Find the minimum element type (according to the subtype relation)
         auto elem = sema.check(exprs()[0], array_type->elem());
@@ -573,7 +562,7 @@ const slang::Type* InitExpr::check(Sema& sema, const slang::Type* expected) cons
         if (elem->subtype(array_type->elem()))
             elem = array_type->elem();
 
-        return sema.definite_array_type(elem, num_exprs());
+        return sema.array_type(elem, num_exprs());
     } else if (auto struct_type = expected->isa<slang::StructType>()) {
         if (exprs().size() != struct_type->members().size()) {
             sema.error(this) << "Invalid number of members in structure initializer\n";
@@ -627,14 +616,14 @@ const slang::Type* ArraySpecifier::check(Sema& sema, const slang::Type* type) co
         if (dim) {
             int size;
             if (integer_value(sema, dim, size) && size >= 0) {
-                cur_type = sema.definite_array_type(cur_type, size);
+                cur_type = sema.array_type(cur_type, size);
                 continue;
             } else {
                 sema.error(this) << "Invalid array dimension\n";
             }
         }
 
-        cur_type = sema.indefinite_array_type(cur_type);
+        cur_type = sema.array_type(cur_type);
     }
 
     return cur_type;
@@ -668,7 +657,7 @@ const slang::Type* NamedType::check(Sema& sema) const {
     return sema.error_type();
 }
 
-inline bool compound_members(Sema& sema, const CompoundType* compound, slang::CompoundType::MemberList& members) {
+static bool compound_members(Sema& sema, const CompoundType* compound, slang::CompoundType::MemberList& members) {
     // Creates the member list of a compound type from the AST node
     sema.push_env();
     for (auto field : compound->fields()) {
@@ -782,9 +771,20 @@ static void expect_overload(Sema& sema, const ast::FunctionDecl* fn_decl,
 
     // Register the function in the environment
     symbol->push_def(fn_type, fn_decl);
+
+    // Build the overloaded function type.
+    if (auto symbol_fn = symbol->type()->isa<slang::FunctionType>()) {
+        symbol->set_type(sema.overloaded_function_type({fn_type, symbol_fn}));
+    } else {
+        const slang::OverloadedFunctionType* overload = symbol->type()->isa<slang::OverloadedFunctionType>();
+        assert(overload && "Function symbol type must be either FunctionType or OverloadedFunctionType");
+        slang::OverloadedFunctionType::SignatureList sign_list = overload->signatures();
+        sign_list.push_back(fn_type);
+        symbol->set_type(sema.overloaded_function_type(sign_list));
+    }
 }
 
-inline slang::FunctionType::ArgList normalize_args(Sema& sema, const ast::FunctionDecl* fn_decl,
+static slang::FunctionType::ArgList normalize_args(Sema& sema, const ast::FunctionDecl* fn_decl,
                                                    const slang::FunctionType::ArgList& args) {
     assert(fn_decl->args().size() == args.size());
 
@@ -880,6 +880,7 @@ const slang::Type* Variable::check(Sema& sema, const slang::Type* var_type) cons
         if (is_unsized(symbol->type())) {
             if (!is_unsized(type) && type->subtype(symbol->type())) {
                 symbol->push_def(type, this);
+                symbol->set_type(type);
             } else {
                 sema.error(this) << "Incompatible types for array redeclaration,"
                                     " expected \'" + symbol->type()->to_string() + "\'"

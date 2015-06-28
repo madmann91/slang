@@ -17,6 +17,11 @@ class Sema;
 
 namespace ast {
 
+class Type;
+class Expr;
+class Decl;
+class Stmt;
+
 /// Base class for AST nodes.
 class Node : public Cast<Node> {
 public:
@@ -114,10 +119,16 @@ private:
 };
 
 /// An expression composed of an identifier.
-class IdentExpr : public Expr, public HasName {
+class IdentExpr : public Expr {
 public:
+    const std::string& ident() const { return ident_; }
+    void set_ident(const std::string& ident) { ident_ = ident; }
+
     void print(Printer&) const override;
     const slang::Type* check(Sema&, const slang::Type*) const override;
+
+private:
+    std::string ident_;
 };
 
 /// A field selection expression.
@@ -156,9 +167,18 @@ private:
     Ptr<Expr> left_, index_;
 };
 
-/// A function call expression.
-class CallExpr : public Expr, public HasName {
+/// A function/constructor call expression.
+class CallExpr : public Expr {
 public:
+    bool is_constructor() const { return static_cast<bool>(type_); }
+    bool is_function() const { return static_cast<bool>(expr_); }
+
+    const Expr* function() const { return expr_.get(); }
+    void set_function(Expr* expr) { expr_.reset(expr); }
+
+    const Type* constructor() const { return type_.get(); }
+    void set_constructor(Type* type) { type_.reset(type); }
+
     const PtrVector<Expr>& args() const { return args_; }
     void push_arg(Expr* arg) { args_.push_back(arg); }
     size_t num_args() const { return args_.size(); }
@@ -168,6 +188,8 @@ public:
 
 private:
     PtrVector<Expr> args_;
+    Ptr<Type> type_;
+    Ptr<Expr> expr_;
 };
 
 class OpExpr : public Expr {

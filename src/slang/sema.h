@@ -73,6 +73,10 @@ public:
     const FunctionType* function_type(const Type* ret, const FunctionType::ArgList& args) {
         return new_type<FunctionType>(ret, args);
     }
+    /// Creates an overloaded function type.
+    const OverloadedFunctionType* overloaded_function_type(const OverloadedFunctionType::SignatureList& signs) {
+        return new_type<OverloadedFunctionType>(signs);
+    }
     /// Creates a structure type from a list of members and a name.
     const StructType* struct_type(const std::string& name, const StructType::MemberList& members) {
         return new_type<StructType>(name, members);
@@ -82,11 +86,11 @@ public:
         return new_type<InterfaceType>(name, members);
     }
     /// Creates an array whose size is unknown.
-    const IndefiniteArrayType* indefinite_array_type(const Type* elem) {
+    const IndefiniteArrayType* array_type(const Type* elem) {
         return new_type<IndefiniteArrayType>(elem);
     }
     /// Creates an array of known size.
-    const DefiniteArrayType* definite_array_type(const Type* elem, int dim) {
+    const DefiniteArrayType* array_type(const Type* elem, int dim) {
         return new_type<DefiniteArrayType>(elem, dim);
     }
 

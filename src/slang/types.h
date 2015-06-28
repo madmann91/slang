@@ -39,8 +39,14 @@ public:
     std::string type_name() const override { return "<error>"; }
 };
 
+/// Base class for function types.
+class CallableType : public Type {
+public:
+    virtual ~CallableType() {}
+};
+
 /// Function type (equality based on return type and arguments).
-class FunctionType : public Type {
+class FunctionType : public CallableType {
 public:
     typedef std::vector<const Type*> ArgList;
 
@@ -48,44 +54,37 @@ public:
         : ret_(ret), args_(args)
     {}
 
-    bool equals(const Type* other) const override {
-        if (auto fn = other->isa<FunctionType>()) {
-            if (fn->ret()->equals(ret()) &&
-                fn->args().size() == args().size()) {
-                for (size_t i = 0; i < fn->args().size(); i++) {
-                    if (args()[i] != fn->args()[i])
-                        return false;
-                }
-                return true;
-            }
-        }
-        return false;
-    }
-
-    size_t hash() const override {
-        size_t h = 0;
-        for (auto arg : args()) {
-            h += arg->hash();
-        }
-        return ret()->hash() ^ h;
-    }
+    bool equals(const Type* other) const override;
+    size_t hash() const override;
+    std::string type_name() const override;
 
     const Type* ret() const { return ret_; }
     const ArgList& args() const { return args_; }
     size_t num_args() const { return args_.size(); }
 
-    std::string type_name() const override {
-        std::string str = ret()->to_string() + " (";
-        for (size_t i = 0; i < num_args(); i++) {
-            str += args()[i]->to_string();
-            if (i != num_args() - 1) str += ", ";
-        }
-        return str + ")";
-    }
-
 private:
     const Type* ret_;
     ArgList args_;
+};
+
+/// Overloaded function type. Contains several function signatures.
+class OverloadedFunctionType : public CallableType {
+public:
+    typedef std::vector<const FunctionType*> SignatureList;
+
+    OverloadedFunctionType(const SignatureList& signs)
+        : signs_(signs)
+    {}
+
+    bool equals(const Type* other) const override;
+    size_t hash() const override;
+    std::string type_name() const override;
+
+    const SignatureList& signatures() const { return signs_; }
+    size_t num_signatures() const { return signs_.size(); }
+
+private:
+    SignatureList signs_;
 };
 
 /// Compound type (interface or structure).
@@ -99,14 +98,8 @@ public:
     {}
     virtual ~CompoundType() {}
 
-    size_t hash() const override {
-        std::hash<std::string> hash_string;
-        size_t h = hash_string(name());
-        for (auto member : members()) {
-            h += hash_string(member.first) ^ member.second->hash();
-        }
-        return h;
-    }
+    size_t hash() const override;
+    std::string type_name() const override;
 
     const MemberList& members() const { return members_; }
     const std::string& name() const { return name_; }
@@ -118,8 +111,6 @@ public:
             });
         return it != members_.end() ? it->second : nullptr;
     }
-
-    std::string type_name() const override { return name_; }
 
 protected:
     std::string name_;
@@ -133,12 +124,7 @@ public:
         : CompoundType(name, members)
     {}
 
-    bool equals(const Type* other) const override {
-        if (auto st = other->isa<StructType>()) {
-            return st->name() == name_;
-        }
-        return false;
-    }
+    bool equals(const Type* other) const override;
 };
 
 /// Interface type (cannot be equal to another type).
@@ -148,12 +134,7 @@ public:
         : CompoundType(name, members)
     {}
 
-    bool equals(const Type* other) const override {
-        if (auto interface = other->isa<InterfaceType>()) {
-            return interface->name() == name_;
-        }
-        return false;
-    }
+    bool equals(const Type* other) const override;
 };
 
 /// Primitive type (int, float, double, ...).
@@ -172,46 +153,9 @@ public:
         : prim_(prim), rows_(rows), cols_(cols)
     {}
 
-    bool equals(const Type* other) const override {
-        if (auto prim_type = other->isa<PrimType>()) {
-            return prim_type->prim() == prim() &&
-                   prim_type->rows() == rows() &&
-                   prim_type->cols() == cols();
-        }
-        return false;
-    }
-
-    bool subtype(const Type* other) const override {
-        if (this == other)
-            return true;
-
-        const PrimType* prim_type = other->isa<PrimType>();
-        if (!prim_type)
-            return false;
-
-        // Vector or matrices of the same size, whose components are
-        // subtypes, are subtypes themselves.
-        if (prim_type->cols() == cols() &&
-            prim_type->rows() == rows()) {
-            switch (prim()) {
-                case PRIM_UINT:
-                case PRIM_INT:
-                    return prim_type->prim() == PRIM_UINT ||
-                           prim_type->prim() == PRIM_FLOAT ||
-                           prim_type->prim() == PRIM_DOUBLE;
-                case PRIM_FLOAT:
-                    return prim_type->prim() == PRIM_DOUBLE;
-                default:
-                    break;
-            }
-        }
-
-        return false;
-    }
-
-    size_t hash() const override {
-        return (size_t)prim() + cols() * 8 + rows() + 1;
-    }
+    bool equals(const Type* other) const override;
+    bool subtype(const Type* other) const override;
+    size_t hash() const override;
 
     Prim prim() const { return prim_; }
 
@@ -263,44 +207,7 @@ public:
     /// Returns the number of columns in this type.
     size_t cols() const { return cols_; }
 
-    std::string type_name() const override {
-        if (rows() == 1 && cols() == 1) {
-            switch (prim()) {
-                case PRIM_INT:    return "int";
-                case PRIM_UINT:   return "uint";
-                case PRIM_BOOL:   return "bool";
-                case PRIM_FLOAT:  return "float";
-                case PRIM_DOUBLE: return "double";
-                case PRIM_VOID:   return "void";
-            }
-        }
-
-        if (rows() > 1 && cols() == 1) {
-            switch (prim()) {
-                case PRIM_INT:    return "ivec" + std::to_string(rows());
-                case PRIM_UINT:   return "uvec" + std::to_string(rows());
-                case PRIM_BOOL:   return "bvec" + std::to_string(rows());
-                case PRIM_FLOAT:  return "vec"  + std::to_string(rows());
-                case PRIM_DOUBLE: return "dvec" + std::to_string(rows());
-                default:          assert(0 && "Invalid vector type");
-            }
-        }
-
-        if (rows() > 1 && cols() > 1) {
-            std::string prefix;
-            if (prim() == PRIM_FLOAT) {
-                prefix = "mat";
-            } else if (prim() == PRIM_DOUBLE) {
-                prefix = "dmat";
-            } else {
-                assert(0 && "Invalid matrix type");
-            }
-            return prefix + "mat" + std::to_string(rows()) + "x" + std::to_string(cols());
-        }
-
-        assert(0 && "Unknown primitive type");
-        return "";
-    }
+    std::string type_name() const override;
 
 private:
     struct HashPrim {
@@ -322,11 +229,11 @@ public:
     {}
     virtual ~ArrayType() {}
 
-    const Type* elem() const { return elem_; }
-
     std::string type_name() const override {
         return elem()->type_name();
     }
+
+    const Type* elem() const { return elem_; }
 
 protected:
     const Type* elem_;
@@ -339,20 +246,9 @@ public:
         : ArrayType(elem)
     {}
 
-    bool equals(const Type* other) const override {
-        if (auto def = other->isa<IndefiniteArrayType>()) {
-            return def->elem() == elem();
-        }
-        return false;
-    }
-
-    size_t hash() const override {
-        return elem()->hash();
-    }
-
-    std::string type_dims() const override {
-        return "[]" + elem()->type_dims();
-    }
+    bool equals(const Type* other) const override;
+    size_t hash() const override;
+    std::string type_dims() const override;
 };
 
 /// Array with known size.
@@ -362,38 +258,12 @@ public:
         : ArrayType(elem), size_(size)
     {}
 
+    bool equals(const Type* other) const override;
+    bool subtype(const Type* other) const override;
+    size_t hash() const override;
+    std::string type_dims() const override;
+
     int size() const { return size_; }
-
-    bool equals(const Type* other) const override {
-        if (auto def = other->isa<DefiniteArrayType>()) {
-            return def->size() == size_ && def->elem()== elem();
-        }
-        return false;
-    }
-
-    bool subtype(const Type* other) const override {
-        if (this == other)
-            return true;
-
-        if (auto indef = other->isa<IndefiniteArrayType>()) {
-            return elem() == indef->elem() ||
-                   (indef->elem()->isa<ArrayType>() && elem()->subtype(indef->elem()));
-        } else if (auto def = other->isa<DefiniteArrayType>()) {
-            return def->size() == size() &&
-                   def->elem()->isa<ArrayType>() &&
-                   elem()->subtype(def->elem());
-        }
-
-        return false;
-    }
-
-    size_t hash() const override {
-        return elem()->hash() ^ size();
-    }
-
-    std::string type_dims() const override {
-        return '[' + std::to_string(size_) + ']' + elem()->type_dims();
-    }
 
 private:
     int size_;

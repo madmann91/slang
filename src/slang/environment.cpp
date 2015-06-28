@@ -26,9 +26,6 @@ bool Symbol::is_variable() const { return is_node<ast::Variable>(defs_); }
 bool Symbol::is_argument() const { return is_node<ast::Arg>(defs_); }
 
 void Symbol::push_def(const Type* type, const ast::Node* node) {
-    if (type->subtype(type_))
-        type_ = type;
-
     defs_.insert(std::make_pair(type, node));
 }
 
@@ -51,6 +48,11 @@ Symbol* Environment::find_symbol(const std::string& name) {
     if (it != symbols_.end())
         return &it->second;
     return nullptr;
+}
+
+void Environment::push_symbol(const std::string& name, Symbol&& symbol) {
+    assert(symbols_.find(name) == symbols_.end());
+    symbols_.emplace(name, std::move(symbol));
 }
 
 template <typename T>

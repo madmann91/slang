@@ -2,6 +2,7 @@
 #define SLANG_KEYWORD_H
 
 #include <unordered_map>
+#include <ostream>
 
 namespace slang {
 
@@ -25,7 +26,17 @@ public:
 #define SLANG_KEY_QUAL(key, str) case KEY_##key:
 #include "slang/keywordlist.h"
                 return true;
+            default:
+                break;
+        }
+        return false;
+    }
 
+    bool is_data() const {
+        switch (type_) {
+#define SLANG_KEY_DATA(key, str, type, rows, cols) case KEY_##key:
+#include "slang/keywordlist.h"
+                return true;
             default:
                 break;
         }

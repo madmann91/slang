@@ -660,7 +660,7 @@ ast::LiteralExpr* Parser::parse_literal_expr() {
 ast::IdentExpr* Parser::parse_ident_expr() {
     // IdentExpr ::= ident
     auto expr = new_node<ast::IdentExpr>();
-    expr->set_name(lookup_[0].ident());
+    expr->set_ident(lookup_[0].ident());
     eat(Token::TOK_IDENT);
     return expr.node();
 }
@@ -689,11 +689,24 @@ ast::IndexExpr* Parser::parse_index_expr(ast::Expr* left) {
     return index.node();
 }
 
-ast::CallExpr* Parser::parse_call_expr() {
-    // CallExpr ::= ident '(' ((void)? | AssignExpr(,AssignExpr)*) ')'
+static bool is_constructor(Sema& sema, const Token& tok) {
+    assert(tok.isa(Token::TOK_IDENT));
+    if (tok.key().is_data())
+        return true;
+    if (auto symbol = sema.env()->find_symbol(tok.ident()))
+        return symbol->is_structure();
+    return false;
+}
+
+ast::CallExpr* Parser::parse_call_expr(ast::Expr* callee = nullptr) {
+    // CallExpr ::= (ident|Type) '(' ((void)? | AssignExpr(,AssignExpr)*) ')'
     auto call = new_node<ast::CallExpr>();
-    call->set_name(lookup_[0].ident());
-    eat(Token::TOK_IDENT);
+
+    if (callee)
+        call->set_function(callee);
+    else
+        call->set_constructor(parse_type());
+
     expect(Token::TOK_LPAREN);
 
     if (lookup_[0].key().isa(Key::KEY_VOID)) {
@@ -715,8 +728,7 @@ ast::CallExpr* Parser::parse_call_expr() {
 ast::Expr* Parser::parse_primary_expr() {
     // PrimExpr ::= CallExpr | ident | lit | (Expr)
     if (lookup_[0].isa(Token::TOK_IDENT)) {
-        if (lookup_[1].isa(Token::TOK_LPAREN) ||
-            lookup_[2].isa(Token::TOK_LBRACKET))
+        if (is_constructor(sema_, lookup_[0]))
             return parse_call_expr();
         else
             return parse_ident_expr();
@@ -756,7 +768,8 @@ ast::Expr* Parser::parse_unary_expr() {
     ast::UnOpExpr::Type post_type = token_to_post_unop(lookup_[0]);
     while (post_type != ast::UnOpExpr::UNOP_UNKNOWN ||
            lookup_[0].isa(Token::TOK_LBRACKET) ||
-           lookup_[0].isa(Token::TOK_DOT)) {
+           lookup_[0].isa(Token::TOK_DOT) ||
+           lookup_[0].isa(Token::TOK_LPAREN)) {
         if (post_type != ast::UnOpExpr::UNOP_UNKNOWN) {
             auto unop = new_node<ast::UnOpExpr>();
             unop->set_type(post_type);
@@ -770,6 +783,8 @@ ast::Expr* Parser::parse_unary_expr() {
             expr = parse_index_expr(expr);
         } else if (lookup_[0].isa(Token::TOK_DOT)) {
             expr = parse_field_expr(expr);
+        } else if (lookup_[0].isa(Token::TOK_LPAREN)) {
+            expr = parse_call_expr(expr);
         } else {
             assert(0 && "Error in parser logic");
         }

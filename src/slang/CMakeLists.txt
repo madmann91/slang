@@ -21,7 +21,8 @@ set(SOURCE_FILES
     parser.cpp
     preprocessor.cpp
     print.cpp
-    sema.cpp)
+    sema.cpp
+    types.cpp)
 
 if(CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_CXX_FLAGS "-Wall -pedantic -std=c++11 ${CMAKE_CXX_FLAGS}")
