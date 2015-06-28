@@ -82,7 +82,7 @@ bool Sema::expect_nonvoid(const ast::Node* node, const std::string& name, const 
 }
 
 static bool expect_in_op(Sema& sema, const ast::OpExpr* expr, const std::string& msg,
-                        const PrimType* type, bool (PrimType::*f) () const) {
+                         const PrimType* type, bool (PrimType::*f) () const) {
     if (!(type->*f)()) {
         sema.error(expr) << "Expected " << msg << " for operator \'" << expr->op_string()
                          << "\', but got \'" << type->to_string() << "\'\n";

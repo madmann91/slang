@@ -1,9 +1,9 @@
 Error in parser/invalid/bad-decls.glsl (1, 11) : Precision qualifier expected
-Error in parser/invalid/bad-decls.glsl (1, 1 - 1, 15) : Expected floating point type, but got 'int'
+Error in parser/invalid/bad-decls.glsl (1, 1 - 1, 15) : Floating point type expected in precision declaration
 Error in parser/invalid/bad-decls.glsl (2, 10) : Precision qualifier expected
 Error in parser/invalid/bad-decls.glsl (2, 10) : Identifier or data type expected
-Error in parser/invalid/bad-decls.glsl (2, 1 - 2, 11) : Expected floating point type, but got '<error>'
+Error in parser/invalid/bad-decls.glsl (2, 1 - 2, 11) : Floating point type expected in precision declaration
 Error in parser/invalid/bad-decls.glsl (3, 19) : No qualifiers allowed inside precision declaration
 Error in parser/invalid/bad-decls.glsl (3, 23) : No qualifiers allowed inside precision declaration
-Error in parser/invalid/bad-decls.glsl (3, 1 - 3, 27) : Expected floating point type, but got 'int'
+Error in parser/invalid/bad-decls.glsl (3, 1 - 3, 27) : Floating point type expected in precision declaration
 Error in parser/invalid/bad-decls.glsl (4, 1) : Keyword or identifier expected

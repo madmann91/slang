@@ -1,4 +1,4 @@
-struct s {};
+struct s { int a; };
 
 s a1[1];
 s[1] b1;

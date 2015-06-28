@@ -149,7 +149,6 @@ Token Lexer::lex() {
             case '%': MAKE_BIN_OP(Token::TOK_MOD,    Token::TOK_ASSIGN_MOD)
             case '!': MAKE_BIN_OP(Token::TOK_NOT,    Token::TOK_NEQ)
             case '=': MAKE_BIN_OP(Token::TOK_ASSIGN, Token::TOK_EQ)
-            case '^': MAKE_BIN_OP(Token::TOK_XOR,    Token::TOK_ASSIGN_XOR)
 
     #undef MAKE_BIN_OP
 
@@ -199,6 +198,7 @@ Token Lexer::lex() {
 
             case '&': MAKE_BIT_OP(Token::TOK_AND, Token::TOK_ANDAND, Token::TOK_ASSIGN_AND)
             case '|': MAKE_BIT_OP(Token::TOK_OR,  Token::TOK_OROR,   Token::TOK_ASSIGN_OR)
+            case '^': MAKE_BIT_OP(Token::TOK_XOR, Token::TOK_XORXOR, Token::TOK_ASSIGN_XOR)
 
     #undef MAKE_BIT_OP
 
