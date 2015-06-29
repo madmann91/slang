@@ -91,11 +91,11 @@ static bool expect_in_op(Sema& sema, const ast::OpExpr* expr, const std::string&
     return true;
 }
 
-bool Sema::expect_numeric(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "numeric type", type, PrimType::is_numeric); }
-bool Sema::expect_integer(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "integer type", type, PrimType::is_integer); }
-bool Sema::expect_ordered(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "comparable type", type, PrimType::is_ordered); }
-bool Sema::expect_boolean(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "boolean type", type, PrimType::is_boolean); }
-bool Sema::expect_floating(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "floating point type", type, PrimType::is_floating); }
+bool Sema::expect_numeric(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "numeric type", type, &PrimType::is_numeric); }
+bool Sema::expect_integer(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "integer type", type, &PrimType::is_integer); }
+bool Sema::expect_ordered(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "comparable type", type, &PrimType::is_ordered); }
+bool Sema::expect_boolean(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "boolean type", type, &PrimType::is_boolean); }
+bool Sema::expect_floating(const ast::OpExpr* expr, const PrimType* type) { return expect_in_op(*this, expr, "floating point type", type, &PrimType::is_floating); }
 
 namespace ast {
 
