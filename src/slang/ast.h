@@ -192,6 +192,7 @@ private:
     Ptr<Expr> expr_;
 };
 
+/// An expression which features an operator.
 class OpExpr : public Expr {
 public:
     virtual ~OpExpr() {}

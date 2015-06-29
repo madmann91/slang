@@ -18,8 +18,9 @@ namespace ast {
 class Type;
 
 /// Holds a declaration (function, variable or datatype). Structures,
-/// interfaces, or variables have only one definition in one environment.
-/// Functions can have multiple definitions : prototypes and overloads.
+/// interfaces, or non-array variables have only one definition in one environment.
+/// Functions can have multiple definitions : prototypes and overloads. Arrays
+/// can be redefined to specify their size, if they were declared unsized.
 class Symbol {
 public:
     typedef std::unordered_multimap<const Type*, const ast::Node*> DefMap;
@@ -49,7 +50,7 @@ private:
     DefMap defs_;
 };
 
-/// An environment : holds variables, structures and functions names.
+/// An environment : holds variable, structure and function names.
 class Environment {
 public:
     Environment(const ast::Node* scope = nullptr)

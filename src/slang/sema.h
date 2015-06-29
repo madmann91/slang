@@ -60,7 +60,7 @@ public:
         return logger_.error(node->loc());
     }
 
-    /// Displays an error message with the Logger object.
+    /// Displays a warning message with the Logger object.
     std::ostream& warn(const ast::Node* node) {
         return logger_.warn(node->loc());
     }
