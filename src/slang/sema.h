@@ -20,10 +20,12 @@ public:
     Sema(Logger& logger)
         : logger_(logger), env_(nullptr) {
         push_env();
+        builtin_env_ = env_;
+        push_env();
     }
 
     ~Sema() {
-        pop_env();
+        pop_env(2);
         for (auto type : types_)
             delete type;
     }
@@ -64,6 +66,11 @@ public:
     std::ostream& warn(const ast::Node* node) {
         return logger_.warn(node->loc());
     }
+
+    /// Implicit convert the given primitive types so that their fundamental types match
+    void implicit_convert(const PrimType*&, const PrimType*&);
+    /// Implicit convert the given types
+    void implicit_convert(const Type*&, const Type*&);
 
     /// Creates an error type. For expressions that fail typechecking.
     const ErrorType* error_type() { return new_type<ErrorType>(); }
@@ -181,7 +188,7 @@ private:
 
     std::unordered_set<const Type*, HashType, EqualType> types_;
     PtrVector<Environment> env_list_;
-    Environment* env_;
+    Environment* env_, *builtin_env_;
 };
 
 } // namespace slang

@@ -102,6 +102,8 @@ public:
     std::string type_name() const override;
 
     const MemberList& members() const { return members_; }
+    size_t num_members() const { return members_.size(); }
+
     const std::string& name() const { return name_; }
 
     const Type* member_type(const std::string& name) const {

@@ -749,7 +749,6 @@ ast::Expr* Parser::parse_primary_expr() {
 ast::Expr* Parser::parse_unary_expr() {
     // UnOpExpr ::= ++ UnOpExpr | -- UnOpExpr | ! UnOpExpr
     //            |  ~ UnOpExpr | PrimExpr (++ | -- | . field | [Expr])*
-
     const ast::UnOpExpr::Type pre_type = token_to_pre_unop(lookup_[0]);
 
     // Prefix expression

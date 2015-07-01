@@ -20,21 +20,30 @@ inline bool is_void(const Type* type) {
     return false;
 }
 
-template <typename T>
-void implicit_convert(const T*& a, const T*& b) {
-    if (a->subtype(b))
-        a = b;
-    else if (b->subtype(a))
+void Sema::implicit_convert(const PrimType*& a, const PrimType*& b) {
+    PrimType base_a(a->prim());
+    PrimType base_b(b->prim());
+    if (base_a.subtype(&base_b)) {
+        b = prim_type(a->prim(), b->rows(), b->cols());
+    } else if(base_b.subtype(&base_a)) {
+        a = prim_type(b->prim(), a->rows(), a->cols());
+    }
+}
+
+void Sema::implicit_convert(const Type*& a, const Type*& b) {
+    if (a->subtype(b)) {
         b = a;
+    } else if (b->subtype(a)) {
+        a = b;
+    }
 }
 
 void Sema::new_symbol(const std::string& name, const Type* type, const ast::Node* node) {
     assert(!name.empty());
-    if (auto prev_symbol = env()->find_symbol(name)) {
+    if (auto prev_symbol = env()->find_symbol(name))
         symbol_redefinition(name, prev_symbol, node);
-    } else {
+    else
         env()->push_symbol(name, Symbol({std::make_pair(type, node)}));
-    }
 }
 
 void Sema::symbol_redefinition(const std::string& name, const Symbol* symbol, const ast::Node* node) {
@@ -254,13 +263,81 @@ static const slang::Type* check_function_call(Sema& sema, const CallExpr* call) 
     return sema.error_type();
 }
 
-const slang::Type* CallExpr::check(Sema& sema, const slang::Type*) const {
-    if (is_constructor()) {
-        // TODO : Handle constructors
-        return sema.error_type();
-    } else {
-        return check_function_call(sema, this);
+inline bool check_constructor_args(Sema& sema, const CallExpr* call, size_t n) {
+    if (n != call->num_args()) {
+        sema.error(call) << "Invalid number of arguments for constructor, expected " << n
+                         << " and got " << call->num_args() << "\n";
+        return false;
     }
+    return true;
+}
+
+static const slang::Type* check_constructor_call(Sema& sema, const CallExpr* call) {
+    const slang::Type* type = sema.check(call->constructor());
+
+    if (auto prim = type->isa<slang::PrimType>()) {
+        if (prim->prim() == slang::PrimType::PRIM_VOID) {
+            sema.error(call) << "Cannot construct type \'void\'\n";
+            return sema.error_type();
+        }
+
+        bool from_matrix = false;
+        bool from_scalar = false;
+        size_t num_components = 0, prev_components = 0;
+        for (size_t i = 0; i < call->num_args(); i++) {
+            const slang::Type* arg_type = sema.check(call->args()[i]);
+            if (auto arg_prim = arg_type->isa<slang::PrimType>()) {
+                from_matrix |= arg_prim->is_matrix();
+                from_scalar |= arg_prim->is_scalar();
+                prev_components = num_components;
+                num_components += arg_prim->size();
+            } else {
+                sema.error(call->args()[i]) << "Primitive type expected in constructor arguments\n";
+                return sema.error_type();
+            }
+        }
+
+        if (from_matrix && prim->is_matrix()) {
+            if (call->num_args() > 1) {
+                sema.error(call) << "Matrix constructors can only accept one matrix argument\n";
+                return sema.error_type();
+            }
+        } else if (prev_components >= prim->size()) {
+            sema.error(call) << "Too many components for constructor, expected " << prim->size()
+                             << " and got " << num_components << "\n";
+            return sema.error_type();
+        } else if (num_components < prim->size() && (call->num_args() > 1 || prim->is_scalar()) && from_scalar) {
+            sema.error(call) << "Not enough components for constructor, expected " << prim->size()
+                             << " and got " << num_components << "\n";
+            return sema.error_type();
+        }
+    } else if (auto struct_type = type->isa<slang::StructType>()) {
+        if (!check_constructor_args(sema, call, struct_type->num_members()))
+            return sema.error_type();
+        for (size_t i = 0; i < struct_type->num_members(); i++)
+            sema.check(call->args()[i], struct_type->members()[i].second);
+    } else if (auto indef_array = type->isa<slang::IndefiniteArrayType>()) {
+        for (auto arg : call->args())
+            sema.check(arg, indef_array->elem());
+        // For indefinite arrays, return a definite array type
+        return sema.array_type(indef_array->elem(), call->num_args());
+    } else if (auto def_array = type->isa<slang::DefiniteArrayType>()) {
+        if (!check_constructor_args(sema, call, def_array->size()))
+            return sema.error_type();
+        for (auto arg : call->args())
+            sema.check(arg, def_array->elem());
+    } else {
+        assert(0 && "Unknown constructor type");
+    }
+
+    return type;
+}
+
+const slang::Type* CallExpr::check(Sema& sema, const slang::Type*) const {
+    if (is_constructor())
+        return check_constructor_call(sema, this);
+    else
+        return check_function_call(sema, this);
 }
 
 const slang::Type* CondExpr::check(Sema& sema, const slang::Type* expected) const {
@@ -268,7 +345,7 @@ const slang::Type* CondExpr::check(Sema& sema, const slang::Type* expected) cons
 
     const slang::Type* type_true = sema.check(if_true(), expected);
     const slang::Type* type_false = sema.check(if_false(), expected);
-    implicit_convert(type_true, type_false);
+    sema.implicit_convert(type_true, type_false);
     if (type_true == type_false) {
         return type_true;
     } else {
@@ -279,7 +356,7 @@ const slang::Type* CondExpr::check(Sema& sema, const slang::Type* expected) cons
 }
 
 static const slang::Type* check_equal(Sema& sema, const OpExpr* expr, const slang::Type* left, const slang::Type* right) {
-    implicit_convert(left, right);
+    sema.implicit_convert(left, right);
     if (left != right) {
         sema.error(expr) << "Operands of \'" << expr->op_string() << "\' must be of the same type\n";
         return sema.error_type();
@@ -293,7 +370,7 @@ static const slang::Type* check_arithmetic(Sema& sema, const OpExpr* expr, const
         return sema.error_type();
     }
 
-    implicit_convert(a, b);
+    sema.implicit_convert(a, b);
 
     if ((a->is_scalar() && b->is_scalar()) ||
         (a->is_vector() && b->is_vector()) ||
@@ -317,7 +394,7 @@ static const slang::Type* check_product(Sema& sema, const OpExpr* expr, const sl
         return sema.error_type();
     }
 
-    implicit_convert(a, b);
+    sema.implicit_convert(a, b);
 
     if ((a->is_scalar() && b->is_scalar()) ||
         (a->is_vector() && b->is_vector())) {
@@ -367,7 +444,7 @@ const slang::Type* check_bitwise(Sema& sema, const OpExpr* expr, const slang::Pr
     }
 
     if (conv)
-        implicit_convert(a, b);
+        sema.implicit_convert(a, b);
 
     if ((a->is_scalar() && b->is_scalar()) ||
         (a->is_vector() && b->is_vector())) {
@@ -394,7 +471,7 @@ static const slang::Type* check_comparison(Sema& sema, const OpExpr* expr, const
         return sema.error_type();
     }
 
-    implicit_convert(a, b);
+    sema.implicit_convert(a, b);
 
     sema.expect_equal(expr, a, b);
     return sema.prim_type(slang::PrimType::PRIM_BOOL);
@@ -564,7 +641,7 @@ const slang::Type* InitExpr::check(Sema& sema, const slang::Type* expected) cons
 
         return sema.array_type(elem, num_exprs());
     } else if (auto struct_type = expected->isa<slang::StructType>()) {
-        if (exprs().size() != struct_type->members().size()) {
+        if (exprs().size() != struct_type->num_members()) {
             sema.error(this) << "Invalid number of members in structure initializer\n";
             return sema.error_type();
         }
