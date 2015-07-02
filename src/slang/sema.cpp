@@ -306,7 +306,7 @@ static const slang::Type* check_constructor_call(Sema& sema, const CallExpr* cal
             sema.error(call) << "Too many components for constructor, expected " << prim->size()
                              << " and got " << num_components << "\n";
             return sema.error_type();
-        } else if (num_components < prim->size() && (call->num_args() > 1 || prim->is_scalar()) && from_scalar) {
+        } else if (num_components < prim->size() && (call->num_args() > 1 || prim->is_scalar() || !from_scalar)) {
             sema.error(call) << "Not enough components for constructor, expected " << prim->size()
                              << " and got " << num_components << "\n";
             return sema.error_type();
