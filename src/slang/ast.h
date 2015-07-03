@@ -36,6 +36,19 @@ private:
     Location loc_;
 };
 
+/// A module, which contains the list of top-level declarations.
+class Module : public Node {
+public:
+    const PtrVector<Decl>& decls() const { return decls_; }
+    void push_decl(Decl* d) { decls_.push_back(d); }
+    size_t num_decls() const { return decls_.size(); }
+
+    void print(Printer&) const override;
+
+private:
+    PtrVector<Decl> decls_;
+};
+
 /// Nodes that have a name.
 class HasName {
 public:
@@ -48,19 +61,6 @@ public:
 
 protected:
     std::string name_;
-};
-
-/// Nodes that have an environment bound.
-class HasEnv {
-public:
-    virtual ~HasEnv() {}
-
-    void set_env(Environment* env) { env_ = env; }
-    Environment* env() { return env_; }
-    const Environment* env() const { return env_; }
-
-protected:
-    Environment* env_;
 };
 
 /// Nodes that have a semantic type associated with them.
@@ -556,19 +556,6 @@ public:
     virtual const slang::Type* check(Sema&) const = 0;
 };
 
-/// A list of declarations.
-class DeclList : public Node, public HasEnv {
-public:
-    const PtrVector<Decl>& decls() const { return decls_; }
-    void push_decl(Decl* d) { decls_.push_back(d); }
-    size_t num_decls() const { return decls_.size(); }
-
-    void print(Printer&) const override;
-
-private:
-    PtrVector<Decl> decls_;
-};
-
 /// Base class for statements.
 class Stmt : public Node {
 public:
@@ -578,7 +565,7 @@ public:
 };
 
 /// A list of statements.
-class StmtList : public Stmt, public HasEnv {
+class StmtList : public Stmt {
 public:
     const PtrVector<Stmt>& stmts() const { return stmts_; }
     void push_stmt(Stmt* s) { stmts_.push_back(s); }

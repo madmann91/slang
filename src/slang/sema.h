@@ -31,9 +31,9 @@ public:
     }
 
     /// Returns the current environment.
-    Environment* env() {
-        return env_;
-    }
+    Environment* env() { return env_; }
+    /// Returns the builtin environment.
+    Environment* builtin_env() { return builtin_env_; }
 
     /// Pushes a new, empty environment on the stack.
     void push_env(const ast::Node* scope = nullptr) {
@@ -55,17 +55,7 @@ public:
     /// Creates a new identifier, if the name is not already used in the current environment.
     void new_symbol(const std::string&, const Type*, const ast::Node*);
     /// Emits the "symbol already defined" error message.
-    void symbol_redefinition(const std::string&, const Symbol*, const ast::Node*);
-
-    /// Displays an error message with the Logger object.
-    std::ostream& error(const ast::Node* node) {
-        return logger_.error(node->loc());
-    }
-
-    /// Displays a warning message with the Logger object.
-    std::ostream& warn(const ast::Node* node) {
-        return logger_.warn(node->loc());
-    }
+    void error_redefinition(const std::string&, const Symbol*, const ast::Node*);
 
     /// Implicit convert the given primitive types so that their fundamental types match
     void implicit_convert(const PrimType*&, const PrimType*&);
@@ -144,6 +134,16 @@ public:
     const Type* check(const ast::Variable* var, const Type* var_type) { return check_assign(var, var_type); }
     /// Checks an array specifier, returns an array or the original type.
     const Type* check(const ast::ArraySpecifier* array, const Type* type) { return array ? array->check(*this, type) : type; }
+
+    /// Displays an error message with the Logger object.
+    std::ostream& error(const ast::Node* node) {
+        return logger_.error(node->loc());
+    }
+
+    /// Displays a warning message with the Logger object.
+    std::ostream& warn(const ast::Node* node) {
+        return logger_.warn(node->loc());
+    }
 
 private:
     template <typename T>

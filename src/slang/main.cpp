@@ -72,11 +72,12 @@ bool syntax_analysis(const std::string& filename, const Keywords& keys) {
         return true;
     });
     pp.register_builtin_macros();
-    Parser parser([&pp]() { return pp.preprocess(); }, logger);
-    std::unique_ptr<ast::DeclList> root = parser.parse();
+    Sema sema(logger);
+    Parser parser([&pp]() { return pp.preprocess(); }, sema, logger);
+    std::unique_ptr<ast::Module> module = parser.parse();
 
     Printer printer(std::cout);
-    root->print(printer);
+    module->print(printer);
 
     return lexer.error_count() == 0 &&
            pp.error_count() == 0 &&

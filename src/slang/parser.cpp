@@ -5,8 +5,8 @@
 
 namespace slang {
 
-Parser::Parser(std::function<Token()> input, Logger& logger)
-    : err_count_(0), input_(input), sema_(logger), logger_(logger)
+Parser::Parser(std::function<Token()> input, Sema& sema, Logger& logger)
+    : err_count_(0), input_(input), sema_(sema), logger_(logger)
 {
     lookup_[0] = input();
     lookup_[1] = input();
@@ -14,8 +14,8 @@ Parser::Parser(std::function<Token()> input, Logger& logger)
     prev_ = lookup_[0].loc().start();
 }
 
-std::unique_ptr<ast::DeclList> Parser::parse() {
-    return std::unique_ptr<ast::DeclList>(parse_root());
+std::unique_ptr<ast::Module> Parser::parse() {
+    return std::unique_ptr<ast::Module>(parse_module());
 }
 
 void Parser::next() {
@@ -54,8 +54,8 @@ std::ostream& Parser::error() {
     return logger_.error(lookup_[0].loc().start());
 }
 
-ast::DeclList* Parser::parse_root() {
-    auto root = new_node<ast::DeclList>();
+ast::Module* Parser::parse_module() {
+    auto root = new_node<ast::Module>();
 
     while (!lookup_[0].is_eof()) {
         if (lookup_[0].isa(Token::TOK_IDENT)) {

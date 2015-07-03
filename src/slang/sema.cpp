@@ -41,12 +41,12 @@ void Sema::implicit_convert(const Type*& a, const Type*& b) {
 void Sema::new_symbol(const std::string& name, const Type* type, const ast::Node* node) {
     assert(!name.empty());
     if (auto prev_symbol = env()->find_symbol(name))
-        symbol_redefinition(name, prev_symbol, node);
+        error_redefinition(name, prev_symbol, node);
     else
         env()->push_symbol(name, Symbol({std::make_pair(type, node)}));
 }
 
-void Sema::symbol_redefinition(const std::string& name, const Symbol* symbol, const ast::Node* node) {
+void Sema::error_redefinition(const std::string& name, const Symbol* symbol, const ast::Node* node) {
     error(node) << "Identifier \'" << name << "\' has already been defined (line "
                 << symbol->location().start().line() << ")\n";
 }
@@ -964,7 +964,7 @@ const slang::Type* Variable::check(Sema& sema, const slang::Type* var_type) cons
                                     " and got \'" + type->to_string() + "\'\n";
             }
         } else if (symbol->type() != type) {
-            sema.symbol_redefinition(name(), symbol, this);
+            sema.error_redefinition(name(), symbol, this);
         }
     } else {
         sema.new_symbol(name(), type, this);

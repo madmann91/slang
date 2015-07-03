@@ -8,6 +8,13 @@ int precedence(ast::BinOpExpr::Type type);
 
 namespace ast {
 
+void Module::print(Printer& printer) const {
+    for (auto d : decls_) {
+        d->print(printer);
+        printer << "\n";
+    }
+}
+
 void StorageQualifier::print(Printer& printer) const {
     switch (storage_) {
 #define SLANG_KEY_QUAL_STORAGE(key, str) case STORAGE_##key: printer << str; break;
@@ -384,13 +391,6 @@ void InitExpr::print(Printer& printer) const {
             printer << ", ";
     }
     printer << "}";
-}
-
-void DeclList::print(Printer& printer) const {
-    for (auto d : decls_) {
-        d->print(printer);
-        printer << "\n";
-    }
 }
 
 void LoopCond::print(Printer& printer) const {
