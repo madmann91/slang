@@ -4,7 +4,7 @@
 
 namespace slang {
 
-Symbol::Symbol(std::initializer_list<DefMap::value_type> defs)
+Symbol::Symbol(DefMap&& defs)
     : defs_(defs)
 {
     assert(defs.size() > 0);

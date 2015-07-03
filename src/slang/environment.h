@@ -25,7 +25,7 @@ class Symbol {
 public:
     typedef std::unordered_multimap<const Type*, const ast::Node*> DefMap;
 
-    Symbol(std::initializer_list<DefMap::value_type> defs);
+    Symbol(DefMap&& defs);
 
     bool is_function() const;
     bool is_structure() const;

@@ -7,6 +7,7 @@
 #include "slang/preprocessor.h"
 #include "slang/ast.h"
 #include "slang/print.h"
+#include "slang/context.h"
 
 using namespace slang;
 
@@ -73,6 +74,8 @@ bool syntax_analysis(const std::string& filename, const Keywords& keys) {
     });
     pp.register_builtin_macros();
     Sema sema(logger);
+    Context context(sema);
+    context.register_all();
     Parser parser([&pp]() { return pp.preprocess(); }, sema, logger);
     std::unique_ptr<ast::Module> module = parser.parse();
 
