@@ -84,7 +84,8 @@ bool syntax_analysis(const std::string& filename, const Keywords& keys) {
 
     return lexer.error_count() == 0 &&
            pp.error_count() == 0 &&
-           parser.error_count() == 0;
+           parser.error_count() == 0 &&
+           sema.error_count() == 0;
 }
 
 int main(int argc, char** argv) {

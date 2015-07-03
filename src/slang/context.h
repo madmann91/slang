@@ -189,4 +189,3 @@ private:
 } // namespace slang
 
 #endif // SLANG_CONTEXT_H
-

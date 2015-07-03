@@ -122,4 +122,3 @@ ast::Arg* Context::new_argument(const Type* type, ast::PrimType::Prim prim) {
 }
 
 } // namespace slang
-

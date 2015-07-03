@@ -18,7 +18,7 @@ namespace slang {
 class Sema {
 public:
     Sema(Logger& logger)
-        : logger_(logger), env_(nullptr) {
+        : logger_(logger), env_(nullptr), err_count_(0), warn_count_(0) {
         push_env();
         builtin_env_ = env_;
         push_env();
@@ -135,13 +135,20 @@ public:
     /// Checks an array specifier, returns an array or the original type.
     const Type* check(const ast::ArraySpecifier* array, const Type* type) { return array ? array->check(*this, type) : type; }
 
+    /// Returns the number of errors generated during type checking.
+    size_t error_count() const { return err_count_; }
+    /// Returns the number of warnings generated during type checking.
+    size_t warn_count() const { return warn_count_; }
+
     /// Displays an error message with the Logger object.
     std::ostream& error(const ast::Node* node) {
+        err_count_++;
         return logger_.error(node->loc());
     }
 
     /// Displays a warning message with the Logger object.
     std::ostream& warn(const ast::Node* node) {
+        warn_count_++;
         return logger_.warn(node->loc());
     }
 
@@ -189,6 +196,7 @@ private:
     std::unordered_set<const Type*, HashType, EqualType> types_;
     PtrVector<Environment> env_list_;
     Environment* env_, *builtin_env_;
+    size_t err_count_, warn_count_;
 };
 
 } // namespace slang
