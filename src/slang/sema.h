@@ -13,9 +13,8 @@
 
 namespace slang {
 
-/// Helper class for semantic analysis. Types are hashed and stored uniquely,
-/// which means type equality can be checked with pointer equality.
-class Sema {
+/// Helper class for semantic analysis.
+class Sema : public TypeTable {
 public:
     Sema(Logger& logger)
         : logger_(logger), env_(nullptr), err_count_(0), warn_count_(0) {
@@ -57,39 +56,10 @@ public:
     /// Emits the "symbol already defined" error message.
     void error_redefinition(const std::string&, const Symbol*, const ast::Node*);
 
-    /// Implicit convert the given primitive types so that their fundamental types match
+    /// Implicit convert the given primitive types so that their fundamental types match.
     void implicit_convert(const PrimType*&, const PrimType*&);
-    /// Implicit convert the given types
+    /// Implicit convert the given types.
     void implicit_convert(const Type*&, const Type*&);
-
-    /// Creates an error type. For expressions that fail typechecking.
-    const ErrorType* error_type() { return new_type<ErrorType>(); }
-    /// Creates a primitive type.
-    const PrimType* prim_type(PrimType::Prim prim, int rows = 1, int cols = 1) { return new_type<PrimType>(prim, rows, cols); }
-    /// Creates a function type from a return type and a list of arguments.
-    const FunctionType* function_type(const Type* ret, const FunctionType::ArgList& args) {
-        return new_type<FunctionType>(ret, args);
-    }
-    /// Creates an overloaded function type.
-    const OverloadedFunctionType* overloaded_function_type(const OverloadedFunctionType::SignatureList& signs) {
-        return new_type<OverloadedFunctionType>(signs);
-    }
-    /// Creates a structure type from a list of members and a name.
-    const StructType* struct_type(const std::string& name, const StructType::MemberList& members) {
-        return new_type<StructType>(name, members);
-    }
-    /// Creates an interface type type from a list of members and a name.
-    const InterfaceType* interface_type(const std::string& name, const InterfaceType::MemberList& members) {
-        return new_type<InterfaceType>(name, members);
-    }
-    /// Creates an array whose size is unknown.
-    const IndefiniteArrayType* array_type(const Type* elem) {
-        return new_type<IndefiniteArrayType>(elem);
-    }
-    /// Creates an array of known size.
-    const DefiniteArrayType* array_type(const Type* elem, int dim) {
-        return new_type<DefiniteArrayType>(elem, dim);
-    }
 
     /// Expects identical types in an AST node.
     bool expect_type(const ast::Node*, const Type*, const Type*);
@@ -109,6 +79,8 @@ public:
     bool expect_boolean(const ast::OpExpr*, const PrimType*);
     /// Expects a floating point type in an operator (float or double).
     bool expect_floating(const ast::OpExpr*, const PrimType*);
+    /// Expects an l-value.
+    bool expect_lvalue(const ast::Expr*);
 
     /// Checks the type of an expression, and expects the given type as a result.
     const Type* check(const ast::Expr* expr, const Type* expected) {
@@ -131,9 +103,11 @@ public:
     /// Checks the type of a function argument.
     const Type* check(const ast::Arg* arg) { return check_assign(arg); }
     /// Checks the type of a variable, given the type of the corresponding declaration.
-    const Type* check(const ast::Variable* var, const Type* var_type) { return check_assign(var, var_type); }
-    /// Checks an array specifier, returns an array or the original type.
-    const Type* check(const ast::ArraySpecifier* array, const Type* type) { return array ? array->check(*this, type) : type; }
+    const Type* check(const ast::Variable* var,
+                      const Type* var_type,
+                      const Type::Qualifier qual) {
+        return check_assign(var, var_type, qual);
+    }
 
     /// Returns the number of errors generated during type checking.
     size_t error_count() const { return err_count_; }
@@ -167,33 +141,7 @@ private:
         return found;
     }
 
-    template <typename T, typename... Args>
-    const T* new_type(Args... args) {
-        T t(std::forward<Args>(args)...);
-        auto it = types_.find(&t);
-        if (it != types_.end())
-            return (*it)->as<T>();
-
-        const T* pt = new T(t);
-        types_.emplace(pt);
-        return pt;
-    }
-
-    struct HashType {
-        size_t operator () (const Type* t) const {
-            return t->hash();
-        }
-    };
-
-    struct EqualType {
-        bool operator () (const Type* t1, const Type* t2) const {
-            return t1->equals(t2);
-        }
-    };
-
     Logger& logger_;
-
-    std::unordered_set<const Type*, HashType, EqualType> types_;
     PtrVector<Environment> env_list_;
     Environment* env_, *builtin_env_;
     size_t err_count_, warn_count_;

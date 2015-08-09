@@ -3,6 +3,9 @@
 namespace slang {
 
 bool FunctionType::equals(const Type* other) const {
+    if (qualifier() != other->qualifier())
+        return false;
+
     if (auto fn = other->isa<FunctionType>()) {
         if (num_args() != fn->num_args())
             return false;
@@ -12,6 +15,7 @@ bool FunctionType::equals(const Type* other) const {
         }
         return true;
     }
+
     return false;
 }
 
@@ -33,6 +37,9 @@ std::string FunctionType::type_name() const {
 }
 
 bool OverloadedFunctionType::equals(const Type* other) const {
+    if (qualifier() != other->qualifier())
+        return false;
+
     if (auto fn = other->isa<OverloadedFunctionType>()) {
         if (num_signatures() != fn->num_signatures())
             return false;
@@ -44,6 +51,7 @@ bool OverloadedFunctionType::equals(const Type* other) const {
 
         return true;
     }
+
     return false;
 }
 
@@ -73,6 +81,8 @@ std::string CompoundType::type_name() const {
 }
 
 bool StructType::equals(const Type* other) const {
+    if (qualifier() != other->qualifier())
+        return false;
     if (auto st = other->isa<StructType>()) {
         return st->name() == name_;
     }
@@ -80,6 +90,8 @@ bool StructType::equals(const Type* other) const {
 }
 
 bool InterfaceType::equals(const Type* other) const {
+    if (qualifier() != other->qualifier())
+        return false;
     if (auto interface = other->isa<InterfaceType>()) {
         return interface->name() == name_;
     }
@@ -87,6 +99,8 @@ bool InterfaceType::equals(const Type* other) const {
 }
 
 bool PrimType::equals(const Type* other) const {
+    if (qualifier() != other->qualifier())
+        return false;
     if (auto prim_type = other->isa<PrimType>()) {
         return prim_type->prim() == prim() &&
                prim_type->rows() == rows() &&
@@ -167,6 +181,8 @@ std::string PrimType::type_name() const {
 }
 
 bool IndefiniteArrayType::equals(const Type* other) const {
+    if (qualifier() != other->qualifier())
+        return false;
     if (auto def = other->isa<IndefiniteArrayType>()) {
         return def->elem() == elem();
     }
@@ -182,6 +198,8 @@ std::string IndefiniteArrayType::type_dims() const {
 }
 
 bool DefiniteArrayType::equals(const Type* other) const {
+    if (qualifier() != other->qualifier())
+        return false;
     if (auto def = other->isa<DefiniteArrayType>()) {
         return def->size() == size_ && def->elem()== elem();
     }
@@ -205,7 +223,7 @@ bool DefiniteArrayType::subtype(const Type* other) const {
 }
 
 size_t DefiniteArrayType::hash() const {
-    return elem()->hash() ^ size();
+    return (elem()->hash() ^ size());
 }
 
 std::string DefiniteArrayType::type_dims() const {

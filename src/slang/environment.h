@@ -23,7 +23,7 @@ class Type;
 /// can be redefined to specify their size, if they were declared unsized.
 class Symbol {
 public:
-    typedef std::unordered_multimap<const Type*, const ast::Node*> DefMap;
+    typedef std::unordered_multimap<slang::QualifiedType, const ast::Node*> DefMap;
 
     Symbol(DefMap&& defs);
 
@@ -34,18 +34,20 @@ public:
     bool is_argument() const;
 
     /// Returns the type assigned to this symbol.
-    const Type* type() const { return type_; }
+    slang::QualifiedType type() const { return type_; }
     /// Assigns a type to this symbol.
-    void set_type(const Type* type) { type_ = type; }
+    void set_type(slang::QualifiedType type) { type_ = type; }
     /// Returns the location of the first definition associated with this symbol.
     const Location& location() const { return loc_; }
 
     const DefMap& defs() const { return defs_; }
-    void push_def(const Type* type, const ast::Node* node);
+    void push_def(slang::QualifiedType type, const ast::Node* node) {
+        defs_.emplace(type, node);
+    }
     size_t num_defs() const { return defs_.size(); }
 
 private:
-    const Type* type_;
+    slang::QualifiedType type_;
     Location loc_;
     DefMap defs_;
 };

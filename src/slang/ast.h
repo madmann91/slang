@@ -6,7 +6,7 @@
 
 #include "slang/location.h"
 #include "slang/token.h"
-#include "slang/environment.h"
+#include "slang/types.h"
 #include "slang/cast.h"
 #include "slang/ptr.h"
 
@@ -468,7 +468,6 @@ public:
     size_t num_dims() const { return dims_.size(); }
 
     void print(Printer&) const override;
-    const slang::Type* check(Sema&, const slang::Type*) const;
 
 private:
     PtrVector<Expr> dims_;
@@ -498,7 +497,7 @@ public:
     void push_qualifier(TypeQualifier* qual) { quals_.push_back(qual); }
     size_t num_qualifers() const { return quals_.size(); }
 
-    virtual const slang::Type* check(Sema&) const = 0;
+    virtual slang::QualifiedType check(Sema&) const = 0;
 
 protected:
     PtrVector<TypeQualifier> quals_;
@@ -521,7 +520,7 @@ protected:
 class ErrorType : public Type {
 public:
     void print(Printer&) const override;
-    const slang::Type* check(Sema&) const override;
+    slang::QualifiedType check(Sema&) const override;
 };
 
 /// Primitive type.
@@ -536,7 +535,7 @@ public:
     void set_prim(Prim prim) { prim_ = prim; }
 
     void print(Printer&) const override;
-    const slang::Type* check(Sema&) const override;
+    slang::QualifiedType check(Sema&) const override;
 
 private:
     Prim prim_;
@@ -546,14 +545,14 @@ private:
 class NamedType : public Type, public HasName {
 public:
     void print(Printer&) const override;
-    const slang::Type* check(Sema&) const override;
+    slang::QualifiedType check(Sema&) const override;
 };
 
 /// Base class for declarations.
 class Decl : public Node, public Typeable {
 public:
     virtual ~Decl() {}
-    virtual const slang::Type* check(Sema&) const = 0;
+    virtual slang::QualifiedType check(Sema&) const = 0;
 };
 
 /// Base class for statements.
@@ -597,7 +596,7 @@ public:
     void set_precision(PrecisionQualifier* prec) { prec_.reset(prec); }
 
     void print(Printer&) const override;
-    const slang::Type* check(Sema&) const override;
+    slang::QualifiedType check(Sema&) const override;
 
 private:
     Ptr<Type> type_;
@@ -612,7 +611,7 @@ public:
     void set_init(Expr* init) { init_.reset(init); }
 
     void print(Printer&) const override;
-    const slang::Type* check(Sema&, const slang::Type*) const;
+    slang::QualifiedType check(Sema&, slang::QualifiedType) const;
 
 private:
     Ptr<Expr> init_;
@@ -626,7 +625,7 @@ public:
     size_t num_vars() const { return vars_.size(); }
 
     void print(Printer&) const override;
-    const slang::Type* check(Sema&) const override;
+    slang::QualifiedType check(Sema&) const override;
 
 private:
     PtrVector<Variable> vars_;
@@ -647,21 +646,21 @@ protected:
 class StructType : public CompoundType {
 public:
     void print(Printer&) const override;
-    const slang::Type* check(Sema&) const override;
+    slang::QualifiedType check(Sema&) const override;
 };
 
 /// Interface block type.
 class InterfaceType : public CompoundType {
 public:
     void print(Printer&) const override;
-    const slang::Type* check(Sema&) const override;
+    slang::QualifiedType check(Sema&) const override;
 };
 
 /// Function argument.
 class Arg : public Node, public Typeable, public HasName, public HasType, public HasArraySpecifier {
 public:
     void print(Printer&) const override;
-    const slang::Type* check(Sema&) const;
+    slang::QualifiedType check(Sema&) const;
 };
 
 /// Function prototype of function definition.
@@ -678,7 +677,7 @@ public:
     size_t num_args() const { return args_.size(); }
 
     void print(Printer&) const override;
-    const slang::Type* check(Sema&) const override;
+    slang::QualifiedType check(Sema&) const override;
 
 private:
     PtrVector<Arg> args_;

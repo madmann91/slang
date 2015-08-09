@@ -33,10 +33,12 @@ void Context::register_unary(const std::string& name, GenTypeFn f) {
 
     f(sema_, [&] (const Type* t, ast::PrimType::Prim prim) {
         const FunctionType* fn_type = sema_.function_type(t, {t});
-        ast::FunctionDecl* decl = new ast::FunctionDecl();
-        decl->push_arg(new_argument(t, prim));
-        defs.emplace(fn_type, decl);
-        signs.push_back(fn_type);
+        if (defs.find(fn_type) == defs.end()) {
+            ast::FunctionDecl* decl = new ast::FunctionDecl();
+            decl->push_arg(new_argument(t, prim));
+            defs.emplace(fn_type, decl);
+            signs.push_back(fn_type);
+        }
     });
 
     register_function(name, std::move(defs), signs);
@@ -49,11 +51,13 @@ void Context::register_binary(const std::string& name, GenTypeFn f) {
 
     f(sema_, [&] (const Type* t, ast::PrimType::Prim prim) {
         const FunctionType* fn_type = sema_.function_type(t, {t, t});
-        ast::FunctionDecl* decl = new ast::FunctionDecl();
-        decl->push_arg(new_argument(t, prim));
-        decl->push_arg(new_argument(t, prim));
-        defs.emplace(fn_type, decl);
-        signs.push_back(fn_type);
+        if (defs.find(fn_type) == defs.end()) {
+            ast::FunctionDecl* decl = new ast::FunctionDecl();
+            decl->push_arg(new_argument(t, prim));
+            decl->push_arg(new_argument(t, prim));
+            defs.emplace(fn_type, decl);
+            signs.push_back(fn_type);
+        }
     });
 
     register_function(name, std::move(defs), signs);
@@ -66,11 +70,13 @@ void Context::register_binary(const std::string& name, GenTypeFn f, GenTypeFn g)
     f(sema_, [&] (const Type* t0, ast::PrimType::Prim prim0) {
         g(sema_, [&] (const Type* t1, ast::PrimType::Prim prim1) {
             const FunctionType* fn_type = sema_.function_type(t0, {t0, t1});
-            ast::FunctionDecl* decl = new ast::FunctionDecl();
-            decl->push_arg(new_argument(t0, prim0));
-            decl->push_arg(new_argument(t1, prim1));
-            defs.emplace(fn_type, decl);
-            signs.push_back(fn_type);
+            if (defs.find(fn_type) == defs.end()) {
+                ast::FunctionDecl* decl = new ast::FunctionDecl();
+                decl->push_arg(new_argument(t0, prim0));
+                decl->push_arg(new_argument(t1, prim1));
+                defs.emplace(fn_type, decl);
+                signs.push_back(fn_type);
+            }
         });
     });
 
@@ -110,6 +116,14 @@ void Context::gendtype(Sema& sema, PrimTypeFn f) {
     f(sema.prim_type(PrimType::PRIM_DOUBLE, 2), ast::PrimType::PRIM_DVEC2);
     f(sema.prim_type(PrimType::PRIM_DOUBLE, 3), ast::PrimType::PRIM_DVEC3);
     f(sema.prim_type(PrimType::PRIM_DOUBLE, 4), ast::PrimType::PRIM_DVEC4);
+}
+
+Context::GenTypeFn Context::prim_type(ast::PrimType::Prim prim) {
+    return [=] (Sema& sema, PrimTypeFn f) {
+        ast::PrimType ast_type;
+        ast_type.set_prim(prim);
+        f(sema.check(&ast_type)->as<PrimType>(), prim);
+    };
 }
 
 ast::Arg* Context::new_argument(const Type* type, ast::PrimType::Prim prim) {

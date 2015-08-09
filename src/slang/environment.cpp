@@ -25,10 +25,6 @@ bool Symbol::is_interface() const { return is_node<ast::InterfaceType>(defs_); }
 bool Symbol::is_variable() const { return is_node<ast::Variable>(defs_); }
 bool Symbol::is_argument() const { return is_node<ast::Arg>(defs_); }
 
-void Symbol::push_def(const Type* type, const ast::Node* node) {
-    defs_.insert(std::make_pair(type, node));
-}
-
 Symbol* Environment::lookup_symbol(const std::string& name) {
     if (auto symbol = find_symbol(name))
         return symbol;
