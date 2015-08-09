@@ -122,7 +122,7 @@ Context::GenTypeFn Context::prim_type(ast::PrimType::Prim prim) {
     return [=] (Sema& sema, PrimTypeFn f) {
         ast::PrimType ast_type;
         ast_type.set_prim(prim);
-        f(sema.check(&ast_type)->as<PrimType>(), prim);
+        f(sema.check(&ast_type).type()->as<PrimType>(), prim);
     };
 }
 

@@ -5,7 +5,7 @@
 namespace slang {
 
 Symbol::Symbol(DefMap&& defs)
-    : defs_(defs)
+    :  type_(nullptr), defs_(defs)
 {
     assert(defs.size() > 0);
     type_ = defs.begin()->first;

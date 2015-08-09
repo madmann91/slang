@@ -2,15 +2,49 @@
 
 namespace slang {
 
-bool FunctionType::equals(const Type* other) const {
-    if (qualifier() != other->qualifier())
-        return false;
+size_t QualifiedType::hash() const {
+    return type()->hash() + (size_t)storage_qualifier();
+}
 
+bool QualifiedType::equals(const QualifiedType& other) const {
+    return other.storage_qualifier() == storage_qualifier() && type()->equals(other.type());
+}
+
+bool QualifiedType::subtype(const QualifiedType& other) const {
+    return other.storage_qualifier() == storage_qualifier() && type()->subtype(other.type());
+}
+
+bool QualifiedType::operator == (const QualifiedType& other) const {
+    return other.type() == type() && other.storage_qualifier() == storage_qualifier();
+}
+
+bool QualifiedType::operator != (const QualifiedType& other) const {
+    return !(*this == other);
+}
+
+std::string QualifiedType::to_string() const {
+    std::string str;
+    switch (storage_) {
+        case StorageQualifier::STORAGE_CONST:     str += "const";     break;
+        case StorageQualifier::STORAGE_IN:        str += "in";        break;
+        case StorageQualifier::STORAGE_OUT:       str += "out";       break;
+        case StorageQualifier::STORAGE_INOUT:     str += "inout";     break;
+        case StorageQualifier::STORAGE_ATTRIBUTE: str += "attribute"; break;
+        case StorageQualifier::STORAGE_UNIFORM:   str += "uniform";   break;
+        case StorageQualifier::STORAGE_VARYING:   str += "varying";   break;
+        case StorageQualifier::STORAGE_BUFFER:    str += "buffer";    break;
+        case StorageQualifier::STORAGE_SHARED:    str += "shared";    break;
+        default: break;
+    }
+    return str + " " + type_->to_string();
+}
+
+bool FunctionType::equals(const Type* other) const {
     if (auto fn = other->isa<FunctionType>()) {
         if (num_args() != fn->num_args())
             return false;
         for (size_t i = 0; i < num_args(); i++) {
-            if (!args()[i]->equals(fn->args()[i]))
+            if (!args()[i].equals(fn->args()[i]))
                 return false;
         }
         return true;
@@ -22,24 +56,21 @@ bool FunctionType::equals(const Type* other) const {
 size_t FunctionType::hash() const {
     size_t h = 0;
     for (auto arg : args()) {
-        h += arg->hash();
+        h += arg.hash();
     }
-    return ret()->hash() ^ h;
+    return ret().hash() ^ h;
 }
 
 std::string FunctionType::type_name() const {
-    std::string str = ret()->to_string() + " (";
+    std::string str = ret().to_string() + " (";
     for (size_t i = 0; i < num_args(); i++) {
-        str += args()[i]->to_string();
+        str += args()[i].to_string();
         if (i != num_args() - 1) str += ", ";
     }
     return str + ")";
 }
 
 bool OverloadedFunctionType::equals(const Type* other) const {
-    if (qualifier() != other->qualifier())
-        return false;
-
     if (auto fn = other->isa<OverloadedFunctionType>()) {
         if (num_signatures() != fn->num_signatures())
             return false;
@@ -71,7 +102,7 @@ size_t CompoundType::hash() const {
     std::hash<std::string> hash_string;
     size_t h = hash_string(name());
     for (auto member : members()) {
-        h += hash_string(member.first) ^ member.second->hash();
+        h += hash_string(member.first) ^ member.second.hash();
     }
     return h;
 }
@@ -81,8 +112,6 @@ std::string CompoundType::type_name() const {
 }
 
 bool StructType::equals(const Type* other) const {
-    if (qualifier() != other->qualifier())
-        return false;
     if (auto st = other->isa<StructType>()) {
         return st->name() == name_;
     }
@@ -90,8 +119,6 @@ bool StructType::equals(const Type* other) const {
 }
 
 bool InterfaceType::equals(const Type* other) const {
-    if (qualifier() != other->qualifier())
-        return false;
     if (auto interface = other->isa<InterfaceType>()) {
         return interface->name() == name_;
     }
@@ -99,8 +126,6 @@ bool InterfaceType::equals(const Type* other) const {
 }
 
 bool PrimType::equals(const Type* other) const {
-    if (qualifier() != other->qualifier())
-        return false;
     if (auto prim_type = other->isa<PrimType>()) {
         return prim_type->prim() == prim() &&
                prim_type->rows() == rows() &&
@@ -181,8 +206,6 @@ std::string PrimType::type_name() const {
 }
 
 bool IndefiniteArrayType::equals(const Type* other) const {
-    if (qualifier() != other->qualifier())
-        return false;
     if (auto def = other->isa<IndefiniteArrayType>()) {
         return def->elem() == elem();
     }
@@ -198,8 +221,6 @@ std::string IndefiniteArrayType::type_dims() const {
 }
 
 bool DefiniteArrayType::equals(const Type* other) const {
-    if (qualifier() != other->qualifier())
-        return false;
     if (auto def = other->isa<DefiniteArrayType>()) {
         return def->size() == size_ && def->elem()== elem();
     }

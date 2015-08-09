@@ -1,1 +1,27 @@
-lowp highp mediump varying attribute flat noperspective smooth invariant layout(yetanother, other = 42, location = 3) subroutine(routine1, routine2) const inout in out centroid patch sample uniform buffer shared coherent volatile restrict readonly writeonly int i;
+lowp float a;
+highp float b;
+mediump float c;
+varying float d;
+attribute float e;
+flat float f;
+noperspective float g;
+smooth float h;
+invariant float i;
+layout(component = 2, location = 3) float k;
+subroutine(routine1, routine2) int fn();
+inout int l;
+in int m;
+out int n;
+centroid vec3 o;
+patch vec3 p;
+sample vec3 q;
+uniform vec3 r;
+buffer struct  {
+    float x, y, z;
+} s;
+shared float t;
+coherent float u;
+volatile float v;
+restrict float w;
+readonly float x;
+writeonly int y;

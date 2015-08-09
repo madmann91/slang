@@ -25,8 +25,6 @@ public:
 
     ~Sema() {
         pop_env(2);
-        for (auto type : types_)
-            delete type;
     }
 
     /// Returns the current environment.
@@ -52,7 +50,7 @@ public:
     }
 
     /// Creates a new identifier, if the name is not already used in the current environment.
-    void new_symbol(const std::string&, const Type*, const ast::Node*);
+    void new_symbol(const std::string&, QualifiedType, const ast::Node*);
     /// Emits the "symbol already defined" error message.
     void error_redefinition(const std::string&, const Symbol*, const ast::Node*);
 
@@ -65,6 +63,8 @@ public:
     bool expect_type(const ast::Node*, const Type*, const Type*);
     /// Expects a non-void type as an argument or variable.
     bool expect_nonvoid(const ast::Node*, const std::string&, const Type*);
+    /// Expects an l-value.
+    bool expect_lvalue(const ast::Expr*);
     /// Expects equal primitive types inside an operator.
     bool expect_equal(const ast::OpExpr*, const PrimType*, const PrimType*);
     /// Expects compatible primitive types inside an operator (e.g. for scalar vs. vector operators).
@@ -79,8 +79,6 @@ public:
     bool expect_boolean(const ast::OpExpr*, const PrimType*);
     /// Expects a floating point type in an operator (float or double).
     bool expect_floating(const ast::OpExpr*, const PrimType*);
-    /// Expects an l-value.
-    bool expect_lvalue(const ast::Expr*);
 
     /// Checks the type of an expression, and expects the given type as a result.
     const Type* check(const ast::Expr* expr, const Type* expected) {
@@ -93,20 +91,19 @@ public:
     /// Checks the type of an expression, without any constraint on the result type.
     const Type* check(const ast::Expr* expr) { return check_assign(expr, nullptr); }
     /// Checks the type of an AST type.
-    const Type* check(const ast::Type* type) { return check_assign(type); }
+    QualifiedType check(const ast::Type* type) { return check_assign(type); }
     /// Checks the type of a declaration.
-    const Type* check(const ast::Decl* decl) { return check_assign(decl); }
+    QualifiedType check(const ast::Decl* decl) { return check_assign(decl); }
     /// Checks a statement.
     void check(const ast::Stmt* stmt) { stmt->check(*this); }
     /// Checks a loop condition.
     void check(const ast::LoopCond* cond) { cond->check(*this); }
     /// Checks the type of a function argument.
-    const Type* check(const ast::Arg* arg) { return check_assign(arg); }
+    QualifiedType check(const ast::Arg* arg) { return check_assign(arg); }
     /// Checks the type of a variable, given the type of the corresponding declaration.
-    const Type* check(const ast::Variable* var,
-                      const Type* var_type,
-                      const Type::Qualifier qual) {
-        return check_assign(var, var_type, qual);
+    QualifiedType check(const ast::Variable* var,
+                        QualifiedType var_type) {
+        return check_assign(var, var_type);
     }
 
     /// Returns the number of errors generated during type checking.
@@ -128,15 +125,15 @@ public:
 
 private:
     template <typename T>
-    const Type* check_assign(const T* t) {
-        const Type* found = t->check(*this);
+    auto check_assign(const T* t) -> decltype(t->check(*this)) {
+        auto found = t->check(*this);
         t->assign_type(found);
         return found;
     }
 
     template <typename T, typename... Args>
-    const Type* check_assign(const T* t, Args... args) {
-        const Type* found = t->check(*this, args...);
+    auto check_assign(const T* t, Args... args) -> decltype(t->check(*this, args...)) {
+        auto found = t->check(*this, args...);
         t->assign_type(found);
         return found;
     }

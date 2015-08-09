@@ -4,13 +4,13 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <unordered_set>
 
 #include "slang/cast.h"
 #include "slang/ptr.h"
 
 namespace slang {
 
-/// Storage qualifiers (see GLSL spec. paragraph 4.3).
 enum class StorageQualifier {
     STORAGE_NONE,
     STORAGE_CONST,
@@ -30,7 +30,7 @@ public:
     virtual ~Type() {}
 
     /// Tests two types for equality, by inspecting the type.
-    /// This function is used by the type hashtable, you should not use it.
+    /// This function is used by the type table, you should not use it.
     virtual bool equals(const Type*) const { return false; }
     /// Determines if this type is a subtype of another one.
     virtual bool subtype(const Type* type) const { return this == type; }
@@ -53,11 +53,24 @@ public:
         : type_(type), storage_(storage)
     {}
 
+    size_t hash() const;
+    bool equals(const QualifiedType&) const;
+    bool subtype(const QualifiedType&) const;
+
+    bool operator == (const QualifiedType&) const;
+    bool operator != (const QualifiedType&) const;
+
     const Type* type() const { return type_; }
+    bool is_qualified() const {
+        return storage_qualifier() != StorageQualifier::STORAGE_NONE;
+    }
+
     StorageQualifier storage_qualifier() const { return storage_; }
 
+    std::string to_string() const;
+
 private:
-    const Type* type;
+    const Type* type_;
     StorageQualifier storage_;
 };
 
@@ -71,31 +84,28 @@ public:
 /// Base class for function types.
 class CallableType : public Type {
 public:
-    CallableType(Qualifier qual = QUAL_NONE)
-        : Type(qual)
-    {}
     virtual ~CallableType() {}
 };
 
 /// Function type (equality based on return type and arguments).
 class FunctionType : public CallableType {
 public:
-    typedef std::vector<const Type*> ArgList;
+    typedef std::vector<QualifiedType> ArgList;
 
-    FunctionType(const Type* ret, const ArgList& args, Qualifier qual = QUAL_NONE)
-        : CallableType(qual), ret_(ret), args_(args)
+    FunctionType(QualifiedType ret, const ArgList& args)
+        : ret_(ret), args_(args)
     {}
 
-    bool equals(const Type* other) const override;
+    bool equals(const Type*) const override;
     size_t hash() const override;
     std::string type_name() const override;
 
-    const Type* ret() const { return ret_; }
+    QualifiedType ret() const { return ret_; }
     const ArgList& args() const { return args_; }
     size_t num_args() const { return args_.size(); }
 
 private:
-    const Type* ret_;
+    QualifiedType ret_;
     ArgList args_;
 };
 
@@ -104,11 +114,11 @@ class OverloadedFunctionType : public CallableType {
 public:
     typedef std::vector<const FunctionType*> SignatureList;
 
-    OverloadedFunctionType(const SignatureList& signs, Qualifier qual = QUAL_NONE)
-        : CallableType(qual), signs_(signs)
+    OverloadedFunctionType(const SignatureList& signs)
+        : signs_(signs)
     {}
 
-    bool equals(const Type* other) const override;
+    bool equals(const Type*) const override;
     size_t hash() const override;
     std::string type_name() const override;
 
@@ -122,11 +132,11 @@ private:
 /// Compound type (interface or structure).
 class CompoundType : public Type {
 public:
-    typedef std::pair<std::string, const Type*> Member;
+    typedef std::pair<std::string, QualifiedType> Member;
     typedef std::vector<Member> MemberList;
 
-    CompoundType(const std::string& name, const MemberList& members, Qualifier qual)
-        : Type(qual), name_(name), members_(members)
+    CompoundType(const std::string& name, const MemberList& members)
+        : name_(name), members_(members)
     {}
     virtual ~CompoundType() {}
 
@@ -138,12 +148,12 @@ public:
 
     const std::string& name() const { return name_; }
 
-    const Type* member_type(const std::string& name) const {
+    const QualifiedType* member_type(const std::string& name) const {
         auto it = std::find_if(members_.begin(), members_.end(),
-            [name] (const std::pair<std::string, const Type*>& member) {
+            [name] (const std::pair<std::string, QualifiedType>& member) {
                 return member.first == name;
             });
-        return it != members_.end() ? it->second : nullptr;
+        return it != members_.end() ? &it->second : nullptr;
     }
 
 protected:
@@ -154,21 +164,21 @@ protected:
 /// Structure type (equality decided from name only).
 class StructType : public CompoundType {
 public:
-    StructType(const std::string& name, const MemberList& members, Qualifier qual = QUAL_NONE)
-        : CompoundType(name, members, qual)
+    StructType(const std::string& name, const MemberList& members)
+        : CompoundType(name, members)
     {}
 
-    bool equals(const Type* other) const override;
+    bool equals(const Type*) const override;
 };
 
 /// Interface type (cannot be equal to another type).
 class InterfaceType : public CompoundType {
 public:
-    InterfaceType(const std::string& name, const MemberList& members, Qualifier qual = QUAL_NONE)
-        : CompoundType(name, members, qual)
+    InterfaceType(const std::string& name, const MemberList& members)
+        : CompoundType(name, members)
     {}
 
-    bool equals(const Type* other) const override;
+    bool equals(const Type*) const override;
 };
 
 /// Primitive type (int, float, double, ...).
@@ -183,12 +193,12 @@ public:
         PRIM_VOID
     };
 
-    PrimType(Prim prim, int rows = 1, int cols = 1, Qualifier qual = QUAL_NONE)
-        : Type(qual), prim_(prim), rows_(rows), cols_(cols)
+    PrimType(Prim prim, int rows = 1, int cols = 1)
+        : prim_(prim), rows_(rows), cols_(cols)
     {}
 
-    bool equals(const Type* other) const override;
-    bool subtype(const Type* other) const override;
+    bool equals(const Type*) const override;
+    bool subtype(const Type*) const override;
     size_t hash() const override;
 
     Prim prim() const { return prim_; }
@@ -258,8 +268,8 @@ private:
 /// Base class for array types.
 class ArrayType : public Type {
 public:
-    ArrayType(const Type* elem, Qualifier qual)
-        : Type(qual), elem_(elem)
+    ArrayType(const Type* elem)
+        : elem_(elem)
     {}
     virtual ~ArrayType() {}
 
@@ -276,11 +286,11 @@ protected:
 /// Array with unknown size.
 class IndefiniteArrayType : public ArrayType {
 public:
-    IndefiniteArrayType(const Type* elem, Qualifier qual = QUAL_NONE)
-        : ArrayType(elem, qual)
+    IndefiniteArrayType(const Type* elem)
+        : ArrayType(elem)
     {}
 
-    bool equals(const Type* other) const override;
+    bool equals(const Type*) const override;
     size_t hash() const override;
     std::string type_dims() const override;
 };
@@ -288,12 +298,12 @@ public:
 /// Array with known size.
 class DefiniteArrayType : public ArrayType {
 public:
-    DefiniteArrayType(const Type* elem, int size, Qualifier qual = QUAL_NONE)
-        : ArrayType(elem, qual), size_(size)
+    DefiniteArrayType(const Type* elem, int size)
+        : ArrayType(elem), size_(size)
     {}
 
-    bool equals(const Type* other) const override;
-    bool subtype(const Type* other) const override;
+    bool equals(const Type*) const override;
+    bool subtype(const Type*) const override;
     size_t hash() const override;
     std::string type_dims() const override;
 
@@ -306,6 +316,12 @@ private:
 /// Hash table containing types. Types are hashed and stored uniquely,
 /// which means type equality can be checked with pointer equality.
 class TypeTable {
+public:
+    virtual ~TypeTable() {
+        for (auto type : types_)
+            delete type;
+    }
+
     /// Creates an error type. For expressions that fail typechecking.
     const ErrorType* error_type() { return new_type<ErrorType>(); }
     /// Creates a primitive type.

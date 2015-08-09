@@ -38,7 +38,7 @@ void Sema::implicit_convert(const Type*& a, const Type*& b) {
     }
 }
 
-void Sema::new_symbol(const std::string& name, const Type* type, const ast::Node* node) {
+void Sema::new_symbol(const std::string& name, QualifiedType type, const ast::Node* node) {
     assert(!name.empty());
     if (auto prev_symbol = env()->find_symbol(name))
         error_redefinition(name, prev_symbol, node);
@@ -87,6 +87,11 @@ bool Sema::expect_nonvoid(const ast::Node* node, const std::string& name, const 
         error(node) << "Argument or variable \'" << name << "\' of type \'void\'\n";
         return false;
     }
+    return true;
+}
+
+bool Sema::expect_lvalue(const ast::Expr*) {
+    // TODO: check if the expression is a l-value
     return true;
 }
 
@@ -159,7 +164,7 @@ const slang::Type* FieldExpr::check(Sema& sema, const slang::Type*) const {
     if (auto compound = left_type->isa<slang::CompoundType>()) {
         auto field_type = compound->member_type(field_name());
         if (field_type)
-            return field_type;
+            return field_type->type();
         else
             sema.error(this) << "\'" << field_name() << "\' is not a member of \'" << compound->name() << "\'\n";
     } else if (auto prim_type = left_type->isa<slang::PrimType>()) {
@@ -221,7 +226,7 @@ const slang::Type* IndexExpr::check(Sema& sema, const slang::Type*) const {
 inline bool match_signature(const CallExpr* call, const slang::FunctionType* fn_type) {
     if (fn_type->num_args() == call->num_args()) {
         for (size_t i = 0; i < call->num_args(); i++) {
-            if (call->args()[i]->assigned_type() != fn_type->args()[i])
+            if (call->args()[i]->assigned_type() != fn_type->args()[i].type())
                 return false;
         }
         return true;
@@ -244,7 +249,7 @@ static const slang::Type* check_function_call(Sema& sema, const CallExpr* call) 
     if (auto overloaded = call_type->isa<slang::OverloadedFunctionType>()) {
         for (auto sign : overloaded->signatures()) {
             if (match_signature(call, sign))
-                return sign->ret();
+                return sign->ret().type();
         }
 
         // TODO : Add implicit conversion rules
@@ -255,7 +260,7 @@ static const slang::Type* check_function_call(Sema& sema, const CallExpr* call) 
         }
     } else if (auto sign = call_type->isa<slang::FunctionType>()) {
         if (match_signature(call, sign))
-            return sign->ret();
+            return sign->ret().type();
         candidates = sign->to_string();
     }
 
@@ -273,7 +278,11 @@ inline bool check_constructor_args(Sema& sema, const CallExpr* call, size_t n) {
 }
 
 static const slang::Type* check_constructor_call(Sema& sema, const CallExpr* call) {
-    const slang::Type* type = sema.check(call->constructor());
+    slang::QualifiedType full_type = sema.check(call->constructor());
+    if (full_type.is_qualified())
+        sema.error(call->constructor()) << "Constructors cannot be qualified\n"; 
+
+    const slang::Type* type = full_type.type();
 
     if (auto prim = type->isa<slang::PrimType>()) {
         if (prim->prim() == slang::PrimType::PRIM_VOID) {
@@ -315,7 +324,7 @@ static const slang::Type* check_constructor_call(Sema& sema, const CallExpr* cal
         if (!check_constructor_args(sema, call, struct_type->num_members()))
             return sema.error_type();
         for (size_t i = 0; i < struct_type->num_members(); i++)
-            sema.check(call->args()[i], struct_type->members()[i].second);
+            sema.check(call->args()[i], struct_type->members()[i].second.type());
     } else if (auto indef_array = type->isa<slang::IndefiniteArrayType>()) {
         for (auto arg : call->args())
             sema.check(arg, indef_array->elem());
@@ -646,7 +655,7 @@ const slang::Type* InitExpr::check(Sema& sema, const slang::Type* expected) cons
         }
 
         for (size_t i = 0; i < exprs().size(); i++)
-            sema.check(exprs()[i], struct_type->members()[i].second);
+            sema.check(exprs()[i], struct_type->members()[i].second.type());
         return expected;
     } else if (auto prim_type = expected->isa<slang::PrimType>()) {
         if (prim_type->size() > 1) {
@@ -687,9 +696,7 @@ inline bool integer_value(Sema& sema, const Expr* expr, int& result) {
 static const slang::Type* check_array_specifier(Sema& sema, const ArraySpecifier* spec, const slang::Type* type) {
     if (!spec) return type;
 
-    // Remove qualifier from the type (array elements cannot have qualifiers)
-    const slang::Type* cur_type = qualify_type(type, slang::Type::QUAL_NONE);
-
+    const slang::Type* cur_type = type;
     for (size_t i = 0; i < spec->num_dims(); i++) {
         const Expr* dim = spec->dims()[spec->num_dims() - 1 - i];
         if (dim) {
@@ -705,47 +712,55 @@ static const slang::Type* check_array_specifier(Sema& sema, const ArraySpecifier
         cur_type = sema.array_type(cur_type);
     }
 
-    // Restore qualifier on the array type
-    return qualify_type(cur_type, type->qualifier());
+    return cur_type;
 }
 
-static const slang::StorageQualifier check_qualifiers(Sema& sema, const Type* type) {
-    int q = slang::Type::QUAL_NONE;
+static slang::StorageQualifier check_qualifiers(Sema& sema, const Type* type) {
+    slang::StorageQualifier q = slang::StorageQualifier::STORAGE_NONE;
     int storage_count = 0;
 
     for (auto qual : type->qualifiers()) {
         if (auto storage = qual->isa<StorageQualifier>()) {
-            storage_count++;
             switch (storage->storage()) {
-                case StorageQualifier::STORAGE_CONST: q |= slang::Type::QUAL_CONST; break;
-                case StorageQualifier::STORAGE_IN:    q |= slang::Type::QUAL_IN;    break;
-                case StorageQualifier::STORAGE_OUT:   q |= slang::Type::QUAL_OUT;   break;
-                case StorageQualifier::STORAGE_INOUT:
-                    q |= slang::Type::QUAL_IN;
-                    q |= slang::Type::QUAL_OUT;
-                    break;
+                case StorageQualifier::STORAGE_CONST:     q = slang::StorageQualifier::STORAGE_CONST;     break;
+                case StorageQualifier::STORAGE_IN:        q = slang::StorageQualifier::STORAGE_IN;        break;
+                case StorageQualifier::STORAGE_OUT:       q = slang::StorageQualifier::STORAGE_OUT;       break;
+                case StorageQualifier::STORAGE_INOUT:     q = slang::StorageQualifier::STORAGE_INOUT;     break;
+                case StorageQualifier::STORAGE_UNIFORM:   q = slang::StorageQualifier::STORAGE_UNIFORM;   break;
+                case StorageQualifier::STORAGE_BUFFER:    q = slang::StorageQualifier::STORAGE_BUFFER;    break;
+                case StorageQualifier::STORAGE_SHARED:    q = slang::StorageQualifier::STORAGE_SHARED;    break;
                 default:
-                    assert(0 && "Not implemented");
+                    // TODO: implement missing storage qualifiers
+                    break;
             }
+            storage_count++;
+        } else if (qual->isa<VaryingQualifier>()) {
+            q = slang::StorageQualifier::STORAGE_VARYING;
+            storage_count++;
+        } else if (qual->isa<AttributeQualifier>()) {
+            q = slang::StorageQualifier::STORAGE_ATTRIBUTE;
+            storage_count++;
+        } else {
+            // TODO: implement missing qualifiers
         }
     }
 
     if (storage_count > 1)
         sema.error(type) << "Type mentions more than one storage qualifier\n";
 
-    return static_cast<slang::Type::Qualifier>(q);
+    return q;
 }
 
-inline QualifiedType check_full_type(Sema& sema, const Type* node, const slang::Type* type) {
-    return QualifiedType(check_array_specifier(sema, node->array_specifier(), type),
-                         check_qualifiers(sema, node->qualifiers()));
+inline slang::QualifiedType check_full_type(Sema& sema, const Type* node, const slang::Type* type) {
+    return slang::QualifiedType(check_array_specifier(sema, node->array_specifier(), type),
+                                check_qualifiers(sema, node));
 }
 
-const QualifiedType ErrorType::check(Sema& sema) const {
-    return QualifiedType(sema.error_type());
+slang::QualifiedType ErrorType::check(Sema& sema) const {
+    return slang::QualifiedType(sema.error_type());
 }
 
-const QualifiedType PrimType::check(Sema& sema) const {
+slang::QualifiedType PrimType::check(Sema& sema) const {
     const slang::Type* prim_type = nullptr;
     switch (prim()) {
 #define SLANG_KEY_DATA(key, str, type, rows, cols) \
@@ -758,7 +773,7 @@ const QualifiedType PrimType::check(Sema& sema) const {
     return check_full_type(sema, this, prim_type);
 }
 
-const QualifiedType NamedType::check(Sema& sema) const {
+slang::QualifiedType NamedType::check(Sema& sema) const {
     if (auto symbol = sema.env()->lookup_symbol(name())) {
         if (symbol->is_structure()) {
             return check_full_type(sema, this, symbol->type());
@@ -821,19 +836,19 @@ slang::QualifiedType InterfaceType::check(Sema& sema) const {
 }
 
 slang::QualifiedType PrecisionDecl::check(Sema& sema) const {
-    const slang::Type* prim = sema.check(type());
+    const slang::Type* prim = sema.check(type()).type();
     if (auto type = prim->isa<slang::PrimType>()) {
         if (type->is_floating())
-            return QualifiedType(prim);
+            return prim;
     }
     sema.error(this) << "Floating point type expected in precision declaration\n";
     return sema.error_type();
 }
 
-const slang::Type* VariableDecl::check(Sema& sema) const {
-    const slang::Type* var_type = sema.check(type());
+slang::QualifiedType VariableDecl::check(Sema& sema) const {
+    slang::QualifiedType var_type = sema.check(type());
     for (auto var : vars())
-        sema.check(var, var_type, check_qualifiers(sema, type()));
+        sema.check(var, var_type);
     return var_type;
 }
 
@@ -867,7 +882,7 @@ static void expect_overload(Sema& sema, const ast::FunctionDecl* fn_decl,
 
     // Check function overloading rules
     for (auto def : symbol->defs()) {
-        const slang::FunctionType* other_fn_type = def.first->as<FunctionType>();
+        const slang::FunctionType* other_fn_type = def.first.type()->as<FunctionType>();
         const ast::FunctionDecl* other_fn_decl = def.second->as<ast::FunctionDecl>();
 
         // If the function has already a prototype, we are done checking
@@ -903,7 +918,7 @@ static slang::FunctionType::ArgList normalize_args(Sema& sema, const ast::Functi
     // Ensure there is only one void parameter
     int void_count = 0;
     for (size_t i = 0; i < args.size(); i++) {
-        if (auto prim = args[i]->isa<slang::PrimType>()) {
+        if (auto prim = args[i].type()->isa<slang::PrimType>()) {
             if (prim->prim() == slang::PrimType::PRIM_VOID) {
                 void_count++;
             }
@@ -919,14 +934,17 @@ static slang::FunctionType::ArgList normalize_args(Sema& sema, const ast::Functi
     return args;
 }
 
-const slang::Type* FunctionDecl::check(Sema& sema) const {
+slang::QualifiedType FunctionDecl::check(Sema& sema) const {
     slang::FunctionType::ArgList arg_types;
 
-    const slang::Type* ret_type = sema.check(type());
-    for (auto arg : args())
-        arg_types.push_back(sema.check(arg));
+    QualifiedType ret_type = sema.check(type());
+    if (ret_type.is_qualified())
+        sema.error(type()) << "Only precision qualifiers are allowed on return types\n";
 
-    const slang::FunctionType* fn_type = sema.function_type(ret_type, normalize_args(sema, this, arg_types));
+    for (auto arg : args())
+        arg_types.push_back(sema.check(arg).type());
+
+    const slang::FunctionType* fn_type = sema.function_type(ret_type.type(), normalize_args(sema, this, arg_types));
 
     if (!name().length())
         return fn_type;
@@ -956,33 +974,29 @@ const slang::Type* FunctionDecl::check(Sema& sema) const {
         sema.check(body());
         sema.pop_env(2);
 
-        if (!is_void(ret_type) && !body()->has_return())
+        if (!is_void(ret_type.type()) && !body()->has_return())
             sema.warn(this) << "Function \'" << name() << "\' does not contain a return statement\n";
     }
 
     return fn_type;
 }
 
-inline const slang::Type* 
-
-const slang::Type* Arg::check(Sema& sema) const {
-    const slang::Type* arg_type = sema.check(type());
+slang::QualifiedType Arg::check(Sema& sema) const {
+    slang::QualifiedType arg_type = sema.check(type());
 
     if (!name().empty())
-        sema.expect_nonvoid(this, name(), arg_type);
+        sema.expect_nonvoid(this, name(), arg_type.type());
 
-    slang::Type::Qualifier qual = check_qualifiers(sema, type());
-    const slang::Type* type = sema.qualify_type(check_array(sema, array_specifier(), arg_type), qual);
+    const slang::Type* type = check_array_specifier(sema, array_specifier(), arg_type.type());
     if (is_unsized(type)) {
         sema.error(this) << "Arguments to functions must be explicitly sized\n";
     }
 
-    return type;
+    return QualifiedType(type, arg_type.storage_qualifier());
 }
 
-const slang::Type* Variable::check(Sema& sema, const slang::Type* var_type,
-                                   const slang::Type::Qualifier qual) const {
-    const slang::Type* type = sema.qualify_type(check_array(sema, array_specifier(), var_type), qual);
+slang::QualifiedType Variable::check(Sema& sema, QualifiedType var_type) const {
+    const slang::Type* type = check_array_specifier(sema, array_specifier(), var_type.type());
     if (name().empty())
         return type;
 
@@ -991,10 +1005,11 @@ const slang::Type* Variable::check(Sema& sema, const slang::Type* var_type,
 
     sema.expect_nonvoid(this, name(), type);
 
+    slang::QualifiedType full_type(type, var_type.storage_qualifier());
     if (auto symbol = sema.env()->find_symbol(name())) {
         // Arrays can be redeclared if they previously were implicitly sized
         if (is_unsized(symbol->type())) {
-            if (!is_unsized(type) && type->subtype(symbol->type())) {
+            if (!is_unsized(type) && full_type.subtype(symbol->full_type())) {
                 symbol->push_def(type, this);
                 symbol->set_type(type);
             } else {
@@ -1002,21 +1017,21 @@ const slang::Type* Variable::check(Sema& sema, const slang::Type* var_type,
                                     " expected \'" + symbol->type()->to_string() + "\'"
                                     " and got \'" + type->to_string() + "\'\n";
             }
-        } else if (symbol->type() != type) {
+        } else if (symbol->full_type() != full_type) {
             sema.error_redefinition(name(), symbol, this);
         }
     } else {
-        sema.new_symbol(name(), type, this);
+        sema.new_symbol(name(), full_type, this);
     }
 
-    return type;
+    return full_type;
 }
 
 void LoopCond::check(Sema& sema) const {
     const slang::Type* bool_type = sema.prim_type(slang::PrimType::PRIM_BOOL);
     if (is_var()) {
-        const slang::Type* type = sema.check(var(), sema.check(var_type()), check_qualifiers(sema, var_type()));
-        sema.expect_type(this, type, bool_type);
+        slang::QualifiedType full_type = sema.check(var(), sema.check(var_type()));
+        sema.expect_type(this, full_type.type(), bool_type);
     } else {
         assert(is_expr());
         sema.check(expr(), bool_type);
@@ -1097,12 +1112,12 @@ void DiscardStmt::check(Sema& sema) const {}
 
 void ReturnStmt::check(Sema& sema) const {
     const FunctionDecl* fn_decl = sema.env()->closest_function()->as<FunctionDecl>();
-    const slang::Type* ret_type = fn_decl->type()->assigned_type();
+    QualifiedType ret_type = fn_decl->type()->assigned_type();
     if (value()) {
-        sema.check(value(), ret_type);
-    } else if (!is_void(ret_type)) {
+        sema.check(value(), ret_type.type());
+    } else if (!is_void(ret_type.type())) {
         sema.error(this) << "Return value expected, function \'" << fn_decl->name()
-                         << "\' returns \'" << ret_type->to_string() << "\'\n";
+                         << "\' returns \'" << ret_type.to_string() << "\'\n";
     }
 }
 

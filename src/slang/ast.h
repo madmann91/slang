@@ -65,20 +65,21 @@ protected:
 
 /// Nodes that have a semantic type associated with them.
 /// Semantic types are assigned when the nodes are type-checked.
+template <typename T>
 class Typeable {
 public:
     Typeable() : assigned_type_(nullptr) {}
     virtual ~Typeable() {}
 
-    void assign_type(const slang::Type* type) const { assigned_type_ = type; }
-    const slang::Type* assigned_type() const { return assigned_type_; }
+    void assign_type(const T& type) const { assigned_type_ = type; }
+    T assigned_type() const { return assigned_type_; }
 
 private:
-    mutable const slang::Type* assigned_type_;
+    mutable T assigned_type_;
 };
 
 /// Base class for expressions.
-class Expr : public Node, public Typeable {
+class Expr : public Node, public Typeable<const slang::Type*> {
 public:
     virtual ~Expr() {}
     virtual const slang::Type* check(Sema&, const slang::Type*) const = 0;
@@ -487,7 +488,9 @@ protected:
 };
 
 /// Base class for types.
-class Type : public Node, public Typeable, public HasArraySpecifier {
+class Type : public Node,
+             public Typeable<slang::QualifiedType>,
+             public HasArraySpecifier {
 public:
     virtual ~Type() {}
 
@@ -549,7 +552,7 @@ public:
 };
 
 /// Base class for declarations.
-class Decl : public Node, public Typeable {
+class Decl : public Node, public Typeable<slang::QualifiedType> {
 public:
     virtual ~Decl() {}
     virtual slang::QualifiedType check(Sema&) const = 0;
@@ -604,7 +607,9 @@ private:
 };
 
 /// A variable declaration.
-class Variable : public Node, public Typeable, public HasName, public HasArraySpecifier {
+class Variable : public Node,
+                 public Typeable<slang::QualifiedType>,
+                 public HasName, public HasArraySpecifier {
 public:
     Expr* init() { return init_.get(); }
     const Expr* init() const { return init_.get(); }
@@ -657,7 +662,10 @@ public:
 };
 
 /// Function argument.
-class Arg : public Node, public Typeable, public HasName, public HasType, public HasArraySpecifier {
+class Arg : public Node,
+            public Typeable<slang::QualifiedType>,
+            public HasName, public HasType,
+            public HasArraySpecifier {
 public:
     void print(Printer&) const override;
     slang::QualifiedType check(Sema&) const;
