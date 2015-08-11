@@ -12,7 +12,7 @@
 using namespace slang;
 
 void usage() {
-    std::cout << "slangc [options] file...\n"
+    std::cout << "slangc [options] files...\n"
               << "Available options :\n"
               << "    -h   --help : Displays this message\n"
               << "    -tok --tokenize : Generates a stream of tokens from the input and print it\n"
