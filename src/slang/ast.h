@@ -83,6 +83,7 @@ class Expr : public Node, public Typeable<const slang::Type*> {
 public:
     virtual ~Expr() {}
     virtual const slang::Type* check(Sema&, const slang::Type*) const = 0;
+    virtual bool is_lvalue(Sema&) const { return false; }
 };
 
 /// List of expressions separated by a comma.
@@ -128,6 +129,8 @@ public:
     void print(Printer&) const override;
     const slang::Type* check(Sema&, const slang::Type*) const override;
 
+    bool is_lvalue(Sema&) const override;
+
 private:
     std::string ident_;
 };
@@ -144,6 +147,8 @@ public:
 
     void print(Printer&) const override;
     const slang::Type* check(Sema&, const slang::Type*) const override;
+
+    bool is_lvalue(Sema&) const override;
 
 private:
     std::string field_name_;
@@ -163,6 +168,8 @@ public:
 
     void print(Printer&) const override;
     const slang::Type* check(Sema&, const slang::Type*) const override;
+
+    bool is_lvalue(Sema&) const override;
 
 private:
     Ptr<Expr> left_, index_;

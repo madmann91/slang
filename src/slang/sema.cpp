@@ -90,8 +90,11 @@ bool Sema::expect_nonvoid(const ast::Node* node, const std::string& name, const 
     return true;
 }
 
-bool Sema::expect_lvalue(const ast::Expr*) {
-    // TODO: check if the expression is a l-value
+bool Sema::expect_lvalue(const ast::Expr* expr) {
+    if (!expr->is_lvalue(*this)) {
+        error(expr) << "l-value expected\n";
+        return false;
+    }
     return true;
 }
 
@@ -148,6 +151,15 @@ const slang::Type* IdentExpr::check(Sema& sema, const slang::Type*) const {
     return sema.error_type();
 }
 
+bool IdentExpr::is_lvalue(Sema& sema) const {
+    if (auto symbol = sema.env()->lookup_symbol(ident())) {
+        const QualifiedType& full_type = symbol->full_type();
+        return full_type.storage_qualifier() != slang::StorageQualifier::STORAGE_CONST &&
+               full_type.storage_qualifier() != slang::StorageQualifier::STORAGE_IN;
+    }
+    return false;
+}
+
 inline bool check_components(const std::string& components, const std::string& set) {
     bool ok = true;
     for (auto c : components)
@@ -197,6 +209,10 @@ const slang::Type* FieldExpr::check(Sema& sema, const slang::Type*) const {
     return sema.error_type();
 }
 
+bool FieldExpr::is_lvalue(Sema& sema) const {
+    return left()->is_lvalue(sema);
+}
+
 const slang::Type* IndexExpr::check(Sema& sema, const slang::Type*) const {
     const slang::Type* left_type = sema.check(left());
     const slang::Type* index_type = sema.check(index());
@@ -221,6 +237,10 @@ const slang::Type* IndexExpr::check(Sema& sema, const slang::Type*) const {
 
     sema.error(this) << "Expected an integer as array index\n";
     return sema.error_type();
+}
+
+bool IndexExpr::is_lvalue(Sema& sema) const {
+    return left()->is_lvalue(sema);
 }
 
 inline bool match_signature(const CallExpr* call, const slang::FunctionType* fn_type) {
