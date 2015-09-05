@@ -3,19 +3,19 @@
 namespace slang {
 
 size_t QualifiedType::hash() const {
-    return type()->hash() + (size_t)storage_qualifier();
+    return type()->hash() + (size_t)storage();
 }
 
 bool QualifiedType::equals(const QualifiedType& other) const {
-    return other.storage_qualifier() == storage_qualifier() && type()->equals(other.type());
+    return other.storage() == storage() && type()->equals(other.type());
 }
 
 bool QualifiedType::subtype(const QualifiedType& other) const {
-    return other.storage_qualifier() == storage_qualifier() && type()->subtype(other.type());
+    return other.storage() == storage() && type()->subtype(other.type());
 }
 
 bool QualifiedType::operator == (const QualifiedType& other) const {
-    return other.type() == type() && other.storage_qualifier() == storage_qualifier();
+    return other.type() == type() && other.storage() == storage();
 }
 
 bool QualifiedType::operator != (const QualifiedType& other) const {
@@ -24,7 +24,7 @@ bool QualifiedType::operator != (const QualifiedType& other) const {
 
 std::string QualifiedType::to_string() const {
     std::string str;
-    switch (storage_) {
+    switch (storage()) {
         case StorageQualifier::STORAGE_CONST:     str += "const";     break;
         case StorageQualifier::STORAGE_IN:        str += "in";        break;
         case StorageQualifier::STORAGE_OUT:       str += "out";       break;

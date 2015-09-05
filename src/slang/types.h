@@ -46,27 +46,38 @@ public:
     }
 };
 
-/// Qualified types representation. Contains a type and the list of qualifiers attached to it.
+/// Qualified types representation. Contains a type and the set of qualifiers attached to it.
 class QualifiedType {
 public:
     QualifiedType(const Type* type, StorageQualifier storage = StorageQualifier::STORAGE_NONE)
         : type_(type), storage_(storage)
     {}
 
+    /// Returns a hash value for this type.
     size_t hash() const;
+    /// Tests the given type for equality, should not be used unless you
+    /// need to inspect the type (use == instead).
     bool equals(const QualifiedType&) const;
+    /// Returns true if this type is a subtype of the given
+    /// type and they have the same qualifiers.
     bool subtype(const QualifiedType&) const;
 
+    /// Determines if the types and their qualifiers are the same.
     bool operator == (const QualifiedType&) const;
+    /// Determines if the types and their qualifiers are different (same as !(a == b)).
     bool operator != (const QualifiedType&) const;
 
+    /// Returns the non-qualified type.
     const Type* type() const { return type_; }
+    /// Determines if this type has a qualifier or not.
     bool is_qualified() const {
-        return storage_qualifier() != StorageQualifier::STORAGE_NONE;
+        return storage() != StorageQualifier::STORAGE_NONE;
     }
 
-    StorageQualifier storage_qualifier() const { return storage_; }
+    /// Returns the storage qualifier associated with this type.
+    StorageQualifier storage() const { return storage_; }
 
+    /// Returns the full type name, with its qualifiers.
     std::string to_string() const;
 
 private:

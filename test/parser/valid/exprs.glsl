@@ -19,8 +19,7 @@ void foo() {
 
     int h = -1 - (-1) + ~2 + (+2);
     int i = --h;
-    int j = ++i--;
-    int k = --++i;
+    int j = ++i, k = j;
     k++, i--;
 
     int m = (5 << 1 >> 2) + (2 << 1 >> 5);

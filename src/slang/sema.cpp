@@ -154,8 +154,8 @@ const slang::Type* IdentExpr::check(Sema& sema, const slang::Type*) const {
 bool IdentExpr::is_lvalue(Sema& sema) const {
     if (auto symbol = sema.env()->lookup_symbol(ident())) {
         const QualifiedType& full_type = symbol->full_type();
-        return full_type.storage_qualifier() != slang::StorageQualifier::STORAGE_CONST &&
-               full_type.storage_qualifier() != slang::StorageQualifier::STORAGE_IN;
+        return full_type.storage() != slang::StorageQualifier::STORAGE_CONST &&
+               full_type.storage() != slang::StorageQualifier::STORAGE_IN;
     }
     return false;
 }
@@ -1012,7 +1012,7 @@ slang::QualifiedType Arg::check(Sema& sema) const {
         sema.error(this) << "Arguments to functions must be explicitly sized\n";
     }
 
-    return QualifiedType(type, arg_type.storage_qualifier());
+    return QualifiedType(type, arg_type.storage());
 }
 
 slang::QualifiedType Variable::check(Sema& sema, QualifiedType var_type) const {
@@ -1022,10 +1022,12 @@ slang::QualifiedType Variable::check(Sema& sema, QualifiedType var_type) const {
 
     if (init())
         type = sema.check(init(), type);
+    else if (var_type.storage() == slang::StorageQualifier::STORAGE_CONST)
+        sema.error(this) << "Variable \'" << name() << "\' is declared \'const\' but is not initialized\n";
 
     sema.expect_nonvoid(this, name(), type);
 
-    slang::QualifiedType full_type(type, var_type.storage_qualifier());
+    slang::QualifiedType full_type(type, var_type.storage());
     if (auto symbol = sema.env()->find_symbol(name())) {
         // Arrays can be redeclared if they previously were implicitly sized
         if (is_unsized(symbol->type())) {

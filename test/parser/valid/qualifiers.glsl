@@ -25,3 +25,4 @@ volatile float v;
 restrict float w;
 readonly float x;
 writeonly int y;
+const int z = 0;

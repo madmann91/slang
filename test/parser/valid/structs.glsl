@@ -15,7 +15,7 @@ struct s2 {
 
 lowp struct s3 {
     highp s1 a;
-    const s2 b;
+    s2 b;
 };
 
 struct s4 {
