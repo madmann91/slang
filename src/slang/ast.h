@@ -84,6 +84,7 @@ public:
     virtual ~Expr() {}
     virtual const slang::Type* check(Sema&, const slang::Type*) const = 0;
     virtual bool is_lvalue(Sema&) const { return false; }
+    virtual bool is_constant(Sema&) const { return false; }
 };
 
 /// List of expressions separated by a comma.
@@ -200,7 +201,7 @@ private:
     Ptr<Expr> expr_;
 };
 
-/// An expression which features an operator.
+/// An expression which contains an operator.
 class OpExpr : public Expr {
 public:
     virtual ~OpExpr() {}
@@ -570,7 +571,6 @@ class Stmt : public Node {
 public:
     virtual ~Stmt() {}
     virtual void check(Sema&) const = 0;
-    virtual bool has_return() const { return false; }
 };
 
 /// A list of statements.
@@ -582,13 +582,6 @@ public:
 
     void print(Printer&) const override;
     void check(Sema&) const override;
-    bool has_return() const override {
-        for (auto stmt : stmts_) {
-            if (stmt->has_return())
-                return true;
-        }
-        return false;
-    }
 
 private:
     PtrVector<Stmt> stmts_;
@@ -771,9 +764,6 @@ public:
 
     void print(Printer&) const override;
     void check(Sema&) const override;
-    bool has_return() const override {
-        return if_true_->has_return() || (if_false_ && if_false_->has_return());
-    }
 
 private:
     Ptr<Expr> cond_;
@@ -793,7 +783,6 @@ public:
 
     void print(Printer&) const override;
     void check(Sema&) const override;
-    bool has_return() const override { return list_->has_return(); }
 
 private:
     Ptr<StmtList> list_;
@@ -828,8 +817,6 @@ public:
     Stmt* body() { return body_.get(); }
     const Stmt* body() const { return body_.get(); }
     void set_body(Stmt* body) { body_.reset(body); }
-
-    bool has_return() const override { return body_->has_return(); }
 
 protected:
     Ptr<LoopCond> cond_;
@@ -901,7 +888,6 @@ public:
 
     void print(Printer& out) const override;
     void check(Sema&) const override;
-    bool has_return() const override { return true; }
 
 private:
     Ptr<Expr> value_;

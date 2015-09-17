@@ -806,7 +806,7 @@ slang::QualifiedType NamedType::check(Sema& sema) const {
 
 static bool compound_members(Sema& sema, const CompoundType* compound, slang::CompoundType::MemberList& members) {
     // Creates the member list of a compound type from the AST node
-    sema.push_env();
+    sema.push_env(compound);
     for (auto field : compound->fields()) {
         sema.check(field);
         for (auto var : field->vars()) {
@@ -993,9 +993,6 @@ slang::QualifiedType FunctionDecl::check(Sema& sema) const {
         sema.push_env(this);
         sema.check(body());
         sema.pop_env(2);
-
-        if (!is_void(ret_type.type()) && !body()->has_return())
-            sema.warn(this) << "Function \'" << name() << "\' does not contain a return statement\n";
     }
 
     return fn_type;
@@ -1020,10 +1017,15 @@ slang::QualifiedType Variable::check(Sema& sema, QualifiedType var_type) const {
     if (name().empty())
         return type;
 
+    if (var_type.storage() == slang::StorageQualifier::STORAGE_CONST) {
+        if (sema.env()->scope()->isa<StructType>()) {
+            sema.error(this) << "\'const\' qualifier is not allowed inside structures\n";
+        } else if (!init())
+            sema.error(this) << "Variable \'" << name() << "\' is declared \'const\' but is not initialized\n";
+    }
+
     if (init())
         type = sema.check(init(), type);
-    else if (var_type.storage() == slang::StorageQualifier::STORAGE_CONST)
-        sema.error(this) << "Variable \'" << name() << "\' is declared \'const\' but is not initialized\n";
 
     sema.expect_nonvoid(this, name(), type);
 
