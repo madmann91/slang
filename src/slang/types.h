@@ -192,7 +192,7 @@ public:
     bool equals(const Type*) const override;
 };
 
-/// Primitive type (int, float, double, ...).
+/// Primitive type (int, float, double, vec1, vec2, mat2x3, ...).
 class PrimType : public Type {
 public:
     enum Prim {
@@ -257,9 +257,9 @@ public:
                prim() == PrimType::PRIM_DOUBLE;
     }
 
-    /// Returns the number of rows in this type.
+    /// Returns the number of rows in this type (scalars have only one row).
     size_t rows() const { return rows_; }
-    /// Returns the number of columns in this type.
+    /// Returns the number of columns in this type (vectors or scalars have only one column).
     size_t cols() const { return cols_; }
 
     std::string type_name() const override;

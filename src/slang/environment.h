@@ -87,6 +87,8 @@ public:
     Environment* parent() { return parent_; }
     /// Gets the parent of this environment (if any).
     const Environment* parent() const { return parent_; }
+    /// Returns true if the environment is the top-level environment.
+    bool top_level() const { return parent_ == nullptr; }
 
     /// Returns the enclosing scope AST node, if any.
     const ast::Node* scope() const { return scope_; }
