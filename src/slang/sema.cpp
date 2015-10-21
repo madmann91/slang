@@ -281,7 +281,7 @@ static const slang::Type* check_function_call(Sema& sema, const CallExpr* call) 
     } else if (auto sign = call_type->isa<slang::FunctionType>()) {
         if (match_signature(call, sign))
             return sign->ret().type();
-        candidates = sign->to_string();
+        candidates = "\'" + sign->to_string() + "\'";
     }
 
     sema.error(call) << "No matching function was found for this call (candidates are : " << candidates << ")\n";

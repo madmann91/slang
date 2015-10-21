@@ -25,18 +25,18 @@ bool QualifiedType::operator != (const QualifiedType& other) const {
 std::string QualifiedType::to_string() const {
     std::string str;
     switch (storage()) {
-        case StorageQualifier::STORAGE_CONST:     str += "const";     break;
-        case StorageQualifier::STORAGE_IN:        str += "in";        break;
-        case StorageQualifier::STORAGE_OUT:       str += "out";       break;
-        case StorageQualifier::STORAGE_INOUT:     str += "inout";     break;
-        case StorageQualifier::STORAGE_ATTRIBUTE: str += "attribute"; break;
-        case StorageQualifier::STORAGE_UNIFORM:   str += "uniform";   break;
-        case StorageQualifier::STORAGE_VARYING:   str += "varying";   break;
-        case StorageQualifier::STORAGE_BUFFER:    str += "buffer";    break;
-        case StorageQualifier::STORAGE_SHARED:    str += "shared";    break;
+        case StorageQualifier::STORAGE_CONST:     str += "const ";     break;
+        case StorageQualifier::STORAGE_IN:        str += "in ";        break;
+        case StorageQualifier::STORAGE_OUT:       str += "out ";       break;
+        case StorageQualifier::STORAGE_INOUT:     str += "inout ";     break;
+        case StorageQualifier::STORAGE_ATTRIBUTE: str += "attribute "; break;
+        case StorageQualifier::STORAGE_UNIFORM:   str += "uniform ";   break;
+        case StorageQualifier::STORAGE_VARYING:   str += "varying ";   break;
+        case StorageQualifier::STORAGE_BUFFER:    str += "buffer ";    break;
+        case StorageQualifier::STORAGE_SHARED:    str += "shared ";    break;
         default: break;
     }
-    return str + " " + type_->to_string();
+    return str + type_->to_string();
 }
 
 bool FunctionType::equals(const Type* other) const {
