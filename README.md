@@ -31,9 +31,6 @@ bool parse_glsl(const std::string& filename) {
     pp.register_builtin_macros();
     // Create a semantic object, that will be used during type checking
     Sema sema(logger);
-    // Create a context and register all the builtin functions into the environment
-    Context context(sema);
-    context.register_all();
     // Create a parser object that reads tokens from the preprocessor (you can choose to read directly from the lexer)
     Parser parser([&pp]() { return pp.preprocess(); }, sema, logger);
 
@@ -52,9 +49,12 @@ bool parse_glsl(const std::string& filename) {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ## Status
-Currently only the lexer, preprocessor, parser and the test suite are implemented. The whole GLSL 4.0 specification
+Every part of the front-end has been implemented, along with a complete test suite. The whole GLSL 4.0 specification
 is supported. Some extensions are also implemented, to allow parsing of older GLSL versions (attribute or varying
-qualifiers, for instance). The documentation can be generated using doxygen.
+qualifiers, for instance).
+
+## Documentation
+The documentation can be generated using doxygen.
 
 ## License
 The code is distributed under the LGPL license.
