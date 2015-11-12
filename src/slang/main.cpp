@@ -7,9 +7,10 @@
 #include "slang/preprocessor.h"
 #include "slang/ast.h"
 #include "slang/print.h"
-#include "slang/builtins.h"
 
 using namespace slang;
+
+std::unique_ptr<ast::Module> parse_builtins(Sema&, const Keywords&);
 
 void usage() {
     std::cout << "slangc [options] files...\n"
@@ -74,7 +75,7 @@ bool syntax_analysis(const std::string& filename, const Keywords& keys) {
     });
     pp.register_builtin_macros();
     Sema sema(logger);
-    std::unique_ptr<ast::Module> builtins = parse_builtins(sema);
+    std::unique_ptr<ast::Module> builtins = parse_builtins(sema, keys);
 
     Parser parser([&pp]() { return pp.preprocess(); }, sema, logger);
     sema.push_env();

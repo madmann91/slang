@@ -1,6 +1,5 @@
 set(HEADER_FILES
     ast.h
-    builtins.h
     cast.h
     environment.h
     keyword.h
@@ -17,7 +16,6 @@ set(HEADER_FILES
     types.h)
 
 set(SOURCE_FILES
-    builtins.cpp
     environment.cpp
     lexer.cpp
     parser.cpp
@@ -34,5 +32,5 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 add_library(slang ${SOURCE_FILES} ${HEADER_FILES})
-add_executable(slangc main.cpp)
+add_executable(slangc main.cpp builtins.cpp)
 target_link_libraries(slangc slang)
