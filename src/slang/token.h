@@ -13,42 +13,42 @@ namespace slang {
 class Literal {
 public:
     enum Type {
-        LIT_DOUBLE,
-        LIT_FLOAT,
-        LIT_INT,
-        LIT_UINT,
-        LIT_BOOL,
-        LIT_UNKNOWN
+        DOUBLE,
+        FLOAT,
+        INT,
+        UINT,
+        BOOL,
+        UNKNOWN
     };
 
-    Literal() : type_(LIT_UNKNOWN) {}
+    Literal() : type_(UNKNOWN) {}
 
-    Literal(double d, bool s)   : type_(LIT_DOUBLE), suffix_(s)     { value_.dbl_val = d; }
-    Literal(float f, bool s)    : type_(LIT_FLOAT),  suffix_(s)     { value_.flt_val = f; }
-    Literal(int i, bool s)      : type_(LIT_INT),    suffix_(s)     { value_.int_val = i; }
-    Literal(unsigned u, bool s) : type_(LIT_UINT),   suffix_(s)     { value_.uint_val = u; }
-    Literal(bool b)             : type_(LIT_BOOL),   suffix_(false) { value_.bool_val = b; }
+    Literal(double d, bool s)   : type_(DOUBLE), suffix_(s)     { value_.dbl_val = d; }
+    Literal(float f, bool s)    : type_(FLOAT),  suffix_(s)     { value_.flt_val = f; }
+    Literal(int i, bool s)      : type_(INT),    suffix_(s)     { value_.int_val = i; }
+    Literal(unsigned u, bool s) : type_(UINT),   suffix_(s)     { value_.uint_val = u; }
+    Literal(bool b)             : type_(BOOL),   suffix_(false) { value_.bool_val = b; }
 
     bool isa(Type type) const { return type_ == type; }
-    bool valid() const { return type_ != LIT_UNKNOWN; }
+    bool valid() const { return type_ != UNKNOWN; }
     Type type() const { return type_; }
 
     bool has_suffix() const { return suffix_; }
 
-    double   as_double() const { assert(isa(LIT_DOUBLE)); return value_.dbl_val;  }
-    float    as_float()  const { assert(isa(LIT_FLOAT));  return value_.flt_val;  }
-    int      as_int()    const { assert(isa(LIT_INT));    return value_.int_val;  }
-    unsigned as_uint()   const { assert(isa(LIT_UINT));   return value_.uint_val; }
-    bool     as_bool()   const { assert(isa(LIT_BOOL));   return value_.bool_val; }
+    double   as_double() const { assert(isa(DOUBLE)); return value_.dbl_val;  }
+    float    as_float()  const { assert(isa(FLOAT));  return value_.flt_val;  }
+    int      as_int()    const { assert(isa(INT));    return value_.int_val;  }
+    unsigned as_uint()   const { assert(isa(UINT));   return value_.uint_val; }
+    bool     as_bool()   const { assert(isa(BOOL));   return value_.bool_val; }
 
     double value() const {
         switch (type_) {
-            case LIT_DOUBLE:  return value_.dbl_val;
-            case LIT_FLOAT:   return (double)value_.flt_val;
-            case LIT_INT:     return (double)value_.int_val;
-            case LIT_UINT:    return (double)value_.uint_val;
+            case DOUBLE:  return value_.dbl_val;
+            case FLOAT:   return (double)value_.flt_val;
+            case INT:     return (double)value_.int_val;
+            case UINT:    return (double)value_.uint_val;
             default:
-            case LIT_UNKNOWN:
+            case UNKNOWN:
                 assert(0 && "Invalid literal");
                 return 0.0;
         }
@@ -70,35 +70,35 @@ private:
 class Token {
 public:
     enum Type {
-#define SLANG_TOK(tok, str) TOK_##tok,
+#define SLANG_TOK(tok, str) tok,
 #include "slang/tokenlist.h"
     };
 
-    Token() : type_(TOK_UNKNOWN) {}
+    Token() : type_(UNKNOWN) {}
     /// Creates a token which is not an identifier nor a literal.
     Token(const Location& loc, Type type, bool new_line)
         : loc_(loc), type_(type), str_(type_string(type)), new_line_(new_line)
     {}
     /// Creates an identifier or keyword.
     Token(const Location& loc, const std::string& str, const Keywords& keys, bool new_line)
-        : loc_(loc), type_(TOK_IDENT), str_(str), key_(keys.keyword(str)), new_line_(new_line)
+        : loc_(loc), type_(IDENT), str_(str), key_(keys.keyword(str)), new_line_(new_line)
     {}
     /// Creates a literal.
     Token(const Location& loc, const std::string& str, Literal lit, bool new_line)
-        : loc_(loc), type_(TOK_LIT), str_(str), lit_(lit), new_line_(new_line)
+        : loc_(loc), type_(LIT), str_(str), lit_(lit), new_line_(new_line)
     {}
 
     bool isa(Type type) const { return type_ == type; }
-    bool is_eof() const { return type_ == TOK_EOF; }
-    bool is_ident() const { return type_ == TOK_IDENT && key_.is_unknown(); }
+    bool is_eof() const { return type_ == END; }
+    bool is_ident() const { return type_ == IDENT && key_.is_unknown(); }
     bool is_keyword() const { return !key_.is_unknown(); }
 
     Type type() const { return type_; }
     Location loc() const { return loc_; }
     Key key() const { return key_; }
 
-    Literal lit() const { assert(type_ == TOK_LIT); return lit_; }
-    const std::string& ident() const { assert(type_ == TOK_IDENT); return str_; }
+    Literal lit() const { assert(type_ == LIT); return lit_; }
+    const std::string& ident() const { assert(type_ == IDENT); return str_; }
 
     const std::string& str() const { return str_; }
     bool new_line() const { return new_line_; }
@@ -107,7 +107,7 @@ public:
         static auto hash_type = [] (Type type) { return (size_t)type; };
         static const std::unordered_map<Type, std::string, decltype(hash_type)> type_to_str(
             {
-        #define SLANG_TOK(tok, str) {TOK_##tok, str},
+        #define SLANG_TOK(tok, str) {tok, str},
         #include "slang/tokenlist.h"
             }, 256, hash_type);
         auto it = type_to_str.find(type);
@@ -126,28 +126,28 @@ private:
 
 inline std::ostream& operator << (std::ostream& out, const Literal& lit) {
     switch (lit.type()) {
-        case Literal::LIT_FLOAT:
+        case Literal::FLOAT:
             out << std::to_string(lit.as_float());
             if (lit.has_suffix()) out << "f";
             break;
-        case Literal::LIT_DOUBLE:
+        case Literal::DOUBLE:
             assert(lit.has_suffix());
             out << std::to_string(lit.as_double()) << "lf";
             break;
-        case Literal::LIT_INT:
+        case Literal::INT:
             out << lit.as_int();
             if (lit.has_suffix()) out << "i";
             break;
-        case Literal::LIT_UINT:
+        case Literal::UINT:
             out << lit.as_uint();
             if (lit.has_suffix()) out << "u";
             break;
-        case Literal::LIT_BOOL:
+        case Literal::BOOL:
             if (lit.as_bool()) out << "true";
             else out << "false";
             break;
         default:
-        case Literal::LIT_UNKNOWN:
+        case Literal::UNKNOWN:
             assert(0 && "Invalid literal");
             break;
     }

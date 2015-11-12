@@ -232,6 +232,7 @@ private:
     void parse_line();
     void parse_error();
 
+    void apply_arguments(const Token&, const Macro& macro, const std::vector<Macro::Arg>&, std::vector<Token>&, bool);
     void apply(const Macro&, const std::vector<Macro::Arg>&, std::vector<Token>&);
     bool concat(const Token&, const Token&, Token&);
     bool expand(bool);

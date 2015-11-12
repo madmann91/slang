@@ -371,8 +371,10 @@ private:
     const T* new_type(Args... args) {
         T t(std::forward<Args>(args)...);
         auto it = types_.find(&t);
-        if (it != types_.end())
+        if (it != types_.end()) {
+            assert(t.equals(*it));
             return (*it)->as<T>();
+        }
 
         const T* pt = new T(t);
         types_.emplace(pt);

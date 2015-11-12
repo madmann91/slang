@@ -19,18 +19,14 @@ public:
     Sema(Logger& logger)
         : logger_(logger), env_(nullptr), err_count_(0), warn_count_(0) {
         push_env();
-        builtin_env_ = env_;
-        push_env();
     }
 
     ~Sema() {
-        pop_env(2);
+        pop_env();
     }
 
     /// Returns the current environment.
     Environment* env() { return env_; }
-    /// Returns the builtin environment.
-    Environment* builtin_env() { return builtin_env_; }
 
     /// Pushes a new, empty environment on the stack.
     void push_env(const ast::Node* scope = nullptr) {
@@ -140,7 +136,7 @@ private:
 
     Logger& logger_;
     PtrVector<Environment> env_list_;
-    Environment* env_, *builtin_env_;
+    Environment* env_;
     size_t err_count_, warn_count_;
 };
 

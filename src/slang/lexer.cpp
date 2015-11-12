@@ -59,7 +59,7 @@ Lexer::Lexer(std::istream& stream, const Keywords& keys, Logger& logger, int lin
                 return;
             }
         }
-        error() << "Unknown BOM (Byte Order Mark), only UTF-8 is supported\n";
+        error() << "Unknown Byte Order Mark, only UTF-8 is supported\n";
     }
 }
 
@@ -74,7 +74,7 @@ Token Lexer::lex() {
 
         if (stream_.eof()) {
             // End-of-file case, early exit
-            return make_token(Token::TOK_EOF);
+            return make_token(Token::END);
         }
 
         str_.clear();
@@ -97,7 +97,7 @@ Token Lexer::lex() {
             if (std::isdigit(c_))
                 return make_literal(parse_float(true));
             else
-                return make_token(Token::TOK_DOT);
+                return make_token(Token::DOT);
         }
 
         // Now for operators and special characters
@@ -142,13 +142,13 @@ Token Lexer::lex() {
 
                     continue;
                 } else {
-                    MAKE_BIN_OP(Token::TOK_DIV, Token::TOK_ASSIGN_DIV)
+                    MAKE_BIN_OP(Token::DIV, Token::ASSIGN_DIV)
                 }
 
-            case '*': MAKE_BIN_OP(Token::TOK_MUL,    Token::TOK_ASSIGN_MUL)
-            case '%': MAKE_BIN_OP(Token::TOK_MOD,    Token::TOK_ASSIGN_MOD)
-            case '!': MAKE_BIN_OP(Token::TOK_NOT,    Token::TOK_NEQ)
-            case '=': MAKE_BIN_OP(Token::TOK_ASSIGN, Token::TOK_EQ)
+            case '*': MAKE_BIN_OP(Token::MUL,    Token::ASSIGN_MUL)
+            case '%': MAKE_BIN_OP(Token::MOD,    Token::ASSIGN_MOD)
+            case '!': MAKE_BIN_OP(Token::NOT,    Token::NEQ)
+            case '=': MAKE_BIN_OP(Token::ASSIGN, Token::EQ)
 
     #undef MAKE_BIN_OP
 
@@ -162,8 +162,8 @@ Token Lexer::lex() {
         } \
         return make_token(tok);
 
-            case '+': MAKE_INC_OP(Token::TOK_ADD, Token::TOK_ASSIGN_ADD, Token::TOK_INC)
-            case '-': MAKE_INC_OP(Token::TOK_SUB, Token::TOK_ASSIGN_SUB, Token::TOK_DEC)
+            case '+': MAKE_INC_OP(Token::ADD, Token::ASSIGN_ADD, Token::INC)
+            case '-': MAKE_INC_OP(Token::SUB, Token::ASSIGN_SUB, Token::DEC)
 
     #undef MAKE_INC_OP
 
@@ -181,8 +181,8 @@ Token Lexer::lex() {
         } \
         return make_token(tok);
 
-            case '>': MAKE_CMP_OP(Token::TOK_GT, Token::TOK_GEQ, Token::TOK_RSHIFT, Token::TOK_ASSIGN_RSHIFT)
-            case '<': MAKE_CMP_OP(Token::TOK_LT, Token::TOK_LEQ, Token::TOK_LSHIFT, Token::TOK_ASSIGN_LSHIFT)
+            case '>': MAKE_CMP_OP(Token::GT, Token::GEQ, Token::RSHIFT, Token::ASSIGN_RSHIFT)
+            case '<': MAKE_CMP_OP(Token::LT, Token::LEQ, Token::LSHIFT, Token::ASSIGN_LSHIFT)
 
     #undef MAKE_CMP_OP
 
@@ -196,36 +196,36 @@ Token Lexer::lex() {
         } \
         return make_token(tok);
 
-            case '&': MAKE_BIT_OP(Token::TOK_AND, Token::TOK_ANDAND, Token::TOK_ASSIGN_AND)
-            case '|': MAKE_BIT_OP(Token::TOK_OR,  Token::TOK_OROR,   Token::TOK_ASSIGN_OR)
-            case '^': MAKE_BIT_OP(Token::TOK_XOR, Token::TOK_XORXOR, Token::TOK_ASSIGN_XOR)
+            case '&': MAKE_BIT_OP(Token::AND, Token::ANDAND, Token::ASSIGN_AND)
+            case '|': MAKE_BIT_OP(Token::OR,  Token::OROR,   Token::ASSIGN_OR)
+            case '^': MAKE_BIT_OP(Token::XOR, Token::XORXOR, Token::ASSIGN_XOR)
 
     #undef MAKE_BIT_OP
 
-            case '{': return make_token(Token::TOK_LBRACE);
-            case '}': return make_token(Token::TOK_RBRACE);
-            case '(': return make_token(Token::TOK_LPAREN);
-            case ')': return make_token(Token::TOK_RPAREN);
-            case '[': return make_token(Token::TOK_LBRACKET);
-            case ']': return make_token(Token::TOK_RBRACKET);
+            case '{': return make_token(Token::LBRACE);
+            case '}': return make_token(Token::RBRACE);
+            case '(': return make_token(Token::LPAREN);
+            case ')': return make_token(Token::RPAREN);
+            case '[': return make_token(Token::LBRACKET);
+            case ']': return make_token(Token::RBRACKET);
 
-            case '?': return make_token(Token::TOK_QMARK);
-            case ':': return make_token(Token::TOK_COLON);
-            case '~': return make_token(Token::TOK_NEG);
+            case '?': return make_token(Token::QMARK);
+            case ':': return make_token(Token::COLON);
+            case '~': return make_token(Token::NEG);
 
-            case ';': return make_token(Token::TOK_SEMICOLON);
-            case ',': return make_token(Token::TOK_COMMA);
+            case ';': return make_token(Token::SEMICOLON);
+            case ',': return make_token(Token::COMMA);
 
             case '#':
                 if (c_ == '#') {
                     next();
-                    return make_token(Token::TOK_SHARPSHARP);
+                    return make_token(Token::SHARPSHARP);
                 }
-                return make_token(Token::TOK_SHARP);
+                return make_token(Token::SHARP);
 
             default:
                 error() << "Unknown token\n";
-                return make_token(Token::TOK_UNKNOWN);
+                return make_token(Token::UNKNOWN);
         }
     }
 }

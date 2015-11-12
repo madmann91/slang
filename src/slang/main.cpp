@@ -7,7 +7,7 @@
 #include "slang/preprocessor.h"
 #include "slang/ast.h"
 #include "slang/print.h"
-#include "slang/context.h"
+#include "slang/builtins.h"
 
 using namespace slang;
 
@@ -32,7 +32,7 @@ bool lexical_analysis(const std::string& filename, const Keywords& keys) {
     do {
         tok = lexer.lex();
         std::cout << tok << tok.loc() << " ";
-    } while (tok.type() != Token::TOK_EOF);
+    } while (tok.type() != Token::END);
 
     std::cout << std::endl;
     return lexer.error_count() == 0;
@@ -55,7 +55,7 @@ bool preprocess(const std::string& filename, const Keywords& keys) {
     do {
         tok = pp.preprocess();
         std::cout << tok << " ";
-    } while (tok.type() != Token::TOK_EOF);
+    } while (tok.type() != Token::END);
 
     std::cout << std::endl;
     return lexer.error_count() == 0 && pp.error_count() == 0;
@@ -74,10 +74,12 @@ bool syntax_analysis(const std::string& filename, const Keywords& keys) {
     });
     pp.register_builtin_macros();
     Sema sema(logger);
-    Context context(sema);
-    context.register_all();
+    std::unique_ptr<ast::Module> builtins = parse_builtins(sema);
+
     Parser parser([&pp]() { return pp.preprocess(); }, sema, logger);
+    sema.push_env();
     std::unique_ptr<ast::Module> module = parser.parse();
+    sema.pop_env();
 
     Printer printer(std::cout);
     module->print(printer);

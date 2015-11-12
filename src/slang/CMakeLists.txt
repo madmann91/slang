@@ -1,7 +1,7 @@
 set(HEADER_FILES
     ast.h
+    builtins.h
     cast.h
-    context.h
     environment.h
     keyword.h
     keywordlist.h
@@ -17,7 +17,7 @@ set(HEADER_FILES
     types.h)
 
 set(SOURCE_FILES
-    context.cpp
+    builtins.cpp
     environment.cpp
     lexer.cpp
     parser.cpp

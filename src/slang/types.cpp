@@ -47,7 +47,7 @@ bool FunctionType::equals(const Type* other) const {
             if (!args()[i].equals(fn->args()[i]))
                 return false;
         }
-        return true;
+        return ret().equals(fn->ret());
     }
 
     return false;

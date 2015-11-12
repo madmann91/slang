@@ -19,10 +19,10 @@ Preprocessor::Preprocessor(Lexer& lexer, Logger& logger,
 }
 
 Token Preprocessor::preprocess() {
-    while (!lookup_.isa(Token::TOK_EOF)) {
+    while (!lookup_.isa(Token::END)) {
         // Parse preprocessor directives
         if (ctx_stack_.empty()) {
-            while (lookup_.isa(Token::TOK_SHARP)) {
+            while (lookup_.isa(Token::SHARP)) {
                 if (lookup_.new_line()) {
                     // This is a preprocessor directive
                     parse_directive();
@@ -32,7 +32,7 @@ Token Preprocessor::preprocess() {
                 }
             }
 
-            if (lookup_.isa(Token::TOK_EOF)) break;
+            if (lookup_.isa(Token::END)) break;
         }
 
         // Skip tokens in a disabled #if, #else or #elif branch
@@ -42,14 +42,14 @@ Token Preprocessor::preprocess() {
         }
 
         // Expand macros if needed
-        if (lookup_.isa(Token::TOK_IDENT) && expand(true))
+        if (lookup_.isa(Token::IDENT) && expand(true))
             continue;
 
         break;
     }
 
     // For a missing #endif directive, emit an error (just once)
-    if (!prev_.isa(Token::TOK_EOF) && lookup_.isa(Token::TOK_EOF) && state_stack_.size() > 0) {
+    if (!prev_.isa(Token::END) && lookup_.isa(Token::END) && state_stack_.size() > 0) {
         error() << "Missing " << state_stack_.size() << " #endif directive(s)\n";
     }
 
@@ -132,7 +132,7 @@ void Preprocessor::expect(Token::Type type) {
 
 void Preprocessor::eat_line(bool report) {
     // Eat every token until we reach a newline
-    while (!lookup_.isa(Token::TOK_EOF) && !lookup_.new_line()) {
+    while (!lookup_.isa(Token::END) && !lookup_.new_line()) {
         if (report) {
             error() << "Additional characters after preprocessor directive\n";
             report = false;
@@ -150,9 +150,9 @@ bool Preprocessor::check_newline() {
 }
 
 void Preprocessor::parse_directive() {
-    eat(Token::TOK_SHARP);
+    eat(Token::SHARP);
 
-    if (lookup_.isa(Token::TOK_IDENT)) {
+    if (lookup_.isa(Token::IDENT)) {
         if (lookup_.ident() == "pragma") {
             parse_pragma();
         } else if (lookup_.ident() == "if") {
@@ -195,10 +195,10 @@ void Preprocessor::parse_directive() {
 }
 
 void Preprocessor::parse_pragma() {
-    eat(Token::TOK_IDENT);
+    eat(Token::IDENT);
 
     std::vector<Token> line;
-    while (!lookup_.isa(Token::TOK_EOF) && !lookup_.new_line()) {
+    while (!lookup_.isa(Token::END) && !lookup_.new_line()) {
         line.push_back(lookup_);
         next();
     }
@@ -207,7 +207,7 @@ void Preprocessor::parse_pragma() {
 }
 
 void Preprocessor::parse_if() {
-    eat(Token::TOK_IDENT);
+    eat(Token::IDENT);
     bool cond = evaluate_condition();
 
     // Check if current branch was taken
@@ -221,7 +221,7 @@ void Preprocessor::parse_if() {
 }
 
 void Preprocessor::parse_endif() {
-    eat(Token::TOK_IDENT);
+    eat(Token::IDENT);
     if (state_stack_.empty()) {
         error() << "#endif outside of an #if\n";
     } else {
@@ -231,7 +231,7 @@ void Preprocessor::parse_endif() {
 }
 
 void Preprocessor::parse_else() {
-    eat(Token::TOK_IDENT);
+    eat(Token::IDENT);
     if (state_stack_.empty()) {
         error() << "#else outside of an #if\n";
     } else if (state_stack_.back().branch == State::BRANCH_ELSE) {
@@ -250,7 +250,7 @@ void Preprocessor::parse_else() {
 }
 
 void Preprocessor::parse_elif() {
-    eat(Token::TOK_IDENT);
+    eat(Token::IDENT);
     bool cond = evaluate_condition();
 
     if (state_stack_.empty()) {
@@ -271,13 +271,13 @@ void Preprocessor::parse_elif() {
 }
 
 void Preprocessor::parse_ifdef_ifndef(bool flag) {
-    eat(Token::TOK_IDENT);
+    eat(Token::IDENT);
 
     if (lookup_.new_line()) {
         error() << "Incomplete #ifdef or #ifndef directive\n";
         state_stack_.emplace_back(false, true, State::BRANCH_IF);
     } else {
-        if (!lookup_.isa(Token::TOK_IDENT) || lookup_.new_line()) {
+        if (!lookup_.isa(Token::IDENT) || lookup_.new_line()) {
             error() << "Expected identifier after #ifdef or #ifndef\n";
             state_stack_.emplace_back(false, true, State::BRANCH_IF);
         } else {
@@ -296,14 +296,14 @@ void Preprocessor::parse_ifdef_ifndef(bool flag) {
 }
 
 void Preprocessor::parse_define() {
-    eat(Token::TOK_IDENT);
+    eat(Token::IDENT);
     if (!check_newline()) return;
 
     // Read macro name
     std::string macro;
-    if (lookup_.isa(Token::TOK_IDENT)) {
+    if (lookup_.isa(Token::IDENT)) {
         macro = lookup_.ident();
-        eat(Token::TOK_IDENT);
+        eat(Token::IDENT);
     } else {
         error() << "Macro identifier expected\n";
         eat_line(false);
@@ -312,36 +312,36 @@ void Preprocessor::parse_define() {
 
     // Parse macro arguments
     std::unordered_map<std::string, size_t> args;
-    if (lookup_.isa(Token::TOK_LPAREN) && !lookup_.new_line()) {
-        eat(Token::TOK_LPAREN);
+    if (lookup_.isa(Token::LPAREN) && !lookup_.new_line()) {
+        eat(Token::LPAREN);
 
-        while (lookup_.isa(Token::TOK_IDENT) && !lookup_.new_line()) {
+        while (lookup_.isa(Token::IDENT) && !lookup_.new_line()) {
             args.emplace(std::make_pair(lookup_.ident(), args.size()));
-            eat(Token::TOK_IDENT);
+            eat(Token::IDENT);
 
             if (!check_newline()) return;
 
-            if (!lookup_.isa(Token::TOK_COMMA))
+            if (!lookup_.isa(Token::COMMA))
                 break;
 
-            eat(Token::TOK_COMMA);
+            eat(Token::COMMA);
         }
 
         if (!check_newline()) return;
 
-        expect(Token::TOK_RPAREN);
+        expect(Token::RPAREN);
     }
 
     // Read macro body
     std::vector<Token> body;
     while (!lookup_.new_line() &&
-           !lookup_.isa(Token::TOK_EOF)) {
+           !lookup_.isa(Token::END)) {
         body.push_back(lookup_);
         next();
     }
 
     if (!body.empty()) {
-        if (body.front().isa(Token::TOK_SHARPSHARP) || body.back().isa(Token::TOK_SHARPSHARP)) {
+        if (body.front().isa(Token::SHARPSHARP) || body.back().isa(Token::SHARPSHARP)) {
             error() << "Concatenation operator \'##\' cannot appear at the beginnning or the end of a macro body\n";
             eat_line(false);
             return;
@@ -349,7 +349,7 @@ void Preprocessor::parse_define() {
 
         Token prev;
         for (size_t i = 0; i < body.size(); i++) {
-            if (prev.isa(Token::TOK_SHARPSHARP) && body[i].isa(Token::TOK_SHARPSHARP)) {
+            if (prev.isa(Token::SHARPSHARP) && body[i].isa(Token::SHARPSHARP)) {
                 error() << "Cannot have two concatenation operators \'##\' next to each other\n";
                 eat_line(false);
                 return;
@@ -365,16 +365,16 @@ void Preprocessor::parse_define() {
 }
 
 void Preprocessor::parse_undef() {
-    eat(Token::TOK_IDENT);
+    eat(Token::IDENT);
     if (!check_newline()) return;
 
-    if (lookup_.isa(Token::TOK_IDENT)) {
+    if (lookup_.isa(Token::IDENT)) {
         if (macros_.find(lookup_.ident()) == macros_.end())
             warn() << "Unknown macro \'" << lookup_.ident() << "\'\n";
         else
             macros_.erase(lookup_.ident());
 
-        eat(Token::TOK_IDENT);
+        eat(Token::IDENT);
     } else {
         error() << "Macro identifier expected\n";
         next();
@@ -383,20 +383,20 @@ void Preprocessor::parse_undef() {
 }
 
 void Preprocessor::parse_version() {
-    eat(Token::TOK_IDENT);
+    eat(Token::IDENT);
     if (!check_newline()) return;
 
-    if (lookup_.isa(Token::TOK_LIT) && lookup_.lit().isa(Literal::LIT_INT)) {
+    if (lookup_.isa(Token::LIT) && lookup_.lit().isa(Literal::INT)) {
         int version = lookup_.lit().as_int();
         if (version > 440) {
             warn() << "GLSL version not supported, defaulting to 440\n";
             version = 440;
         }
-        eat(Token::TOK_LIT);
+        eat(Token::LIT);
 
         // Optional profile argument (default is core)
         Profile profile = Profile::PROFILE_CORE;
-        if (lookup_.isa(Token::TOK_IDENT) && !lookup_.new_line()) {
+        if (lookup_.isa(Token::IDENT) && !lookup_.new_line()) {
             // Profile parameter only allowed for GLSL > 1.50
             if (version >= 150) {
                 if (lookup_.ident() == "core") {
@@ -416,7 +416,7 @@ void Preprocessor::parse_version() {
             } else {
                 error() << "Profile argument provided for GLSL version less than 150\n";
             }
-            eat(Token::TOK_IDENT);
+            eat(Token::IDENT);
         } else if (version == 300) {
             error() << "Profile string is mandatory for GLSL version 300\n";
             profile = Profile::PROFILE_ES;
@@ -432,24 +432,24 @@ void Preprocessor::parse_version() {
 }
 
 void Preprocessor::parse_extension() {
-    eat(Token::TOK_IDENT);
+    eat(Token::IDENT);
     if (!check_newline()) return;
 
     std::string name;
-    if (lookup_.isa(Token::TOK_IDENT)) {
+    if (lookup_.isa(Token::IDENT)) {
         name = lookup_.ident();
-        eat(Token::TOK_IDENT);
+        eat(Token::IDENT);
     } else {
         error() << "Extension name expected\n";
     }
 
     if (!check_newline()) return;
-    expect(Token::TOK_COLON);
+    expect(Token::COLON);
     if (!check_newline()) return;
 
     // Check that the behavior is one of : require, enable, warn, or disable
     ExtBehavior behavior = ExtBehavior::BEHAVIOR_ENABLE;
-    if (lookup_.isa(Token::TOK_IDENT)) {
+    if (lookup_.isa(Token::IDENT)) {
         if (lookup_.ident() == "require") {
             behavior = ExtBehavior::BEHAVIOR_REQUIRE;
         } else if (lookup_.ident() == "enable") {
@@ -462,7 +462,7 @@ void Preprocessor::parse_extension() {
             error() << "Extension behavior must be one of "
                        "\'require\', \'enable\', \'warn\', \'disable\'\n";
         }
-        eat(Token::TOK_IDENT);
+        eat(Token::IDENT);
     } else {
         error() << "Extension behavior expected\n";
         next();
@@ -474,17 +474,17 @@ void Preprocessor::parse_extension() {
 }
 
 void Preprocessor::parse_line() {
-    eat(Token::TOK_IDENT);
+    eat(Token::IDENT);
     if (!check_newline()) return;
 
     // Expand macros
-    while (lookup_.isa(Token::TOK_IDENT) && expand(false)) ;
+    while (lookup_.isa(Token::IDENT) && expand(false)) ;
 
     int line = lexer_.line_index();
-    if (lookup_.isa(Token::TOK_LIT) && lookup_.lit().isa(Literal::LIT_INT)) {
+    if (lookup_.isa(Token::LIT) && lookup_.lit().isa(Literal::INT)) {
         assert(lookup_.lit().as_int() >= 0);
         line = lookup_.lit().as_int();
-        eat(Token::TOK_LIT);
+        eat(Token::LIT);
     } else {
         error() << "Line index expected\n";
         eat_line(false);
@@ -496,13 +496,13 @@ void Preprocessor::parse_line() {
     // Optional source index
     if (!lookup_.new_line()) {
         // Expand macros (again)
-        while (lookup_.isa(Token::TOK_IDENT) && expand(false)) ;
+        while (lookup_.isa(Token::IDENT) && expand(false)) ;
 
         int source = lexer_.source_index();
-        if (lookup_.isa(Token::TOK_LIT) && lookup_.lit().isa(Literal::LIT_INT)) {
+        if (lookup_.isa(Token::LIT) && lookup_.lit().isa(Literal::INT)) {
             assert(lookup_.lit().as_int() >= 0);
             source = lookup_.lit().as_int();
-            eat(Token::TOK_LIT);
+            eat(Token::LIT);
         } else {
             error() << "Source file index expected\n";
         }
@@ -513,11 +513,11 @@ void Preprocessor::parse_line() {
 }
 
 void Preprocessor::parse_error() {
-    eat(Token::TOK_IDENT);
+    eat(Token::IDENT);
 
     std::ostringstream os;
     bool prev = false;
-    while (!lookup_.new_line() && !lookup_.isa(Token::TOK_EOF)) {
+    while (!lookup_.new_line() && !lookup_.isa(Token::END)) {
         if (prev) os << ' ';
         os << lookup_;
         next();
@@ -527,46 +527,53 @@ void Preprocessor::parse_error() {
     error() << "#error directive with message : \'" << os.str() << "\'\n";
 }
 
-void Preprocessor::apply(const Macro& macro, const std::vector<Macro::Arg>& args, std::vector<Token>& buffer) {
-    bool concat_next = false;
-    for (auto& tok : macro.rule()) {
+void Preprocessor::apply_arguments(const Token& tok,
+                                   const Macro& macro,
+                                   const std::vector<Macro::Arg>& args,
+                                   std::vector<Token>& buffer,
+                                   bool do_concat = false) {
+    Token c;
 
-        // May have to replace an argument here
-        if (tok.isa(Token::TOK_IDENT)) {
-            auto arg_index = macro.args().find(tok.ident());
-            if (arg_index != macro.args().end() && arg_index->second < macro.num_args()) {
-                // This is a macro argument, has to be replaced
-                int first = 0;
-                if (concat_next) {
-                    concat_next = false;
-                    Token next;
-                    if (!args[arg_index->second].empty() &&
-                        concat(buffer.back(), args[arg_index->second].front(), next)) {
-                        buffer.back() = next;
-                        first = 1;
-                    }
-                }
-                buffer.insert(buffer.end(), args[arg_index->second].begin() + first, args[arg_index->second].end());
-                continue;
+    // Concatenation of invalid tokens will just
+    // append the tokens in the buffer without modification
+
+    if (tok.isa(Token::IDENT)) {
+        auto arg_index = macro.args().find(tok.ident());
+        if (arg_index != macro.args().end() && arg_index->second < macro.num_args()) {
+            const std::vector<Token>& arg = args[arg_index->second];
+            int first = 0;
+            if (do_concat && !arg.empty() &&
+                concat(buffer.back(), arg.front(), c)) {
+                first = 1;
+                buffer.back() = c;
             }
+            buffer.insert(buffer.end(), arg.begin() + first, arg.end());
+            return;
         }
+    }
 
-        if (tok.isa(Token::TOK_SHARPSHARP)) {
-            assert(!concat_next);
-            concat_next = !buffer.empty();
+    if (do_concat && concat(buffer.back(), tok, c))
+        buffer.back() = c;
+    else
+        buffer.push_back(tok);
+}
+
+void Preprocessor::apply(const Macro& macro, const std::vector<Macro::Arg>& args, std::vector<Token>& buffer) {
+    const std::vector<Token>& rule = macro.rule();
+
+    for (size_t i = 0; i < rule.size(); i++) {
+        // Handle concatenation operator
+        if (i < rule.size() - 2 &&
+            rule[i + 1].isa(Token::SHARPSHARP)) {
+            size_t pos = buffer.size();
+            apply_arguments(rule[i], macro, args, buffer);
+            apply_arguments(rule[i + 2], macro, args, buffer, pos != buffer.size());
+            i += 2;
             continue;
         }
 
-        if (concat_next) {
-            concat_next = false;
-            Token next;
-            if (concat(buffer.back(), tok, next)) {
-                buffer.back() = next;
-                continue;
-            }
-        }
-
-        buffer.push_back(tok);
+        assert(!rule[i].isa(Token::SHARPSHARP));
+        apply_arguments(rule[i], macro, args, buffer);
     }
 }
 
@@ -592,16 +599,16 @@ bool Preprocessor::concat(const Token& a, const Token& b, Token& c) {
 
     // Get the concatenated token
     Token tok = lex.lex();
-    if (tok.isa(Token::TOK_EOF) || !lex.lex().isa(Token::TOK_EOF) || lex.error_count() > 0) {
+    if (tok.isa(Token::END) || !lex.lex().isa(Token::END) || lex.error_count() > 0) {
         error() << "Invalid tokens for concatenation operator\n";
         return false;
     }
 
     switch (tok.type()) {
-        case Token::TOK_IDENT:
+        case Token::IDENT:
             c = Token(concat_loc(a, b), tok.ident(), lexer_.keywords(), a.new_line() | b.new_line());
             break;
-        case Token::TOK_LIT:
+        case Token::LIT:
             c = Token(concat_loc(a, b), tok.str(), tok.lit(), a.new_line() | b.new_line());
             break;
         default:
@@ -613,7 +620,7 @@ bool Preprocessor::concat(const Token& a, const Token& b, Token& c) {
 }
 
 bool Preprocessor::expand(bool lines_allowed) {
-    assert(lookup_.isa(Token::TOK_IDENT));
+    assert(lookup_.isa(Token::IDENT));
 
     // Avoid infinite macro expansion
     if (expanded_.find(lookup_.ident()) != expanded_.end())
@@ -630,29 +637,29 @@ bool Preprocessor::expand(bool lines_allowed) {
     // Read arguments
     std::vector<Macro::Arg> args;
     if (macro->second.has_args()) {
-        eat(Token::TOK_IDENT);
+        eat(Token::IDENT);
 
-        if (lookup_.isa(Token::TOK_LPAREN) && (lines_allowed || !lookup_.new_line())) {
-            eat(Token::TOK_LPAREN);
+        if (lookup_.isa(Token::LPAREN) && (lines_allowed || !lookup_.new_line())) {
+            eat(Token::LPAREN);
             args.emplace_back();
 
             int par_count = 0;
-            while (!lookup_.isa(Token::TOK_EOF)) {
+            while (!lookup_.isa(Token::END)) {
                 if (lookup_.new_line() && !lines_allowed)
                     break;
 
                 // Allow calling a macro inside a macro argument
-                if (lookup_.isa(Token::TOK_RPAREN)) {
+                if (lookup_.isa(Token::RPAREN)) {
                     if (par_count == 0) {
                         break;
                     } else {
                         args.back().emplace_back(lookup_);
                         par_count--;
                     }
-                } else if (lookup_.isa(Token::TOK_LPAREN)) {
+                } else if (lookup_.isa(Token::LPAREN)) {
                     args.back().emplace_back(lookup_);
                     par_count++;
-                } else if (lookup_.isa(Token::TOK_COMMA) && par_count == 0) {
+                } else if (lookup_.isa(Token::COMMA) && par_count == 0) {
                     args.emplace_back();
                 } else {
                     args.back().emplace_back(lookup_);
@@ -660,13 +667,13 @@ bool Preprocessor::expand(bool lines_allowed) {
                 next();
             }
 
-            if (!lookup_.isa(Token::TOK_RPAREN)) {
+            if (!lookup_.isa(Token::RPAREN)) {
                 error() << "Missing closing parenthesis in invocation of macro \'" << macro->first << "\'\n";
                 return false;
             }
 
             if (args.size() != macro->second.args().size()) {
-                eat(Token::TOK_RPAREN);
+                eat(Token::RPAREN);
                 error() << "Invalid number of arguments for macro \'" << macro->first << "\' "
                         << "(got " << args.size() << ", expected " << macro->second.args().size() << ")\n";
                 return false;
@@ -706,24 +713,24 @@ Preprocessor::BinOp::BinOp()
 
 Preprocessor::BinOp::BinOp(Token tok) {
     switch (tok.type()) {
-        case Token::TOK_MUL:    type = BINOP_MUL;    pred = 3;  rassoc = false; break;
-        case Token::TOK_DIV:    type = BINOP_DIV;    pred = 3;  rassoc = false; break;
-        case Token::TOK_MOD:    type = BINOP_MOD;    pred = 3;  rassoc = false; break;
-        case Token::TOK_ADD:    type = BINOP_ADD;    pred = 4;  rassoc = false; break;
-        case Token::TOK_SUB:    type = BINOP_SUB;    pred = 4;  rassoc = false; break;
-        case Token::TOK_LSHIFT: type = BINOP_LSHIFT; pred = 5;  rassoc = false; break;
-        case Token::TOK_RSHIFT: type = BINOP_RSHIFT; pred = 5;  rassoc = false; break;
-        case Token::TOK_LT:     type = BINOP_LT;     pred = 6;  rassoc = false; break;
-        case Token::TOK_LEQ:    type = BINOP_LE;     pred = 6;  rassoc = false; break;
-        case Token::TOK_GT:     type = BINOP_GT;     pred = 6;  rassoc = false; break;
-        case Token::TOK_GEQ:    type = BINOP_GE;     pred = 6;  rassoc = false; break;
-        case Token::TOK_EQ:     type = BINOP_EQ;     pred = 7;  rassoc = false; break;
-        case Token::TOK_NEQ:    type = BINOP_NEQ;    pred = 7;  rassoc = false; break;
-        case Token::TOK_AND:    type = BINOP_AND;    pred = 8;  rassoc = false; break;
-        case Token::TOK_XOR:    type = BINOP_XOR;    pred = 9;  rassoc = false; break;
-        case Token::TOK_OR:     type = BINOP_OR;     pred = 10; rassoc = false; break;
-        case Token::TOK_ANDAND: type = BINOP_ANDAND; pred = 11; rassoc = false; break;
-        case Token::TOK_OROR:   type = BINOP_OROR;   pred = 12; rassoc = false; break;
+        case Token::MUL:    type = BINOP_MUL;    pred = 3;  rassoc = false; break;
+        case Token::DIV:    type = BINOP_DIV;    pred = 3;  rassoc = false; break;
+        case Token::MOD:    type = BINOP_MOD;    pred = 3;  rassoc = false; break;
+        case Token::ADD:    type = BINOP_ADD;    pred = 4;  rassoc = false; break;
+        case Token::SUB:    type = BINOP_SUB;    pred = 4;  rassoc = false; break;
+        case Token::LSHIFT: type = BINOP_LSHIFT; pred = 5;  rassoc = false; break;
+        case Token::RSHIFT: type = BINOP_RSHIFT; pred = 5;  rassoc = false; break;
+        case Token::LT:     type = BINOP_LT;     pred = 6;  rassoc = false; break;
+        case Token::LEQ:    type = BINOP_LE;     pred = 6;  rassoc = false; break;
+        case Token::GT:     type = BINOP_GT;     pred = 6;  rassoc = false; break;
+        case Token::GEQ:    type = BINOP_GE;     pred = 6;  rassoc = false; break;
+        case Token::EQ:     type = BINOP_EQ;     pred = 7;  rassoc = false; break;
+        case Token::NEQ:    type = BINOP_NEQ;    pred = 7;  rassoc = false; break;
+        case Token::AND:    type = BINOP_AND;    pred = 8;  rassoc = false; break;
+        case Token::XOR:    type = BINOP_XOR;    pred = 9;  rassoc = false; break;
+        case Token::OR:     type = BINOP_OR;     pred = 10; rassoc = false; break;
+        case Token::ANDAND: type = BINOP_ANDAND; pred = 11; rassoc = false; break;
+        case Token::OROR:   type = BINOP_OROR;   pred = 12; rassoc = false; break;
         default:
             type = BINOP_UNKNOWN;
             pred = -1;
@@ -773,7 +780,7 @@ Preprocessor::ExprValue Preprocessor::evaluate_primary() {
     }
 
     // Expand macros
-    while (lookup_.isa(Token::TOK_IDENT) && expand(false)) ;
+    while (lookup_.isa(Token::IDENT) && expand(false)) ;
 
     // Expansion may lead to an empty line
     if (lookup_.new_line()) {
@@ -781,75 +788,75 @@ Preprocessor::ExprValue Preprocessor::evaluate_primary() {
         return ExprValue();
     }
 
-    if (lookup_.isa(Token::TOK_IDENT)) {
+    if (lookup_.isa(Token::IDENT)) {
         // Non expanded macros or 'defined' operator
         if (lookup_.ident() == "defined") {
-            eat(Token::TOK_IDENT);
-            expect(Token::TOK_LPAREN);
+            eat(Token::IDENT);
+            expect(Token::LPAREN);
             ExprValue value;
-            if (lookup_.isa(Token::TOK_IDENT)) {
+            if (lookup_.isa(Token::IDENT)) {
                 value = (macros_.find(lookup_.ident()) != macros_.end()) ? ExprValue(1) : ExprValue(0);
-                eat(Token::TOK_IDENT);
+                eat(Token::IDENT);
             } else {
                 error() << "Macro identifier expected in operator \'defined\'\n";
             }
-            expect(Token::TOK_RPAREN);
+            expect(Token::RPAREN);
             return value;
         } else {
             std::string ident = lookup_.ident();
-            eat(Token::TOK_IDENT);
+            eat(Token::IDENT);
             warn() << "Undefined macro identifier \'" << ident << "\'\n";
             return ExprValue(0);
         }
-    } else if (lookup_.isa(Token::TOK_LIT)) {
+    } else if (lookup_.isa(Token::LIT)) {   
         // Literals
         ExprValue value;
         Literal lit = lookup_.lit();
 
-        eat(Token::TOK_LIT);
+        eat(Token::LIT);
         switch (lit.type()) {
-            case Literal::LIT_INT:  value = ExprValue(lit.as_int());  break;
-            case Literal::LIT_UINT: value = ExprValue(lit.as_uint()); break;
+            case Literal::INT:  value = ExprValue(lit.as_int());  break;
+            case Literal::UINT: value = ExprValue(lit.as_uint()); break;
             default:
                 error() << "Integer literal expected in preprocessor condition\n";
         }
         return value;
-    } else if (lookup_.isa(Token::TOK_ADD)) {
+    } else if (lookup_.isa(Token::ADD)) {
         // Unary plus
-        while (lookup_.isa(Token::TOK_ADD)) {
-            eat(Token::TOK_ADD);
+        while (lookup_.isa(Token::ADD)) {
+            eat(Token::ADD);
         }
         return evaluate_primary();
-    } else if (lookup_.isa(Token::TOK_SUB)) {
+    } else if (lookup_.isa(Token::SUB)) {
         // Unary minus
         int sign = 1;
-        while (lookup_.isa(Token::TOK_SUB)) {
-            eat(Token::TOK_SUB);
+        while (lookup_.isa(Token::SUB)) {
+            eat(Token::SUB);
             sign = -sign;
         }
         return evaluate_primary().apply([sign] (int i) { return i * sign; });
-    } else if (lookup_.isa(Token::TOK_NEG)) {
+    } else if (lookup_.isa(Token::NEG)) {
         // Unary bitwise not
         int mask = 0;
-        while (lookup_.isa(Token::TOK_NEG)) {
-            eat(Token::TOK_NEG);
+        while (lookup_.isa(Token::NEG)) {
+            eat(Token::NEG);
             mask = ~mask;
         }
         return evaluate_primary().apply([mask] (int i) { return i ^ mask; });
-    } else if (lookup_.isa(Token::TOK_NOT)) {
+    } else if (lookup_.isa(Token::NOT)) {
         // Unary logical not
         int times = 0;
-        while (lookup_.isa(Token::TOK_NOT)) {
-            eat(Token::TOK_NOT);
+        while (lookup_.isa(Token::NOT)) {
+            eat(Token::NOT);
             times = (times + 1) % 2;
         }
         return evaluate_primary().apply([times] (int i) { int j[2] = {!!i, !i }; return j[times]; });
-    } else if (lookup_.isa(Token::TOK_LPAREN)) {
+    } else if (lookup_.isa(Token::LPAREN)) {
         // Parenthetical grouping
-        eat(Token::TOK_LPAREN);
+        eat(Token::LPAREN);
         ExprValue left = evaluate_primary();
         ExprValue value = evaluate_binary(left, BinOp::max_pred);
-        expect(Token::TOK_RPAREN);
+        expect(Token::RPAREN);
         return value;
     }
 

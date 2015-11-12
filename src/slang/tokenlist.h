@@ -68,6 +68,6 @@ SLANG_TOK(RBRACKET, "]")
 SLANG_TOK(SHARP,      "#")
 SLANG_TOK(SHARPSHARP, "##")
 
-SLANG_TOK(EOF, "eof")
+SLANG_TOK(END, "eof")
 
 #undef SLANG_TOK

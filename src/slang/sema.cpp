@@ -132,11 +132,11 @@ const slang::Type* ErrorExpr::check(Sema& sema, const slang::Type*) const {
 
 const slang::Type* LiteralExpr::check(Sema& sema, const slang::Type* expected) const {
     switch (lit_.type()) {
-        case Literal::LIT_DOUBLE: return sema.prim_type(slang::PrimType::PRIM_DOUBLE);
-        case Literal::LIT_FLOAT:  return sema.prim_type(slang::PrimType::PRIM_FLOAT);
-        case Literal::LIT_INT:    return sema.prim_type(slang::PrimType::PRIM_INT);
-        case Literal::LIT_UINT:   return sema.prim_type(slang::PrimType::PRIM_UINT);
-        case Literal::LIT_BOOL:   return sema.prim_type(slang::PrimType::PRIM_BOOL);
+        case Literal::DOUBLE: return sema.prim_type(slang::PrimType::PRIM_DOUBLE);
+        case Literal::FLOAT:  return sema.prim_type(slang::PrimType::PRIM_FLOAT);
+        case Literal::INT:    return sema.prim_type(slang::PrimType::PRIM_INT);
+        case Literal::UINT:   return sema.prim_type(slang::PrimType::PRIM_UINT);
+        case Literal::BOOL:   return sema.prim_type(slang::PrimType::PRIM_BOOL);
         default:
             assert(0 && "Unknown literal type");
             return sema.error_type();
@@ -905,7 +905,7 @@ static void expect_overload(Sema& sema, const ast::FunctionDecl* fn_decl,
         const slang::FunctionType* other_fn_type = def.first.type()->as<FunctionType>();
         const ast::FunctionDecl* other_fn_decl = def.second->as<ast::FunctionDecl>();
 
-        // If the function has already a prototype, we are done checking
+        // If the function has already a prototype with the same signature, we are done checking
         if (other_fn_decl->is_prototype() && other_fn_type == fn_type)
             return;
 
@@ -919,12 +919,11 @@ static void expect_overload(Sema& sema, const ast::FunctionDecl* fn_decl,
     // Register the function in the environment
     symbol->push_def(fn_type, fn_decl);
 
-    // Build the overloaded function type.
+    // Build the overloaded function type
     if (auto symbol_fn = symbol->type()->isa<slang::FunctionType>()) {
         symbol->set_type(sema.overloaded_function_type({fn_type, symbol_fn}));
     } else {
-        const slang::OverloadedFunctionType* overload = symbol->type()->isa<slang::OverloadedFunctionType>();
-        assert(overload && "Function symbol type must be either FunctionType or OverloadedFunctionType");
+        const slang::OverloadedFunctionType* overload = symbol->type()->as<slang::OverloadedFunctionType>();
         slang::OverloadedFunctionType::SignatureList sign_list = overload->signatures();
         sign_list.push_back(fn_type);
         symbol->set_type(sema.overloaded_function_type(sign_list));
