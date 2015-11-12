@@ -563,7 +563,7 @@ void Preprocessor::apply(const Macro& macro, const std::vector<Macro::Arg>& args
 
     for (size_t i = 0; i < rule.size(); i++) {
         // Handle concatenation operator
-        if (i < rule.size() - 2 &&
+        if (i + 2 < rule.size() &&
             rule[i + 1].isa(Token::SHARPSHARP)) {
             size_t pos = buffer.size();
             apply_arguments(rule[i], macro, args, buffer);
