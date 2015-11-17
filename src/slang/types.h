@@ -11,6 +11,7 @@
 
 namespace slang {
 
+/// Qualifiers for function parameters.
 enum class ParameterQualifier : char {
     NONE,
     IN,
@@ -18,19 +19,21 @@ enum class ParameterQualifier : char {
     INOUT
 };
 
+/// Storage qualifiers for variables and function arguments.
 enum class StorageQualifier : char {
     NONE,
     CONST,
-    IN,
-    OUT,
-    INOUT,
-    ATTRIBUTE,
+    IN,         //< Input qualifier (not for function arguments)
+    OUT,        //< Output qualifier (not for function arguments)
+    INOUT,      //< Input/output qualifier (not for function arguments)
+    ATTRIBUTE,  //< Attribute qualifier (deprecated)
     UNIFORM,
-    VARYING,
+    VARYING,    //< Varying qualifier (deprecated)
     BUFFER,
     SHARED
 };
 
+/// A set of qualifiers, represented by a collection of enumerated values.
 class TypeQualifiers {
 public:
     TypeQualifiers(ParameterQualifier param = ParameterQualifier::NONE,
@@ -39,16 +42,22 @@ public:
         , storage_(storage)
     {}
 
+    /// Computes a hash for this set of qualifiers.
     size_t hash() const;
+    /// Determines if the qualifiers are the same.
     bool operator == (const TypeQualifiers& other) const;
+    /// Determines if the qualifiers are different (same as !(a == b)).
     bool operator != (const TypeQualifiers& other) const { return !(*this == other); }
 
+    /// Returns true if there is no qualifier in the set.
     bool is_empty() const {
         return param_ == ParameterQualifier::NONE &&
                storage_ == StorageQualifier::NONE;
     }
 
+    /// Returns the parameter qualifier, if any. Otherwise, returns ParameterQualifier::NONE.
     ParameterQualifier parameter() const { return param_; }
+    /// Returns the storage qualifier, if any. Otherwise, returns StorageQualifier::NONE.
     StorageQualifier storage() const { return storage_; }
 
 private:

@@ -122,10 +122,14 @@ int main(int argc, char** argv) {
                 std::cerr << "Unknown option : " << argv[i] << std::endl;
             }
         } else {
-            switch (action) {
-                case ACTION_SYNTAX:     status &= syntax_analysis(argv[i], keys);  break;
-                case ACTION_PREPROCESS: status &= preprocess(argv[i], keys);       break;
-                case ACTION_TOKENIZE:   status &= lexical_analysis(argv[i], keys); break;
+            if (!std::ifstream(argv[i])) {
+                std::cerr << "Cannot open file \'" << argv[i] << "\'" << std::endl;
+            } else {
+                switch (action) {
+                    case ACTION_SYNTAX:     status &= syntax_analysis(argv[i], keys);  break;
+                    case ACTION_PREPROCESS: status &= preprocess(argv[i], keys);       break;
+                    case ACTION_TOKENIZE:   status &= lexical_analysis(argv[i], keys); break;
+                }
             }
         }
     }
