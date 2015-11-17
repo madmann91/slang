@@ -7,9 +7,11 @@
 
 namespace slang {
 
+/// A unique pointer.
 template <typename T>
 using Ptr = std::unique_ptr<T>;
 
+/// An owning pointer vector.
 template <typename T>
 class PtrVector : private std::vector<T*> {
 public:
@@ -30,6 +32,7 @@ public:
     using Vector::operator [];
 };
 
+/// An owning pointer map.
 template <typename U, typename V>
 class PtrMap : private std::unordered_map<U, V*> {
 public:
