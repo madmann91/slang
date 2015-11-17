@@ -73,7 +73,7 @@ ast::Module* Parser::parse_module() {
 
 ast::Decl* Parser::parse_decl() {
     // Declaration ::= FunctionDecl | FunctionDef | VariableDecl | PrecisionDecl
-    if (lookup_[0].key().isa(Key::KEY_PRECISION)) {
+    if (lookup_[0].key().isa(Key::PRECISION)) {
         // PrecisionDecl
         return parse_precision_decl();
     }
@@ -94,11 +94,11 @@ ast::Decl* Parser::parse_decl() {
 ast::PrecisionDecl* Parser::parse_precision_decl() {
     // PrecisionDecl ::= precision PrecisionQualifier PrimType ;
     auto decl = new_node<ast::PrecisionDecl>();
-    eat(Key::KEY_PRECISION);
+    eat(Key::PRECISION);
     
-    if (lookup_[0].key().isa(Key::KEY_LOWP) ||
-        lookup_[0].key().isa(Key::KEY_HIGHP) ||
-        lookup_[0].key().isa(Key::KEY_MEDIUMP))
+    if (lookup_[0].key().isa(Key::LOWP) ||
+        lookup_[0].key().isa(Key::HIGHP) ||
+        lookup_[0].key().isa(Key::MEDIUMP))
         decl->set_precision(parse_precision_qualifier());
     else
         error() << "Precision qualifier expected\n";
@@ -124,16 +124,16 @@ ast::Type* Parser::parse_type() {
 
     ast::Type* type = nullptr;
     switch (lookup_[0].key().type()) {
-        case Key::KEY_STRUCT:
+        case Key::STRUCT:
             type = parse_struct_type();
             break;
 
-#define SLANG_KEY_DATA(key, str, type, rows, cols) case Key::KEY_##key:
+#define SLANG_KEY_DATA(key, str, type, rows, cols) case Key::key:
 #include "slang/keywordlist.h"
             type = parse_prim_type();
             break;
 
-        case Key::KEY_UNKNOWN:
+        case Key::UNKNOWN:
             if (lookup_[0].isa(Token::IDENT)) {
                 if (lookup_[1].isa(Token::LBRACE))
                     type = parse_interface_type();
@@ -174,7 +174,7 @@ ast::NamedType* Parser::parse_named_type() {
 ast::StructType* Parser::parse_struct_type() {
     // StructType ::= struct (ident)? { (Type StructField(,StructField)*;)+ } )
     auto type = new_node<ast::StructType>();
-    eat(Key::KEY_STRUCT);
+    eat(Key::STRUCT);
 
     // Optional structure name
     if (lookup_[0].is_ident()) {
@@ -224,7 +224,7 @@ ast::PrimType* Parser::parse_prim_type() {
 
     switch (lookup_[0].key().type()) {
 #define SLANG_KEY_DATA(key, str, type, rows, cols) \
-        case Key::KEY_##key: prim->set_prim(ast::PrimType::PRIM_##key); break;
+        case Key::key: prim->set_prim(ast::PrimType::key); break;
 #include "slang/keywordlist.h"
 
         default:
@@ -343,22 +343,22 @@ ast::Arg* Parser::parse_arg() {
 ast::TypeQualifier* Parser::parse_type_qualifier() {
     // Qualifier ::= StorageQualifier | PrecisionQualifier | InterpolationQualifier | LayoutQualifier | SubroutineQualifier
     switch (lookup_[0].key().type()) {
-#define SLANG_KEY_QUAL_STORAGE(key, str) case Key::KEY_##key: 
+#define SLANG_KEY_QUAL_STORAGE(key, str) case Key::key: 
 #include "slang/keywordlist.h"
             return parse_storage_qualifier();
 
-#define SLANG_KEY_QUAL_PREC(key, str) case Key::KEY_##key: 
+#define SLANG_KEY_QUAL_PREC(key, str) case Key::key: 
 #include "slang/keywordlist.h"
             return parse_precision_qualifier();
 
-#define SLANG_KEY_QUAL_INTERP(key, str) case Key::KEY_##key: 
+#define SLANG_KEY_QUAL_INTERP(key, str) case Key::key: 
 #include "slang/keywordlist.h"
             return parse_interp_qualifier();
 
-        case Key::KEY_LAYOUT: 
+        case Key::LAYOUT: 
             return parse_layout_qualifier();
 
-        case Key::KEY_SUBROUTINE:
+        case Key::SUBROUTINE:
             return parse_subroutine_qualifier();
 
 #define PARSE_SIMPLE_QUAL(Key, Qual) \
@@ -369,9 +369,9 @@ ast::TypeQualifier* Parser::parse_type_qualifier() {
                 return qual.node(); \
             }
 
-        PARSE_SIMPLE_QUAL(Key::KEY_INVARIANT, ast::InvariantQualifier)
-        PARSE_SIMPLE_QUAL(Key::KEY_VARYING,   ast::VaryingQualifier)
-        PARSE_SIMPLE_QUAL(Key::KEY_ATTRIBUTE, ast::AttributeQualifier)
+        PARSE_SIMPLE_QUAL(Key::INVARIANT, ast::InvariantQualifier)
+        PARSE_SIMPLE_QUAL(Key::VARYING,   ast::VaryingQualifier)
+        PARSE_SIMPLE_QUAL(Key::ATTRIBUTE, ast::AttributeQualifier)
 
 #undef PARSE_SIMPLE_QUAL
 
@@ -388,7 +388,7 @@ ast::StorageQualifier* Parser::parse_storage_qualifier() {
 
     switch (lookup_[0].key().type()) {
 #define SLANG_KEY_QUAL_STORAGE(key, str) \
-        case Key::KEY_##key: storage->set_storage(ast::StorageQualifier::STORAGE_##key); break;
+        case Key::key: storage->set_storage(ast::StorageQualifier::key); break;
 #include "slang/keywordlist.h"
 
         default:
@@ -406,7 +406,7 @@ ast::PrecisionQualifier* Parser::parse_precision_qualifier() {
 
     switch (lookup_[0].key().type()) {
 #define SLANG_KEY_QUAL_PREC(key, str) \
-        case Key::KEY_##key: prec->set_precision(ast::PrecisionQualifier::PREC_##key); break;
+        case Key::key: prec->set_precision(ast::PrecisionQualifier::key); break;
 #include "slang/keywordlist.h"
 
         default:
@@ -424,7 +424,7 @@ ast::InterpQualifier* Parser::parse_interp_qualifier() {
 
     switch (lookup_[0].key().type()) {
 #define SLANG_KEY_QUAL_INTERP(key, str) \
-        case Key::KEY_##key: interp->set_interp(ast::InterpQualifier::INTERP_##key); break;
+        case Key::key: interp->set_interp(ast::InterpQualifier::key); break;
 #include "slang/keywordlist.h"
 
         default:
@@ -440,7 +440,7 @@ ast::InterpQualifier* Parser::parse_interp_qualifier() {
 ast::LayoutQualifier* Parser::parse_layout_qualifier() {
     // LayoutQualifier ::= layout ( (ident | ident = CondExpr)+ )
     auto layout = new_node<ast::LayoutQualifier>();
-    eat(Key::KEY_LAYOUT);
+    eat(Key::LAYOUT);
     expect(Token::LPAREN);
 
     while (lookup_[0].isa(Token::IDENT)) {
@@ -471,7 +471,7 @@ ast::LayoutQualifier* Parser::parse_layout_qualifier() {
 ast::SubroutineQualifier* Parser::parse_subroutine_qualifier() {
     // SubroutineQualifier ::= subroutine ( ident (,ident)* )
     auto subroutine = new_node<ast::SubroutineQualifier>();
-    eat(Key::KEY_SUBROUTINE);
+    eat(Key::SUBROUTINE);
     expect(Token::LPAREN);
 
     while (lookup_[0].isa(Token::IDENT)) {
@@ -510,55 +510,55 @@ ast::ArraySpecifier* Parser::parse_array_specifier() {
 
 static ast::UnOpExpr::Type token_to_pre_unop(Token tok) {
     switch (tok.type()) {
-        case Token::INC:    return ast::UnOpExpr::UNOP_INC;
-        case Token::DEC:    return ast::UnOpExpr::UNOP_DEC;
-        case Token::ADD:    return ast::UnOpExpr::UNOP_PLUS;
-        case Token::SUB:    return ast::UnOpExpr::UNOP_MINUS;
-        case Token::NEG:    return ast::UnOpExpr::UNOP_BIT_NOT;
-        case Token::NOT:    return ast::UnOpExpr::UNOP_NOT;
+        case Token::INC:    return ast::UnOpExpr::INC;
+        case Token::DEC:    return ast::UnOpExpr::DEC;
+        case Token::ADD:    return ast::UnOpExpr::PLUS;
+        case Token::SUB:    return ast::UnOpExpr::MINUS;
+        case Token::NEG:    return ast::UnOpExpr::BIT_NOT;
+        case Token::NOT:    return ast::UnOpExpr::NOT;
         default: break;
     }
-    return ast::UnOpExpr::UNOP_UNKNOWN;
+    return ast::UnOpExpr::UNKNOWN;
 }
 
 static ast::UnOpExpr::Type token_to_post_unop(Token tok) {
     switch (tok.type()) {
-        case Token::INC:    return ast::UnOpExpr::UNOP_POST_INC;
-        case Token::DEC:    return ast::UnOpExpr::UNOP_POST_DEC;
+        case Token::INC:    return ast::UnOpExpr::POST_INC;
+        case Token::DEC:    return ast::UnOpExpr::POST_DEC;
         default: break;
     }
-    return ast::UnOpExpr::UNOP_UNKNOWN;
+    return ast::UnOpExpr::UNKNOWN;
 }
 
 static ast::BinOpExpr::Type token_to_binop(Token tok) {
     switch (tok.type()) {
-        case Token::MUL:    return ast::BinOpExpr::BINOP_MUL;
-        case Token::DIV:    return ast::BinOpExpr::BINOP_DIV;
-        case Token::MOD:    return ast::BinOpExpr::BINOP_MOD;
-        case Token::ADD:    return ast::BinOpExpr::BINOP_ADD;
-        case Token::SUB:    return ast::BinOpExpr::BINOP_SUB;
-        case Token::LSHIFT: return ast::BinOpExpr::BINOP_LSHIFT;
-        case Token::RSHIFT: return ast::BinOpExpr::BINOP_RSHIFT;
-        case Token::LT:     return ast::BinOpExpr::BINOP_LT;
-        case Token::GT:     return ast::BinOpExpr::BINOP_GT;
-        case Token::LEQ:    return ast::BinOpExpr::BINOP_LEQ;
-        case Token::GEQ:    return ast::BinOpExpr::BINOP_GEQ;
-        case Token::EQ:     return ast::BinOpExpr::BINOP_EQ;
-        case Token::NEQ:    return ast::BinOpExpr::BINOP_NEQ;
-        case Token::AND:    return ast::BinOpExpr::BINOP_AND;
-        case Token::XOR:    return ast::BinOpExpr::BINOP_XOR;
-        case Token::OR:     return ast::BinOpExpr::BINOP_OR;
-        case Token::ANDAND: return ast::BinOpExpr::BINOP_ANDAND;
-        case Token::XORXOR: return ast::BinOpExpr::BINOP_XORXOR;
-        case Token::OROR:   return ast::BinOpExpr::BINOP_OROR;
+        case Token::MUL:    return ast::BinOpExpr::MUL;
+        case Token::DIV:    return ast::BinOpExpr::DIV;
+        case Token::MOD:    return ast::BinOpExpr::MOD;
+        case Token::ADD:    return ast::BinOpExpr::ADD;
+        case Token::SUB:    return ast::BinOpExpr::SUB;
+        case Token::LSHIFT: return ast::BinOpExpr::LSHIFT;
+        case Token::RSHIFT: return ast::BinOpExpr::RSHIFT;
+        case Token::LT:     return ast::BinOpExpr::LT;
+        case Token::GT:     return ast::BinOpExpr::GT;
+        case Token::LEQ:    return ast::BinOpExpr::LEQ;
+        case Token::GEQ:    return ast::BinOpExpr::GEQ;
+        case Token::EQ:     return ast::BinOpExpr::EQ;
+        case Token::NEQ:    return ast::BinOpExpr::NEQ;
+        case Token::AND:    return ast::BinOpExpr::AND;
+        case Token::XOR:    return ast::BinOpExpr::XOR;
+        case Token::OR:     return ast::BinOpExpr::OR;
+        case Token::ANDAND: return ast::BinOpExpr::ANDAND;
+        case Token::XORXOR: return ast::BinOpExpr::XORXOR;
+        case Token::OROR:   return ast::BinOpExpr::OROR;
         default: break;
     }
-    return ast::BinOpExpr::BINOP_UNKNOWN;
+    return ast::BinOpExpr::UNKNOWN;
 }
 
 static ast::AssignOpExpr::Type token_to_assignop(Token tok) {
     switch (tok.type()) {
-        case Token::ASSIGN:        return ast::AssignOpExpr::ASSIGN_EQUAL;
+        case Token::ASSIGN:        return ast::AssignOpExpr::ASSIGN;
         case Token::ASSIGN_MUL:    return ast::AssignOpExpr::ASSIGN_MUL;
         case Token::ASSIGN_DIV:    return ast::AssignOpExpr::ASSIGN_DIV;
         case Token::ASSIGN_MOD:    return ast::AssignOpExpr::ASSIGN_MOD;
@@ -571,7 +571,7 @@ static ast::AssignOpExpr::Type token_to_assignop(Token tok) {
         case Token::ASSIGN_OR:     return ast::AssignOpExpr::ASSIGN_OR;
         default: break;
     }
-    return ast::AssignOpExpr::ASSIGN_UNKNOWN;
+    return ast::AssignOpExpr::UNKNOWN;
 }
 
 static int max_precedence = 13;
@@ -579,25 +579,25 @@ static int max_precedence = 13;
 int precedence(ast::BinOpExpr::Type type) {
     // Taken from GLSL 4.5 spec
     switch (type) {
-        case ast::BinOpExpr::BINOP_MUL:    return 3;
-        case ast::BinOpExpr::BINOP_DIV:    return 3;
-        case ast::BinOpExpr::BINOP_MOD:    return 3;
-        case ast::BinOpExpr::BINOP_ADD:    return 4;
-        case ast::BinOpExpr::BINOP_SUB:    return 4;
-        case ast::BinOpExpr::BINOP_LSHIFT: return 5;
-        case ast::BinOpExpr::BINOP_RSHIFT: return 5;
-        case ast::BinOpExpr::BINOP_LT:     return 6;
-        case ast::BinOpExpr::BINOP_GT:     return 6;
-        case ast::BinOpExpr::BINOP_LEQ:    return 6;
-        case ast::BinOpExpr::BINOP_GEQ:    return 6;
-        case ast::BinOpExpr::BINOP_EQ:     return 7;
-        case ast::BinOpExpr::BINOP_NEQ:    return 7;
-        case ast::BinOpExpr::BINOP_AND:    return 8;
-        case ast::BinOpExpr::BINOP_XOR:    return 9;
-        case ast::BinOpExpr::BINOP_OR:     return 10;
-        case ast::BinOpExpr::BINOP_ANDAND: return 11;
-        case ast::BinOpExpr::BINOP_XORXOR: return 12;
-        case ast::BinOpExpr::BINOP_OROR:   return 13;
+        case ast::BinOpExpr::MUL:    return 3;
+        case ast::BinOpExpr::DIV:    return 3;
+        case ast::BinOpExpr::MOD:    return 3;
+        case ast::BinOpExpr::ADD:    return 4;
+        case ast::BinOpExpr::SUB:    return 4;
+        case ast::BinOpExpr::LSHIFT: return 5;
+        case ast::BinOpExpr::RSHIFT: return 5;
+        case ast::BinOpExpr::LT:     return 6;
+        case ast::BinOpExpr::GT:     return 6;
+        case ast::BinOpExpr::LEQ:    return 6;
+        case ast::BinOpExpr::GEQ:    return 6;
+        case ast::BinOpExpr::EQ:     return 7;
+        case ast::BinOpExpr::NEQ:    return 7;
+        case ast::BinOpExpr::AND:    return 8;
+        case ast::BinOpExpr::XOR:    return 9;
+        case ast::BinOpExpr::OR:     return 10;
+        case ast::BinOpExpr::ANDAND: return 11;
+        case ast::BinOpExpr::XORXOR: return 12;
+        case ast::BinOpExpr::OROR:   return 13;
         default: break;
     }
     assert(0 && "Unknown binary operation");
@@ -607,25 +607,25 @@ int precedence(ast::BinOpExpr::Type type) {
 bool left_associative(ast::BinOpExpr::Type type) {
     // Taken from GLSL 4.5 spec
     switch (type) {
-        case ast::BinOpExpr::BINOP_MUL:    return true;
-        case ast::BinOpExpr::BINOP_DIV:    return true;
-        case ast::BinOpExpr::BINOP_MOD:    return true;
-        case ast::BinOpExpr::BINOP_ADD:    return true;
-        case ast::BinOpExpr::BINOP_SUB:    return true;
-        case ast::BinOpExpr::BINOP_LSHIFT: return true;
-        case ast::BinOpExpr::BINOP_RSHIFT: return true;
-        case ast::BinOpExpr::BINOP_LT:     return true;
-        case ast::BinOpExpr::BINOP_GT:     return true;
-        case ast::BinOpExpr::BINOP_LEQ:    return true;
-        case ast::BinOpExpr::BINOP_GEQ:    return true;
-        case ast::BinOpExpr::BINOP_EQ:     return true;
-        case ast::BinOpExpr::BINOP_NEQ:    return true;
-        case ast::BinOpExpr::BINOP_AND:    return true;
-        case ast::BinOpExpr::BINOP_XOR:    return true;
-        case ast::BinOpExpr::BINOP_OR:     return true;
-        case ast::BinOpExpr::BINOP_ANDAND: return true;
-        case ast::BinOpExpr::BINOP_XORXOR: return true;
-        case ast::BinOpExpr::BINOP_OROR:   return true;
+        case ast::BinOpExpr::MUL:    return true;
+        case ast::BinOpExpr::DIV:    return true;
+        case ast::BinOpExpr::MOD:    return true;
+        case ast::BinOpExpr::ADD:    return true;
+        case ast::BinOpExpr::SUB:    return true;
+        case ast::BinOpExpr::LSHIFT: return true;
+        case ast::BinOpExpr::RSHIFT: return true;
+        case ast::BinOpExpr::LT:     return true;
+        case ast::BinOpExpr::GT:     return true;
+        case ast::BinOpExpr::LEQ:    return true;
+        case ast::BinOpExpr::GEQ:    return true;
+        case ast::BinOpExpr::EQ:     return true;
+        case ast::BinOpExpr::NEQ:    return true;
+        case ast::BinOpExpr::AND:    return true;
+        case ast::BinOpExpr::XOR:    return true;
+        case ast::BinOpExpr::OR:     return true;
+        case ast::BinOpExpr::ANDAND: return true;
+        case ast::BinOpExpr::XORXOR: return true;
+        case ast::BinOpExpr::OROR:   return true;
         default: break;
     }
     assert(0 && "Unknown binary operation");
@@ -709,9 +709,9 @@ ast::CallExpr* Parser::parse_call_expr(ast::Expr* callee = nullptr) {
 
     expect(Token::LPAREN);
 
-    if (lookup_[0].key().isa(Key::KEY_VOID)) {
+    if (lookup_[0].key().isa(Key::VOID)) {
         // No parameters
-        eat(Key::KEY_VOID);
+        eat(Key::VOID);
     } else if (!lookup_[0].isa(Token::RPAREN)) {
         call->push_arg(parse_assign_expr());
         while (lookup_[0].isa(Token::COMMA)) {
@@ -752,7 +752,7 @@ ast::Expr* Parser::parse_unary_expr() {
     const ast::UnOpExpr::Type pre_type = token_to_pre_unop(lookup_[0]);
 
     // Prefix expression
-    if (pre_type != ast::UnOpExpr::UNOP_UNKNOWN) {
+    if (pre_type != ast::UnOpExpr::UNKNOWN) {
         auto unop = new_node<ast::UnOpExpr>();
         unop->set_type(pre_type);
         next();
@@ -765,11 +765,11 @@ ast::Expr* Parser::parse_unary_expr() {
 
     // Postfix expression
     ast::UnOpExpr::Type post_type = token_to_post_unop(lookup_[0]);
-    while (post_type != ast::UnOpExpr::UNOP_UNKNOWN ||
+    while (post_type != ast::UnOpExpr::UNKNOWN ||
            lookup_[0].isa(Token::LBRACKET) ||
            lookup_[0].isa(Token::DOT) ||
            lookup_[0].isa(Token::LPAREN)) {
-        if (post_type != ast::UnOpExpr::UNOP_UNKNOWN) {
+        if (post_type != ast::UnOpExpr::UNKNOWN) {
             auto unop = new_node<ast::UnOpExpr>();
             unop->set_type(post_type);
             next();
@@ -796,7 +796,7 @@ ast::Expr* Parser::parse_binary_expr(ast::Expr* left, int pred) {
     // BinOpExpr<Precedence> ::= BinOpExpr<Precedence - 1> BinOp<Precedence> BinOpExpr<Precedence>
     while (true) {
         const ast::BinOpExpr::Type type = token_to_binop(lookup_[0]);
-        if (type == ast::BinOpExpr::BINOP_UNKNOWN)
+        if (type == ast::BinOpExpr::UNKNOWN)
             return left;
 
         // Only treat binary operators that have a smaller precedence level than the current one
@@ -812,7 +812,7 @@ ast::Expr* Parser::parse_binary_expr(ast::Expr* left, int pred) {
         // Check for precedence and associativity (Go into deeper operator level if needed)
         while (true) {
             ast::BinOpExpr::Type next_type = token_to_binop(lookup_[0]);
-            if (next_type == ast::BinOpExpr::BINOP_UNKNOWN)
+            if (next_type == ast::BinOpExpr::UNKNOWN)
                 break;
 
             int next_pred = precedence(next_type);
@@ -856,7 +856,7 @@ ast::Expr* Parser::parse_assign_expr() {
     ast::Expr* left = parse_unary_expr();
 
     ast::AssignOpExpr::Type type = token_to_assignop(lookup_[0]);
-    if (type != ast::AssignOpExpr::ASSIGN_UNKNOWN) {
+    if (type != ast::AssignOpExpr::UNKNOWN) {
         auto assign = new_node<ast::AssignOpExpr>();
         next();
         assign->set_type(type);
@@ -897,10 +897,10 @@ ast::LoopCond* Parser::parse_loop_cond() {
 
     if (lookup_[0].is_keyword()) {
         switch (lookup_[0].key().type()) {
-#define SLANG_KEY_DATA(key, str, type, rows, cols) case Key::KEY_##key:
-#define SLANG_KEY_QUAL(key, str) case Key::KEY_##key:
+#define SLANG_KEY_DATA(key, str, type, rows, cols) case Key::key:
+#define SLANG_KEY_QUAL(key, str) case Key::key:
 #include "slang/keywordlist.h"
-            case Key::KEY_STRUCT:
+            case Key::STRUCT:
                 cond->set_var_type(parse_type());
                 cond->set_var(parse_variable());
                 break;
@@ -921,17 +921,17 @@ ast::Stmt* Parser::parse_stmt() {
     //        | CaseLabelStmt | DeclStmt | ExprStmt
     if (lookup_[0].is_keyword()) {
         switch (lookup_[0].key().type()) {
-            case Key::KEY_IF:      return parse_if_stmt();
-            case Key::KEY_SWITCH:  return parse_switch_stmt();
+            case Key::IF:      return parse_if_stmt();
+            case Key::SWITCH:  return parse_switch_stmt();
 
-            case Key::KEY_WHILE:   return parse_while_stmt();
-            case Key::KEY_FOR:     return parse_for_stmt();
-            case Key::KEY_DO:      return parse_do_while_stmt();
+            case Key::WHILE:   return parse_while_stmt();
+            case Key::FOR:     return parse_for_stmt();
+            case Key::DO:      return parse_do_while_stmt();
 
-            case Key::KEY_DEFAULT: return parse_case_stmt(true);
-            case Key::KEY_CASE:    return parse_case_stmt(false);
+            case Key::DEFAULT: return parse_case_stmt(true);
+            case Key::CASE:    return parse_case_stmt(false);
 
-            case Key::KEY_RETURN:  return parse_return_stmt();
+            case Key::RETURN:  return parse_return_stmt();
 
 #define PARSE_JUMP_STMT(Key, Stmt) \
     case Key: \
@@ -942,16 +942,16 @@ ast::Stmt* Parser::parse_stmt() {
             return stmt.node(); \
         }
 
-            PARSE_JUMP_STMT(Key::KEY_BREAK,    ast::BreakStmt)
-            PARSE_JUMP_STMT(Key::KEY_CONTINUE, ast::ContinueStmt)
-            PARSE_JUMP_STMT(Key::KEY_DISCARD,  ast::DiscardStmt)
+            PARSE_JUMP_STMT(Key::BREAK,    ast::BreakStmt)
+            PARSE_JUMP_STMT(Key::CONTINUE, ast::ContinueStmt)
+            PARSE_JUMP_STMT(Key::DISCARD,  ast::DiscardStmt)
 
 #undef PARSE_JUMP_STMT
 
-#define SLANG_KEY_DATA(key, str, type, rows, cols) case Key::KEY_##key:
-#define SLANG_KEY_QUAL(key, str) case Key::KEY_##key:
+#define SLANG_KEY_DATA(key, str, type, rows, cols) case Key::key:
+#define SLANG_KEY_QUAL(key, str) case Key::key:
 #include "slang/keywordlist.h"
-            case Key::KEY_STRUCT:
+            case Key::STRUCT:
                 return parse_decl_stmt();
 
             default: break;
@@ -974,7 +974,7 @@ ast::StmtList* Parser::parse_compound_stmt() {
            lookup_[0].isa(Token::LPAREN) ||
            lookup_[0].isa(Token::LBRACE) ||
            lookup_[0].isa(Token::SEMICOLON) ||
-           token_to_pre_unop(lookup_[0]) != ast::UnOpExpr::UNOP_UNKNOWN) {
+           token_to_pre_unop(lookup_[0]) != ast::UnOpExpr::UNKNOWN) {
         list->push_stmt(parse_stmt());
     }
     expect(Token::RBRACE);
@@ -985,15 +985,15 @@ ast::IfStmt* Parser::parse_if_stmt() {
     // IfStmt ::= if ( Expr ) (Stmt | Stmt else Stmt)
     auto stmt = new_node<ast::IfStmt>();
 
-    eat(Key::KEY_IF);
+    eat(Key::IF);
     expect(Token::LPAREN);
     stmt->set_cond(parse_expr());
     expect(Token::RPAREN);
 
     stmt->set_if_true(parse_stmt());
 
-    if (lookup_[0].key().type() == Key::KEY_ELSE) {
-        eat(Key::KEY_ELSE);
+    if (lookup_[0].key().type() == Key::ELSE) {
+        eat(Key::ELSE);
         stmt->set_if_false(parse_stmt());
     }
 
@@ -1004,7 +1004,7 @@ ast::SwitchStmt* Parser::parse_switch_stmt() {
     // SwitchStmt ::= switch ( Expr ) { (Stmt)* }
     auto stmt = new_node<ast::SwitchStmt>();
     
-    eat(Key::KEY_SWITCH);
+    eat(Key::SWITCH);
     expect(Token::LPAREN);
     stmt->set_expr(parse_expr());
     expect(Token::RPAREN);
@@ -1017,7 +1017,7 @@ ast::SwitchStmt* Parser::parse_switch_stmt() {
 ast::WhileLoopStmt* Parser::parse_while_stmt() {
     // WhileLoopStmt ::= while ( LoopCond ) Stmt
     auto stmt = new_node<ast::WhileLoopStmt>();
-    eat(Key::KEY_WHILE);
+    eat(Key::WHILE);
     expect(Token::LPAREN);
     stmt->set_cond(parse_loop_cond());
     expect(Token::RPAREN);
@@ -1028,7 +1028,7 @@ ast::WhileLoopStmt* Parser::parse_while_stmt() {
 ast::ForLoopStmt* Parser::parse_for_stmt() {
     // ForLoopStmt ::= for ( (Stmt)? ; (LoopCond)? ; (Expr)? )
     auto stmt = new_node<ast::ForLoopStmt>();
-    eat(Key::KEY_FOR);
+    eat(Key::FOR);
     expect(Token::LPAREN);
 
     if (lookup_[0].isa(Token::SEMICOLON)) {
@@ -1058,10 +1058,10 @@ ast::ForLoopStmt* Parser::parse_for_stmt() {
 ast::DoWhileLoopStmt* Parser::parse_do_while_stmt() {
     // DoWhileLoopStmt ::= do Stmt while ( LoopCond ) ;
     auto stmt = new_node<ast::DoWhileLoopStmt>();
-    eat(Key::KEY_DO);
+    eat(Key::DO);
     stmt->set_body(parse_stmt());
 
-    expect(Key::KEY_WHILE);
+    expect(Key::WHILE);
     expect(Token::LPAREN);
 
     stmt->set_cond(parse_loop_cond());
@@ -1077,10 +1077,10 @@ ast::CaseLabelStmt* Parser::parse_case_stmt(bool def) {
     // CaseLabelStmt ::= (case ident | default) :
     auto stmt = new_node<ast::CaseLabelStmt>();
     if (!def) {
-        eat(Key::KEY_CASE);
+        eat(Key::CASE);
         stmt->set_expr(parse_expr());
     } else {
-        eat(Key::KEY_DEFAULT);
+        eat(Key::DEFAULT);
     }
     expect(Token::COLON);
     return stmt.node();
@@ -1108,7 +1108,7 @@ ast::ExprStmt* Parser::parse_expr_stmt() {
 ast::ReturnStmt* Parser::parse_return_stmt() {
     // ReturnStmt ::= return (Expr)? ;
     auto stmt = new_node<ast::ReturnStmt>();
-    eat(Key::KEY_RETURN);
+    eat(Key::RETURN);
     if (lookup_[0].isa(Token::SEMICOLON)) {
         eat(Token::SEMICOLON);
     } else {

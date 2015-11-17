@@ -2,20 +2,29 @@
 
 namespace slang {
 
+size_t TypeQualifiers::hash() const {
+    return (int)storage() ^ (int)parameter();
+}
+
+bool TypeQualifiers::operator == (const TypeQualifiers& other) const {
+    return storage() == other.storage() &&
+           parameter() == other.parameter();
+}
+
 size_t QualifiedType::hash() const {
-    return type()->hash() + (size_t)storage();
+    return type()->hash() + qualifiers().hash();
 }
 
 bool QualifiedType::equals(const QualifiedType& other) const {
-    return other.storage() == storage() && type()->equals(other.type());
+    return other.qualifiers() == qualifiers() && type()->equals(other.type());
 }
 
 bool QualifiedType::subtype(const QualifiedType& other) const {
-    return other.storage() == storage() && type()->subtype(other.type());
+    return other.qualifiers() == qualifiers() && type()->subtype(other.type());
 }
 
 bool QualifiedType::operator == (const QualifiedType& other) const {
-    return other.type() == type() && other.storage() == storage();
+    return other.type() == type() && other.qualifiers() == qualifiers();
 }
 
 bool QualifiedType::operator != (const QualifiedType& other) const {
@@ -24,16 +33,22 @@ bool QualifiedType::operator != (const QualifiedType& other) const {
 
 std::string QualifiedType::to_string() const {
     std::string str;
-    switch (storage()) {
-        case StorageQualifier::STORAGE_CONST:     str += "const ";     break;
-        case StorageQualifier::STORAGE_IN:        str += "in ";        break;
-        case StorageQualifier::STORAGE_OUT:       str += "out ";       break;
-        case StorageQualifier::STORAGE_INOUT:     str += "inout ";     break;
-        case StorageQualifier::STORAGE_ATTRIBUTE: str += "attribute "; break;
-        case StorageQualifier::STORAGE_UNIFORM:   str += "uniform ";   break;
-        case StorageQualifier::STORAGE_VARYING:   str += "varying ";   break;
-        case StorageQualifier::STORAGE_BUFFER:    str += "buffer ";    break;
-        case StorageQualifier::STORAGE_SHARED:    str += "shared ";    break;
+    switch (qualifiers().parameter()) {
+        case ParameterQualifier::IN:        str += "in ";        break;
+        case ParameterQualifier::OUT:       str += "out ";       break;
+        case ParameterQualifier::INOUT:     str += "inout ";     break;
+        default: break;
+    }
+    switch (qualifiers().storage()) {
+        case StorageQualifier::CONST:     str += "const ";     break;
+        case StorageQualifier::IN:        str += "in ";        break;
+        case StorageQualifier::OUT:       str += "out ";       break;
+        case StorageQualifier::INOUT:     str += "inout ";     break;
+        case StorageQualifier::ATTRIBUTE: str += "attribute "; break;
+        case StorageQualifier::UNIFORM:   str += "uniform ";   break;
+        case StorageQualifier::VARYING:   str += "varying ";   break;
+        case StorageQualifier::BUFFER:    str += "buffer ";    break;
+        case StorageQualifier::SHARED:    str += "shared ";    break;
         default: break;
     }
     return str + type_->to_string();
@@ -147,13 +162,13 @@ bool PrimType::subtype(const Type* other) const {
     if (prim_type->cols() == cols() &&
         prim_type->rows() == rows()) {
         switch (prim()) {
-            case PRIM_UINT:
-            case PRIM_INT:
-                return prim_type->prim() == PRIM_UINT ||
-                       prim_type->prim() == PRIM_FLOAT ||
-                       prim_type->prim() == PRIM_DOUBLE;
-            case PRIM_FLOAT:
-                return prim_type->prim() == PRIM_DOUBLE;
+            case UINT:
+            case INT:
+                return prim_type->prim() == UINT ||
+                       prim_type->prim() == FLOAT ||
+                       prim_type->prim() == DOUBLE;
+            case FLOAT:
+                return prim_type->prim() == DOUBLE;
             default:
                 break;
         }
@@ -169,31 +184,31 @@ size_t PrimType::hash() const {
 std::string PrimType::type_name() const {
     if (rows() == 1 && cols() == 1) {
         switch (prim()) {
-            case PRIM_INT:    return "int";
-            case PRIM_UINT:   return "uint";
-            case PRIM_BOOL:   return "bool";
-            case PRIM_FLOAT:  return "float";
-            case PRIM_DOUBLE: return "double";
-            case PRIM_VOID:   return "void";
+            case INT:     return "int";
+            case UINT:    return "uint";
+            case BOOL:    return "bool";
+            case FLOAT:   return "float";
+            case DOUBLE:  return "double";
+            case VOID:    return "void";
         }
     }
 
     if (rows() > 1 && cols() == 1) {
         switch (prim()) {
-            case PRIM_INT:    return "ivec" + std::to_string(rows());
-            case PRIM_UINT:   return "uvec" + std::to_string(rows());
-            case PRIM_BOOL:   return "bvec" + std::to_string(rows());
-            case PRIM_FLOAT:  return "vec"  + std::to_string(rows());
-            case PRIM_DOUBLE: return "dvec" + std::to_string(rows());
+            case INT:     return "ivec" + std::to_string(rows());
+            case UINT:    return "uvec" + std::to_string(rows());
+            case BOOL:    return "bvec" + std::to_string(rows());
+            case FLOAT:   return "vec"  + std::to_string(rows());
+            case DOUBLE:  return "dvec" + std::to_string(rows());
             default:          assert(0 && "Invalid vector type");
         }
     }
 
     if (rows() > 1 && cols() > 1) {
         std::string prefix;
-        if (prim() == PRIM_FLOAT) {
+        if (prim() == FLOAT) {
             prefix = "mat";
-        } else if (prim() == PRIM_DOUBLE) {
+        } else if (prim() == DOUBLE) {
             prefix = "dmat";
         } else {
             assert(0 && "Invalid matrix type");

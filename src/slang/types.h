@@ -11,17 +11,49 @@
 
 namespace slang {
 
-enum class StorageQualifier {
-    STORAGE_NONE,
-    STORAGE_CONST,
-    STORAGE_IN,
-    STORAGE_OUT,
-    STORAGE_INOUT,
-    STORAGE_ATTRIBUTE,
-    STORAGE_UNIFORM,
-    STORAGE_VARYING,
-    STORAGE_BUFFER,
-    STORAGE_SHARED
+enum class ParameterQualifier : char {
+    NONE,
+    IN,
+    OUT,
+    INOUT
+};
+
+enum class StorageQualifier : char {
+    NONE,
+    CONST,
+    IN,
+    OUT,
+    INOUT,
+    ATTRIBUTE,
+    UNIFORM,
+    VARYING,
+    BUFFER,
+    SHARED
+};
+
+class TypeQualifiers {
+public:
+    TypeQualifiers(ParameterQualifier param = ParameterQualifier::NONE,
+                   StorageQualifier storage = StorageQualifier::NONE)
+        : param_(param)
+        , storage_(storage)
+    {}
+
+    size_t hash() const;
+    bool operator == (const TypeQualifiers& other) const;
+    bool operator != (const TypeQualifiers& other) const { return !(*this == other); }
+
+    bool is_empty() const {
+        return param_ == ParameterQualifier::NONE &&
+               storage_ == StorageQualifier::NONE;
+    }
+
+    ParameterQualifier parameter() const { return param_; }
+    StorageQualifier storage() const { return storage_; }
+
+private:
+    ParameterQualifier param_;
+    StorageQualifier storage_;
 };
 
 /// Base class for symbol types.
@@ -49,8 +81,8 @@ public:
 /// Qualified types representation. Contains a type and the set of qualifiers attached to it.
 class QualifiedType {
 public:
-    QualifiedType(const Type* type, StorageQualifier storage = StorageQualifier::STORAGE_NONE)
-        : type_(type), storage_(storage)
+    QualifiedType(const Type* type, TypeQualifiers quals = TypeQualifiers())
+        : type_(type), quals_(quals)
     {}
 
     /// Returns a hash value for this type.
@@ -70,19 +102,17 @@ public:
     /// Returns the non-qualified type.
     const Type* type() const { return type_; }
     /// Determines if this type has a qualifier or not.
-    bool is_qualified() const {
-        return storage() != StorageQualifier::STORAGE_NONE;
-    }
+    bool is_qualified() const { return !quals_.is_empty(); }
 
     /// Returns the storage qualifier associated with this type.
-    StorageQualifier storage() const { return storage_; }
+    TypeQualifiers qualifiers() const { return quals_; }
 
     /// Returns the full type name, with its qualifiers.
     std::string to_string() const;
 
 private:
     const Type* type_;
-    StorageQualifier storage_;
+    TypeQualifiers quals_;
 };
 
 /// Error type. For types that cannot be determined.
@@ -196,12 +226,12 @@ public:
 class PrimType : public Type {
 public:
     enum Prim {
-        PRIM_INT,
-        PRIM_UINT,
-        PRIM_BOOL,
-        PRIM_FLOAT,
-        PRIM_DOUBLE,
-        PRIM_VOID
+        INT,
+        UINT,
+        BOOL,
+        FLOAT,
+        DOUBLE,
+        VOID
     };
 
     PrimType(Prim prim, int rows = 1, int cols = 1)
@@ -225,36 +255,28 @@ public:
 
     /// Determines if this type can be added, subtracted, ...
     bool is_numeric() const {
-        return prim() == PrimType::PRIM_INT ||
-               prim() == PrimType::PRIM_UINT ||
-               prim() == PrimType::PRIM_FLOAT ||
-               prim() == PrimType::PRIM_DOUBLE;
+        return prim() == INT   || prim() == UINT ||
+               prim() == FLOAT || prim() == DOUBLE;
     }
 
     /// Determines if this type is an integer type.
     bool is_integer() const {
-        return prim() == PrimType::PRIM_INT ||
-               prim() == PrimType::PRIM_UINT;
+        return prim() == INT || prim() == UINT;
     }
 
     /// Determines if this type can be compared.
     bool is_ordered() const {
-        return size() == 1 &&
-               (prim() == PrimType::PRIM_INT ||
-                prim() == PrimType::PRIM_UINT ||
-                prim() == PrimType::PRIM_FLOAT ||
-                prim() == PrimType::PRIM_DOUBLE);
+        return size() == 1 && is_numeric();
     }
 
     /// Determines if this type is a boolean.
     bool is_boolean() const {
-        return size() == 1 && prim() == PrimType::PRIM_BOOL;
+        return size() == 1 && prim() == BOOL;
     }
 
     /// Determines if this type is a floating point type.
     bool is_floating() const {
-        return prim() == PrimType::PRIM_FLOAT ||
-               prim() == PrimType::PRIM_DOUBLE;
+        return prim() == FLOAT || prim() == DOUBLE;
     }
 
     /// Returns the number of rows in this type (scalars have only one row).

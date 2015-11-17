@@ -17,7 +17,7 @@ void Module::print(Printer& printer) const {
 
 void StorageQualifier::print(Printer& printer) const {
     switch (storage_) {
-#define SLANG_KEY_QUAL_STORAGE(key, str) case STORAGE_##key: printer << str; break;
+#define SLANG_KEY_QUAL_STORAGE(key, str) case key: printer << str; break;
 #include "slang/keywordlist.h"
         default: assert(0 && "Unknown storage qualifier");
     }
@@ -25,7 +25,7 @@ void StorageQualifier::print(Printer& printer) const {
 
 void PrecisionQualifier::print(Printer& printer) const {
     switch (prec_) {
-#define SLANG_KEY_QUAL_PREC(key, str) case PREC_##key: printer << str; break;
+#define SLANG_KEY_QUAL_PREC(key, str) case key: printer << str; break;
 #include "slang/keywordlist.h"
         default: assert(0 && "Unknown precision qualifier");
     }
@@ -33,7 +33,7 @@ void PrecisionQualifier::print(Printer& printer) const {
 
 void InterpQualifier::print(Printer& printer) const {
     switch (interp_) {
-#define SLANG_KEY_QUAL_INTERP(key, str) case INTERP_##key: printer << str; break;
+#define SLANG_KEY_QUAL_INTERP(key, str) case key: printer << str; break;
 #include "slang/keywordlist.h"
         default: assert(0 && "Unknown interpolation qualifier");
     }
@@ -98,7 +98,7 @@ void PrimType::print(Printer& printer) const {
     }
 
     switch (prim_) {
-#define SLANG_KEY_DATA(key, str, type, rows, cols) case PRIM_##key: printer << str; break;
+#define SLANG_KEY_DATA(key, str, type, rows, cols) case key: printer << str; break;
 #include "slang/keywordlist.h"
         default: assert(0 && "Unknown primitive type");
     }
@@ -278,12 +278,12 @@ void IdentExpr::print(Printer& printer) const {
 
 std::string UnOpExpr::op_string() const {
     switch (type_) {
-        case UNOP_INC:     return "++";
-        case UNOP_DEC:     return "--";
-        case UNOP_NOT:     return "!";
-        case UNOP_BIT_NOT: return "~";
-        case UNOP_PLUS:    return "+";
-        case UNOP_MINUS:   return "-";
+        case INC:     return "++";
+        case DEC:     return "--";
+        case NOT:     return "!";
+        case BIT_NOT: return "~";
+        case PLUS:    return "+";
+        case MINUS:   return "-";
         default:
             assert(0 && "Unknown unary operation");
             return "";
@@ -291,10 +291,10 @@ std::string UnOpExpr::op_string() const {
 }
 
 void UnOpExpr::print(Printer& printer) const {
-     if (type_ == UNOP_POST_INC) {
+     if (type_ == POST_INC) {
         op_->print(printer);
         printer << "++";
-    } else if (type_ == UNOP_POST_DEC) {
+    } else if (type_ == POST_DEC) {
         op_->print(printer);
         printer << "--";
     } else {
@@ -313,7 +313,7 @@ void CondExpr::print(Printer& printer) const {
 
 std::string AssignOpExpr::op_string() const {
     switch (type_) {
-        case ASSIGN_EQUAL:  return "=";
+        case ASSIGN:  return "=";
         case ASSIGN_ADD:    return "+=";
         case ASSIGN_SUB:    return "-=";
         case ASSIGN_MUL:    return "*=";
@@ -351,25 +351,25 @@ inline void print_expr(const Expr* expr, Printer& printer, int prec) {
 
 std::string BinOpExpr::op_string() const {
     switch (type_) {
-        case BINOP_MUL:    return "*";
-        case BINOP_DIV:    return "/";
-        case BINOP_MOD:    return "%";
-        case BINOP_ADD:    return "+";
-        case BINOP_SUB:    return "-";
-        case BINOP_LSHIFT: return "<<";
-        case BINOP_RSHIFT: return ">>";
-        case BINOP_LT:     return "<";
-        case BINOP_GT:     return ">";
-        case BINOP_LEQ:    return "<=";
-        case BINOP_GEQ:    return ">=";
-        case BINOP_EQ:     return "==";
-        case BINOP_NEQ:    return "!=";
-        case BINOP_AND:    return "&";
-        case BINOP_XOR:    return "^";
-        case BINOP_OR:     return "|";
-        case BINOP_ANDAND: return "&&";
-        case BINOP_XORXOR: return "^^";
-        case BINOP_OROR:   return "||";
+        case MUL:    return "*";
+        case DIV:    return "/";
+        case MOD:    return "%";
+        case ADD:    return "+";
+        case SUB:    return "-";
+        case LSHIFT: return "<<";
+        case RSHIFT: return ">>";
+        case LT:     return "<";
+        case GT:     return ">";
+        case LEQ:    return "<=";
+        case GEQ:    return ">=";
+        case EQ:     return "==";
+        case NEQ:    return "!=";
+        case AND:    return "&";
+        case XOR:    return "^";
+        case OR:     return "|";
+        case ANDAND: return "&&";
+        case XORXOR: return "^^";
+        case OROR:   return "||";
         default:
             assert(0 && "Unknown binary operation");
             return "";

@@ -15,7 +15,7 @@ static bool is_unsized(const Type* type) {
 
 inline bool is_void(const Type* type) {
     if (auto prim = type->isa<PrimType>())
-        return prim->prim() == PrimType::PRIM_VOID;
+        return prim->prim() == PrimType::VOID;
 
     return false;
 }
@@ -132,11 +132,11 @@ const slang::Type* ErrorExpr::check(Sema& sema, const slang::Type*) const {
 
 const slang::Type* LiteralExpr::check(Sema& sema, const slang::Type* expected) const {
     switch (lit_.type()) {
-        case Literal::DOUBLE: return sema.prim_type(slang::PrimType::PRIM_DOUBLE);
-        case Literal::FLOAT:  return sema.prim_type(slang::PrimType::PRIM_FLOAT);
-        case Literal::INT:    return sema.prim_type(slang::PrimType::PRIM_INT);
-        case Literal::UINT:   return sema.prim_type(slang::PrimType::PRIM_UINT);
-        case Literal::BOOL:   return sema.prim_type(slang::PrimType::PRIM_BOOL);
+        case Literal::DOUBLE: return sema.prim_type(slang::PrimType::DOUBLE);
+        case Literal::FLOAT:  return sema.prim_type(slang::PrimType::FLOAT);
+        case Literal::INT:    return sema.prim_type(slang::PrimType::INT);
+        case Literal::UINT:   return sema.prim_type(slang::PrimType::UINT);
+        case Literal::BOOL:   return sema.prim_type(slang::PrimType::BOOL);
         default:
             assert(0 && "Unknown literal type");
             return sema.error_type();
@@ -154,8 +154,8 @@ const slang::Type* IdentExpr::check(Sema& sema, const slang::Type*) const {
 bool IdentExpr::is_lvalue(Sema& sema) const {
     if (auto symbol = sema.env()->lookup_symbol(ident())) {
         const QualifiedType& full_type = symbol->full_type();
-        return full_type.storage() != slang::StorageQualifier::STORAGE_CONST &&
-               full_type.storage() != slang::StorageQualifier::STORAGE_IN;
+        return full_type.qualifiers().storage() != slang::StorageQualifier::CONST &&
+               full_type.qualifiers().storage() != slang::StorageQualifier::IN;
     }
     return false;
 }
@@ -219,8 +219,8 @@ const slang::Type* IndexExpr::check(Sema& sema, const slang::Type*) const {
 
     if (auto index_prim = index_type->isa<slang::PrimType>()) {
         if (index_prim->size() == 1 &&
-            (index_prim->prim() == slang::PrimType::PRIM_INT ||
-             index_prim->prim() == slang::PrimType::PRIM_UINT)) {
+            (index_prim->prim() == slang::PrimType::INT ||
+             index_prim->prim() == slang::PrimType::UINT)) {
             if (auto array = left_type->isa<slang::ArrayType>()) {
                 return array->elem();
             } else if (auto prim = left_type->isa<slang::PrimType>()) {
@@ -305,7 +305,7 @@ static const slang::Type* check_constructor_call(Sema& sema, const CallExpr* cal
     const slang::Type* type = full_type.type();
 
     if (auto prim = type->isa<slang::PrimType>()) {
-        if (prim->prim() == slang::PrimType::PRIM_VOID) {
+        if (prim->prim() == slang::PrimType::VOID) {
             sema.error(call) << "Cannot construct type \'void\'\n";
             return sema.error_type();
         }
@@ -370,7 +370,7 @@ const slang::Type* CallExpr::check(Sema& sema, const slang::Type*) const {
 }
 
 const slang::Type* CondExpr::check(Sema& sema, const slang::Type* expected) const {
-    sema.check(cond(), sema.prim_type(slang::PrimType::PRIM_BOOL));
+    sema.check(cond(), sema.prim_type(slang::PrimType::BOOL));
 
     const slang::Type* type_true = sema.check(if_true(), expected);
     const slang::Type* type_false = sema.check(if_false(), expected);
@@ -503,13 +503,13 @@ static const slang::Type* check_comparison(Sema& sema, const OpExpr* expr, const
     sema.implicit_convert(a, b);
 
     sema.expect_equal(expr, a, b);
-    return sema.prim_type(slang::PrimType::PRIM_BOOL);
+    return sema.prim_type(slang::PrimType::BOOL);
 }
 
 static const slang::Type* check_logical(Sema& sema, const OpExpr* expr, const slang::PrimType* a, const slang::PrimType* b) {
     sema.expect_boolean(expr, a);
     sema.expect_boolean(expr, b);
-    return sema.prim_type(slang::PrimType::PRIM_BOOL);
+    return sema.prim_type(slang::PrimType::BOOL);
 }
 
 const slang::Type* UnOpExpr::check(Sema& sema, const slang::Type*) const {
@@ -522,21 +522,21 @@ const slang::Type* UnOpExpr::check(Sema& sema, const slang::Type*) const {
     }
 
     switch (type()) {
-        case UNOP_INC:
-        case UNOP_POST_INC:
-        case UNOP_DEC:
-        case UNOP_POST_DEC:
+        case INC:
+        case POST_INC:
+        case DEC:
+        case POST_DEC:
             sema.expect_lvalue(operand());
-        case UNOP_MINUS:
-        case UNOP_PLUS:
+        case MINUS:
+        case PLUS:
             sema.expect_numeric(this, prim);
             return op_type;
 
-        case UNOP_NOT:
+        case NOT:
             sema.expect_boolean(this, prim);
             return op_type;
 
-        case UNOP_BIT_NOT:
+        case BIT_NOT:
             sema.expect_integer(this, prim);
             return op_type;
 
@@ -552,7 +552,7 @@ const slang::Type* AssignOpExpr::check(Sema& sema, const slang::Type*) const {
 
     sema.expect_lvalue(left());
 
-    if (type() == ASSIGN_EQUAL)
+    if (type() == ASSIGN)
         return check_equal(sema, this, left_type, right_type);
 
     const slang::PrimType* left_prim = left_type->isa<slang::PrimType>();
@@ -593,10 +593,10 @@ const slang::Type* BinOpExpr::check(Sema& sema, const slang::Type*) const {
     const slang::Type* left_type = sema.check(left());
     const slang::Type* right_type = sema.check(right());
 
-    if (type() == BINOP_NEQ ||
-        type() == BINOP_EQ) {
+    if (type() == NEQ ||
+        type() == EQ) {
         check_equal(sema, this, left_type, right_type);
-        return sema.prim_type(slang::PrimType::PRIM_BOOL);
+        return sema.prim_type(slang::PrimType::BOOL);
     }
 
     const slang::PrimType* left_prim = left_type->isa<slang::PrimType>();
@@ -607,35 +607,35 @@ const slang::Type* BinOpExpr::check(Sema& sema, const slang::Type*) const {
     }
 
     switch (type()) {
-        case BINOP_ADD:
-        case BINOP_SUB:
-        case BINOP_DIV:
+        case ADD:
+        case SUB:
+        case DIV:
             return check_arithmetic(sema, this, left_prim, right_prim);
 
-        case BINOP_MUL:
+        case MUL:
             return check_product(sema, this, left_prim, right_prim);
 
-        case BINOP_MOD:
+        case MOD:
             return check_modulus(sema, this, left_prim, right_prim);
 
-        case BINOP_LSHIFT:
-        case BINOP_RSHIFT:
+        case LSHIFT:
+        case RSHIFT:
             return check_shift(sema, this, left_prim, right_prim);
 
-        case BINOP_LT:
-        case BINOP_GT:
-        case BINOP_LEQ:
-        case BINOP_GEQ:
+        case LT:
+        case GT:
+        case LEQ:
+        case GEQ:
             return check_comparison(sema, this, left_prim, right_prim);
 
-        case BINOP_AND:
-        case BINOP_XOR:
-        case BINOP_OR:
+        case AND:
+        case XOR:
+        case OR:
             return check_bitwise(sema, this, left_prim, right_prim);
 
-        case BINOP_ANDAND:
-        case BINOP_XORXOR:
-        case BINOP_OROR:
+        case ANDAND:
+        case XORXOR:
+        case OROR:
             return check_logical(sema, this, left_prim, right_prim);
 
         default:
@@ -702,8 +702,8 @@ const slang::Type* InitExpr::check(Sema& sema, const slang::Type* expected) cons
 inline bool integer_value(Sema& sema, const Expr* expr, int& result) {
     const slang::Type* type = sema.check(expr);
     if (auto prim = type->isa<slang::PrimType>()) {
-        if (prim->prim() == slang::PrimType::PRIM_INT ||
-            prim->prim() == slang::PrimType::PRIM_UINT) {
+        if (prim->prim() == slang::PrimType::INT ||
+            prim->prim() == slang::PrimType::UINT) {
             // TODO : Reduce expressions using codegen
             auto lit = expr->as<LiteralExpr>();
             result = lit->lit().as_int();
@@ -735,40 +735,43 @@ static const slang::Type* check_array_specifier(Sema& sema, const ArraySpecifier
     return cur_type;
 }
 
-static slang::StorageQualifier check_qualifiers(Sema& sema, const Type* type) {
-    slang::StorageQualifier q = slang::StorageQualifier::STORAGE_NONE;
-    int storage_count = 0;
+static slang::TypeQualifiers check_qualifiers(Sema& sema, const Type* type) {
+    slang::ParameterQualifier p = slang::ParameterQualifier::NONE;
+    slang::StorageQualifier s = slang::StorageQualifier::NONE;
+    int p_count = 0, s_count = 0;
 
     for (auto qual : type->qualifiers()) {
         if (auto storage = qual->isa<StorageQualifier>()) {
             switch (storage->storage()) {
-                case StorageQualifier::STORAGE_CONST:     q = slang::StorageQualifier::STORAGE_CONST;     break;
-                case StorageQualifier::STORAGE_IN:        q = slang::StorageQualifier::STORAGE_IN;        break;
-                case StorageQualifier::STORAGE_OUT:       q = slang::StorageQualifier::STORAGE_OUT;       break;
-                case StorageQualifier::STORAGE_INOUT:     q = slang::StorageQualifier::STORAGE_INOUT;     break;
-                case StorageQualifier::STORAGE_UNIFORM:   q = slang::StorageQualifier::STORAGE_UNIFORM;   break;
-                case StorageQualifier::STORAGE_BUFFER:    q = slang::StorageQualifier::STORAGE_BUFFER;    break;
-                case StorageQualifier::STORAGE_SHARED:    q = slang::StorageQualifier::STORAGE_SHARED;    break;
+                case StorageQualifier::IN:      s = slang::StorageQualifier::IN;      break;
+                case StorageQualifier::OUT:     s = slang::StorageQualifier::OUT;     break;
+                case StorageQualifier::INOUT:   s = slang::StorageQualifier::INOUT;   break;
+                case StorageQualifier::CONST:   s = slang::StorageQualifier::CONST;   break;
+                case StorageQualifier::UNIFORM: s = slang::StorageQualifier::UNIFORM; break;
+                case StorageQualifier::BUFFER:  s = slang::StorageQualifier::BUFFER;  break;
+                case StorageQualifier::SHARED:  s = slang::StorageQualifier::SHARED;  break;
                 default:
                     // TODO: implement missing storage qualifiers
                     break;
             }
-            storage_count++;
+            s_count++;
         } else if (qual->isa<VaryingQualifier>()) {
-            q = slang::StorageQualifier::STORAGE_VARYING;
-            storage_count++;
+            s = slang::StorageQualifier::VARYING;
+            s_count++;
         } else if (qual->isa<AttributeQualifier>()) {
-            q = slang::StorageQualifier::STORAGE_ATTRIBUTE;
-            storage_count++;
+            s = slang::StorageQualifier::ATTRIBUTE;
+            s_count++;
         } else {
             // TODO: implement missing qualifiers
         }
     }
 
-    if (storage_count > 1)
+    if (s_count > 1)
         sema.error(type) << "Type mentions more than one storage qualifier\n";
+    if (p_count > 1)
+        sema.error(type) << "Type mentions more than one parameter qualifier\n";
 
-    return q;
+    return slang::TypeQualifiers(p, s);
 }
 
 inline slang::QualifiedType check_full_type(Sema& sema, const Type* node, const slang::Type* type) {
@@ -784,7 +787,7 @@ slang::QualifiedType PrimType::check(Sema& sema) const {
     const slang::Type* prim_type = nullptr;
     switch (prim()) {
 #define SLANG_KEY_DATA(key, str, type, rows, cols) \
-        case PRIM_##key: prim_type = sema.prim_type(slang::PrimType::PRIM_##type, rows, cols); break;
+        case key: prim_type = sema.prim_type(slang::PrimType::type, rows, cols); break;
 #include "slang/keywordlist.h"
         default:
             assert(0 && "Unknown type");
@@ -938,7 +941,7 @@ static slang::FunctionType::ArgList normalize_args(Sema& sema, const ast::Functi
     int void_count = 0;
     for (size_t i = 0; i < args.size(); i++) {
         if (auto prim = args[i].type()->isa<slang::PrimType>()) {
-            if (prim->prim() == slang::PrimType::PRIM_VOID) {
+            if (prim->prim() == slang::PrimType::VOID) {
                 void_count++;
             }
         }
@@ -1008,7 +1011,7 @@ slang::QualifiedType Arg::check(Sema& sema) const {
         sema.error(this) << "Arguments to functions must be explicitly sized\n";
     }
 
-    return QualifiedType(type, arg_type.storage());
+    return QualifiedType(type, arg_type.qualifiers());
 }
 
 slang::QualifiedType Variable::check(Sema& sema, QualifiedType var_type) const {
@@ -1016,7 +1019,7 @@ slang::QualifiedType Variable::check(Sema& sema, QualifiedType var_type) const {
     if (name().empty())
         return type;
 
-    if (var_type.storage() == slang::StorageQualifier::STORAGE_CONST) {
+    if (var_type.qualifiers().storage() == slang::StorageQualifier::CONST) {
         if (sema.env()->scope()->isa<StructType>()) {
             sema.error(this) << "\'const\' qualifier is not allowed inside structures\n";
         } else if (!init())
@@ -1028,7 +1031,7 @@ slang::QualifiedType Variable::check(Sema& sema, QualifiedType var_type) const {
 
     sema.expect_nonvoid(this, name(), type);
 
-    slang::QualifiedType full_type(type, var_type.storage());
+    slang::QualifiedType full_type(type, var_type.qualifiers());
     if (auto symbol = sema.env()->find_symbol(name())) {
         // Arrays can be redeclared if they previously were implicitly sized
         if (is_unsized(symbol->type())) {
@@ -1051,7 +1054,7 @@ slang::QualifiedType Variable::check(Sema& sema, QualifiedType var_type) const {
 }
 
 void LoopCond::check(Sema& sema) const {
-    const slang::Type* bool_type = sema.prim_type(slang::PrimType::PRIM_BOOL);
+    const slang::Type* bool_type = sema.prim_type(slang::PrimType::BOOL);
     if (is_var()) {
         slang::QualifiedType full_type = sema.check(var(), sema.check(var_type()));
         sema.expect_type(this, full_type.type(), bool_type);
@@ -1076,7 +1079,7 @@ void ExprStmt::check(Sema& sema) const {
 }
 
 void IfStmt::check(Sema& sema) const {
-    sema.check(cond(), sema.prim_type(slang::PrimType::PRIM_BOOL));
+    sema.check(cond(), sema.prim_type(slang::PrimType::BOOL));
     sema.check(if_true());
     if (if_false()) sema.check(if_false());
 }

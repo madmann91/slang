@@ -212,18 +212,18 @@ public:
 class UnOpExpr : public OpExpr {
 public:
     enum Type {
-        UNOP_INC,
-        UNOP_DEC,
-        UNOP_NOT,
-        UNOP_BIT_NOT,
-        UNOP_MINUS,
-        UNOP_PLUS,
-        UNOP_POST_INC,
-        UNOP_POST_DEC,
-        UNOP_UNKNOWN
+        INC,       //< Pre-increment operator
+        DEC,       //< Pre-decrement operator
+        NOT,       //< Logical negation
+        BIT_NOT,   //< Bitwise negation
+        MINUS,     //< Minus sign
+        PLUS,      //< Plus sign
+        POST_INC,  //< Post-increment
+        POST_DEC,  //< Post-decrement
+        UNKNOWN
     };
 
-    UnOpExpr() : type_(UNOP_UNKNOWN) {}
+    UnOpExpr() : type_(UNKNOWN) {}
 
     const Expr* operand() const { return op_.get(); }
     Expr* operand() { return op_.get(); }
@@ -267,21 +267,21 @@ private:
 class AssignOpExpr : public OpExpr {
 public:
     enum Type {
-        ASSIGN_EQUAL,
-        ASSIGN_ADD,
-        ASSIGN_SUB,
-        ASSIGN_MUL,
-        ASSIGN_DIV,
-        ASSIGN_MOD,
-        ASSIGN_LSHIFT,
-        ASSIGN_RSHIFT,
-        ASSIGN_AND,
-        ASSIGN_XOR,
-        ASSIGN_OR,
-        ASSIGN_UNKNOWN
+        ASSIGN,         //< Assignment operator (=)
+        ASSIGN_ADD,     //< Addition (+=)
+        ASSIGN_SUB,     //< Subtraction (-=)
+        ASSIGN_MUL,     //< Multiplication (*=)
+        ASSIGN_DIV,     //< Division (/=)
+        ASSIGN_MOD,     //< Modulus (%=)
+        ASSIGN_LSHIFT,  //< Left shift (<<=)
+        ASSIGN_RSHIFT,  //< Right shift (>>=)
+        ASSIGN_AND,     //< Bitwise and (&=)
+        ASSIGN_XOR,     //< Bitwise xor (^=)
+        ASSIGN_OR,      //< Bitwise or (|=)
+        UNKNOWN
     };
 
-    AssignOpExpr() : type_(ASSIGN_UNKNOWN) {}
+    AssignOpExpr() : type_(UNKNOWN) {}
 
     Type type() const { return type_; }
     void set_type(Type type) { type_ = type; }
@@ -307,29 +307,29 @@ private:
 class BinOpExpr : public OpExpr {
 public:
     enum Type {
-        BINOP_MUL,
-        BINOP_DIV,
-        BINOP_MOD,
-        BINOP_ADD,
-        BINOP_SUB,
-        BINOP_LSHIFT,
-        BINOP_RSHIFT,
-        BINOP_LT,
-        BINOP_GT,
-        BINOP_LEQ,
-        BINOP_GEQ,
-        BINOP_EQ,
-        BINOP_NEQ,
-        BINOP_AND,
-        BINOP_XOR,
-        BINOP_OR,
-        BINOP_ANDAND,
-        BINOP_XORXOR,
-        BINOP_OROR,
-        BINOP_UNKNOWN
+        MUL,        //< Multiplication (*)
+        DIV,        //< Division (/)
+        MOD,        //< Modulus (%)
+        ADD,        //< Addition (+)
+        SUB,        //< Subtraction (-)
+        LSHIFT,     //< Left shift (<<)
+        RSHIFT,     //< Right shift (>>)
+        LT,         //< Less than (<)
+        GT,         //< Greater than (>)
+        LEQ,        //< Less or equal (<=)
+        GEQ,        //< Greater or equal (>=)
+        EQ,         //< Equal (==)
+        NEQ,        //< Not equal (!=)
+        AND,        //< And (&)
+        XOR,        //< Xor (^)
+        OR,         //< Or (|)
+        ANDAND,     //< Logical and (&&)
+        XORXOR,     //< Logical Xor (^^)
+        OROR,       //< Logical or (||)
+        UNKNOWN
     };
 
-    BinOpExpr() : type_(BINOP_UNKNOWN) {}
+    BinOpExpr() : type_(UNKNOWN) {}
 
     Expr* left() { return left_.get(); }
     const Expr* left() const { return left_.get(); }
@@ -375,7 +375,7 @@ public:
 class StorageQualifier : public TypeQualifier {
 public:
     enum Storage {
-#define SLANG_KEY_QUAL_STORAGE(key, str) STORAGE_##key,
+#define SLANG_KEY_QUAL_STORAGE(key, str) key,
 #include "slang/keywordlist.h"
     };
 
@@ -392,7 +392,7 @@ protected:
 class PrecisionQualifier : public TypeQualifier {
 public:
     enum Precision {
-#define SLANG_KEY_QUAL_PREC(key, str) PREC_##key,
+#define SLANG_KEY_QUAL_PREC(key, str) key,
 #include "slang/keywordlist.h"
     };
 
@@ -409,7 +409,7 @@ private:
 class InterpQualifier : public TypeQualifier {
 public:
     enum Interp {
-#define SLANG_KEY_QUAL_INTERP(key, str) INTERP_##key,
+#define SLANG_KEY_QUAL_INTERP(key, str) key,
 #include "slang/keywordlist.h"
     };
 
@@ -538,7 +538,7 @@ public:
 class PrimType : public Type {
 public:
     enum Prim {
-#define SLANG_KEY_DATA(key, str, type, rows, cols) PRIM_##key,
+#define SLANG_KEY_DATA(key, str, type, rows, cols) key,
 #include "slang/keywordlist.h"
     };
 
