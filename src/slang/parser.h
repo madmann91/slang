@@ -9,6 +9,7 @@
 #include "slang/environment.h"
 #include "slang/sema.h"
 #include "slang/ast.h"
+#include "slang/ptr.h"
 
 namespace slang {
 
@@ -19,7 +20,7 @@ public:
     Parser(std::function<Token()> input, Sema& sema, Logger& logger);
 
     /// Parses the stream and produces an AST.
-    std::unique_ptr<ast::Module> parse();
+    Ptr<ast::Module> parse();
 
     /// Returns the number of errors generated during parsing.
     size_t error_count() const { return err_count_; }

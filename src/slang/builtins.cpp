@@ -475,7 +475,7 @@ public:
     int overflow(int c) { return c; }
 };
 
-std::unique_ptr<ast::Module> parse_builtins(Sema& sema, const Keywords& keys) {
+Ptr<ast::Module> parse_builtins(Sema& sema, const Keywords& keys) {
     NullBuffer null_buffer;
     std::ostream null_stream(&null_buffer);
     std::istringstream is(builtins);

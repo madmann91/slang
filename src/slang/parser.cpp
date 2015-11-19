@@ -14,8 +14,8 @@ Parser::Parser(std::function<Token()> input, Sema& sema, Logger& logger)
     prev_ = lookup_[0].loc().start();
 }
 
-std::unique_ptr<ast::Module> Parser::parse() {
-    return std::unique_ptr<ast::Module>(parse_module());
+Ptr<ast::Module> Parser::parse() {
+    return Ptr<ast::Module>(parse_module());
 }
 
 void Parser::next() {

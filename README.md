@@ -35,7 +35,7 @@ bool parse_glsl(const std::string& filename) {
     Parser parser([&pp]() { return pp.preprocess(); }, sema, logger);
 
     // Parse the stream (errors will be reported in the logger)
-    std::unique_ptr<ast::Module> module = parser.parse();
+    Ptr<ast::Module> module = parser.parse();
 
     // AST can be pretty-printed to an output stream
     Printer printer(std::cout);
