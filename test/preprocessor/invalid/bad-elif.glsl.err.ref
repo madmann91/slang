@@ -1,2 +1,2 @@
-Error in preprocessor/invalid/bad-elif.glsl (3, 8) : #elif cannot follow #else
-Error in preprocessor/invalid/bad-elif.glsl (6, 8) : #elif outside of an #if
+Error in preprocessor/invalid/bad-elif.glsl(3, 8): #elif cannot follow #else
+Error in preprocessor/invalid/bad-elif.glsl(6, 8): #elif outside of an #if

@@ -1,4 +1,4 @@
-Warning in preprocessor/invalid/builtin.glsl (1, 22) : Redefinition of macro '__FILE__'
-Warning in preprocessor/invalid/builtin.glsl (2, 22) : Redefinition of macro '__LINE__'
-Warning in preprocessor/invalid/builtin.glsl (3, 24) : Redefinition of macro '__VERSION__'
-Warning in preprocessor/invalid/builtin.glsl (4, 27) : Redefinition of macro 'GL_core_profile'
+Warning in preprocessor/invalid/builtin.glsl(1, 22): Redefinition of macro '__FILE__'
+Warning in preprocessor/invalid/builtin.glsl(2, 22): Redefinition of macro '__LINE__'
+Warning in preprocessor/invalid/builtin.glsl(3, 24): Redefinition of macro '__VERSION__'
+Warning in preprocessor/invalid/builtin.glsl(4, 27): Redefinition of macro 'GL_core_profile'

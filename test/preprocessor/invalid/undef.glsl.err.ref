@@ -1,5 +1,5 @@
-Error in preprocessor/invalid/undef.glsl (1, 7) : Unexpected end of line in preprocessor directive
-Error in preprocessor/invalid/undef.glsl (2, 7) : Macro identifier expected
-Warning in preprocessor/invalid/undef.glsl (3, 7) : Unknown macro 'TEST'
-Warning in preprocessor/invalid/undef.glsl (4, 7) : Unknown macro 'TEST1'
-Error in preprocessor/invalid/undef.glsl (4, 13) : Additional characters after preprocessor directive
+Error in preprocessor/invalid/undef.glsl(1, 7): Unexpected end of line in preprocessor directive
+Error in preprocessor/invalid/undef.glsl(2, 7): Macro identifier expected
+Warning in preprocessor/invalid/undef.glsl(3, 7): Unknown macro 'TEST'
+Warning in preprocessor/invalid/undef.glsl(4, 7): Unknown macro 'TEST1'
+Error in preprocessor/invalid/undef.glsl(4, 13): Additional characters after preprocessor directive

@@ -1,1 +1,1 @@
-Error in parser/invalid/eof-comment.glsl (2, 1) : End-of-file reached before end of multiline comment
+Error in parser/invalid/eof-comment.glsl(2, 1): End-of-file reached before end of multiline comment

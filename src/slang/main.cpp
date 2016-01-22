@@ -1,12 +1,21 @@
 #include <iostream>
 #include <fstream>
 #include <cstring>
+#include <cstdio>
 
 #include "slang/lexer.h"
 #include "slang/parser.h"
 #include "slang/preprocessor.h"
 #include "slang/ast.h"
 #include "slang/print.h"
+
+#ifdef _WIN32
+#include <io.h>
+#define isatty _isatty
+#define fileno _fileno
+#else
+#include <unistd.h>
+#endif
 
 using namespace slang;
 
@@ -21,12 +30,16 @@ void usage() {
               << "    -ast --syntax : Generates an AST from the input and print it (default)\n";
 }
 
+bool is_terminal() {
+    return isatty(fileno(stdout)) && isatty(fileno(stderr));
+}
+
 bool lexical_analysis(const std::string& filename, const Keywords& keys) {
     // Analyses the tokens and displays them with their location
     std::ifstream is(filename);
     if (!is) return false;
 
-    Logger logger(filename);
+    Logger logger(filename, is_terminal());
     Lexer lexer(is, keys, logger);
 
     Token tok;
@@ -44,7 +57,7 @@ bool preprocess(const std::string& filename, const Keywords& keys) {
     std::ifstream is(filename);
     if (!is) return false;
 
-    Logger logger(filename);
+    Logger logger(filename, is_terminal());
     Lexer lexer(is, keys, logger);
     Preprocessor pp(lexer, logger, [] (int ver, Profile p) {
         std::cout << "Version : " << ver << " " << p << std::endl;
@@ -67,7 +80,7 @@ bool syntax_analysis(const std::string& filename, const Keywords& keys) {
     std::ifstream is(filename);
     if (!is) return false;
 
-    Logger logger(filename);
+    Logger logger(filename, is_terminal());
     Lexer lexer(is, keys, logger);
     Preprocessor pp(lexer, logger, [] (int ver, Profile p) {
         std::cout << "#version " << ver << " " << p << std::endl;

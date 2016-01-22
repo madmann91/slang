@@ -1,1 +1,1 @@
-Error in preprocessor/invalid/unknown.glsl (1, 2) : Unknown preprocessor directive 'myfunnydirective'
+Error in preprocessor/invalid/unknown.glsl(1, 2): Unknown preprocessor directive 'myfunnydirective'

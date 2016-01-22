@@ -1,2 +1,2 @@
-Error in preprocessor/invalid/error.glsl (1, 45) : Unknown token
-Error in preprocessor/invalid/error.glsl (1, 45) : #error directive with message : 'This is 1u 333.0 error message # ## <unknown>'
+Error in preprocessor/invalid/error.glsl(1, 45): Unknown token
+Error in preprocessor/invalid/error.glsl(1, 45): #error directive with message : 'This is 1u 333.0 error message # ## <unknown>'

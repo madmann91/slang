@@ -1,1 +1,1 @@
-Error in preprocessor/invalid/missing-name.glsl (1, 8) : Macro identifier expected
+Error in preprocessor/invalid/missing-name.glsl(1, 8): Macro identifier expected

@@ -1,7 +1,7 @@
-Error in preprocessor/invalid/broken-conds.glsl (4, 19) : [in expansion of 'BROKEN_EXP' (1, 27)] Additional characters after preprocessor directive
-Warning in preprocessor/invalid/broken-conds.glsl (10, 11) : Undefined macro identifier 'ANSWER'
-Error in preprocessor/invalid/broken-conds.glsl (15, 11) : Missing closing parenthesis in invocation of macro 'SUM'
-Error in preprocessor/invalid/broken-conds.glsl (15, 11) : Incomplete preprocessor condition
-Error in preprocessor/invalid/broken-conds.glsl (20, 9) : Integer literal expected in preprocessor condition
-Error in preprocessor/invalid/broken-conds.glsl (25, 6) : Invalid token in preprocessor condition
-Error in preprocessor/invalid/broken-conds.glsl (25, 6) : Additional characters after preprocessor directive
+Error in preprocessor/invalid/broken-conds.glsl(4, 19): [in expansion of 'BROKEN_EXP' (1, 27)] Additional characters after preprocessor directive
+Warning in preprocessor/invalid/broken-conds.glsl(10, 11): Undefined macro identifier 'ANSWER'
+Error in preprocessor/invalid/broken-conds.glsl(15, 11): Missing closing parenthesis in invocation of macro 'SUM'
+Error in preprocessor/invalid/broken-conds.glsl(15, 11): Incomplete preprocessor condition
+Error in preprocessor/invalid/broken-conds.glsl(20, 9): Integer literal expected in preprocessor condition
+Error in preprocessor/invalid/broken-conds.glsl(25, 6): Invalid token in preprocessor condition
+Error in preprocessor/invalid/broken-conds.glsl(25, 6): Additional characters after preprocessor directive
