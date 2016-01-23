@@ -594,7 +594,7 @@ bool Preprocessor::concat(const Token& a, const Token& b, Token& c) {
     // Redirect errors to null output stream
     NullBuffer null_buffer;
     std::ostream null_stream(&null_buffer);
-    Logger logger("", null_stream, null_stream);
+    Logger logger("", false, null_stream, null_stream);
     Lexer lex(str, lexer_.keywords(), logger);
 
     // Get the concatenated token

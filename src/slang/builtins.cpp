@@ -480,7 +480,7 @@ Ptr<ast::Module> parse_builtins(Sema& sema, const Keywords& keys) {
     std::ostream null_stream(&null_buffer);
     std::istringstream is(builtins);
 
-    Logger logger("", null_stream, null_stream);
+    Logger logger("", false, null_stream, null_stream);
     Lexer lexer(is, keys, logger);
     Preprocessor pp(lexer, logger);
     Parser parser([&pp]() { return pp.preprocess(); }, sema, logger);

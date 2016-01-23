@@ -9,11 +9,7 @@
 #include "slang/ast.h"
 #include "slang/print.h"
 
-#ifdef _WIN32
-#include <io.h>
-#define isatty _isatty
-#define fileno _fileno
-#else
+#ifndef _WIN32
 #include <unistd.h>
 #endif
 
@@ -31,7 +27,11 @@ void usage() {
 }
 
 bool is_terminal() {
+#ifdef _WIN32
+    return false;
+#else
     return isatty(fileno(stdout)) && isatty(fileno(stderr));
+#endif
 }
 
 bool lexical_analysis(const std::string& filename, const Keywords& keys) {
