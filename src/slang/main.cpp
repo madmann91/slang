@@ -9,7 +9,12 @@
 #include "slang/ast.h"
 #include "slang/print.h"
 
-#ifndef _WIN32
+// For colored output
+#ifdef _WIN32
+#include <io.h>
+#define isatty _isatty
+#define fileno _fileno
+#else
 #include <unistd.h>
 #endif
 
@@ -27,10 +32,10 @@ void usage() {
 }
 
 bool is_terminal() {
-#ifdef _WIN32
-    return false;
-#else
+#ifdef COLORIZE_OUTPUT
     return isatty(fileno(stdout)) && isatty(fileno(stderr));
+#else
+    return false;
 #endif
 }
 
