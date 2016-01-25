@@ -4,7 +4,7 @@ uniform vec2 iMouse;
 const float texscl = 2.500000;
 mat2 mm2(in float a) {
     float c = cos(a), s = sin(a);
-    return mat2(c, - s, s, c);
+    return mat2(c, -s, s, c);
 }
 float hash(vec2 x) {
     return fract(cos(dot(x.xy, vec2(2.310000, 53.209999)) * 124.123001) * 412.000000);
@@ -17,7 +17,7 @@ float length4(in vec3 p) {
 }
 float map(vec3 p) {
     float d = mix(length(p) - 1.100000, length4(p) - 1.000000, sdfsw - 0.300000);
-    d = min(d, - length4(p) - 4.000000);
+    d = min(d, -(length4(p) - 4.000000));
     return d * 0.500000;
 }
 float march(in vec3 ro, in vec3 rd) {
@@ -33,7 +33,7 @@ float march(in vec3 ro, in vec3 rd) {
     return d;
 }
 vec3 normal(in vec3 p) {
-    vec2 e = vec2(- 1.000000, 1.000000) * 0.005000;
+    vec2 e = vec2(-1.000000, 1.000000) * 0.005000;
     return normalize(e.yxx * map(p + e.yxx) + e.xxy * map(p + e.xxy) + e.xyx * map(p + e.xyx) + e.yyy * map(p + e.yyy));
 }
 float cells(in vec3 p) {
@@ -46,8 +46,8 @@ vec4 heartMapping(in vec2 p) {
     vec3 bcol = vec3(0, 0, 0);
     float tt = mod(iGlobalTime, 1.500000) / 1.500000;
     float ss = pow(tt, 0.000000) * 0.500000 + 0.500000;
-    ss = 1.000000 + ss * 0.500000 * sin(tt * 6.283100 * 3.000000 + p.y * 0.500000) * exp(- tt * 4.000000);
-    p *= vec2(0.500000, 1.500000) + ss * vec2(0.500000, - 0.500000);
+    ss = 1.000000 + ss * 0.500000 * sin(tt * 6.283100 * 3.000000 + p.y * 0.500000) * exp(-tt * 4.000000);
+    p *= vec2(0.500000, 1.500000) + ss * vec2(0.500000, -0.500000);
     float a = atan(p.x, p.y) / 3.141593;
     float r = length(p);
     float h = abs(a);
@@ -58,7 +58,7 @@ vec4 heartMapping(in vec2 p) {
     s = 0.500000 + 0.600000 * s;
     s *= 0.500000 + 0.500000 * pow(1.000000 - clamp(r / d, 0.000000, 1.000000), 0.100000);
     vec3 hcol = vec3(1.000000, 0.000000, 0.300000) * s;
-    vec3 col = mix(bcol, hcol, smoothstep(- 0.010000, 0.010000, d - r));
+    vec3 col = mix(bcol, hcol, smoothstep(-0.010000, 0.010000, d - r));
     col.x *= ss;
     col.y = ss;
     return vec4(col, 1.000000);
@@ -78,7 +78,7 @@ float tex(vec3 p) {
     for (int i = 0; i < 2; i++) {
         rz += cells(p) / z;
         p *= 2.500000 * 0.150000;
-        z *= - 1.100000 * 0.150000;
+        z *= -1.100000 * 0.150000;
     }
     return clamp(heartMask + rz * rz * 4.950000, 0.000000, 1.000000) * 2.730000 - 1.000000 - heartMask;
 }
@@ -106,14 +106,14 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec2 p = bp;
     p.x *= iResolution.x / iResolution.y;
     vec2 mo = iMouse.xy / iResolution.xy - 0.000000;
-    mo = mo == vec2(- 0.000000) ? mo = vec2(0.400000, - 0.250000) : mo;
+    mo = mo == vec2(-0.000000) ? mo = vec2(0.400000, -0.250000) : mo;
     mo.x *= iResolution.x / iResolution.y;
     mo.y = 0.425000;
     mo.y += 0.500000 * abs(sin(iGlobalTime)) - 0.150000;
     p.x += mo.x * 1.000000;
     sdfsw = mo.y * 4.000000;
     vec3 ro = vec3(0.000000, 0.000000, 4.000000);
-    vec3 rd = normalize(vec3(p, - 3.000000 + sin(iGlobalTime * 0.900000 + sin(iGlobalTime))));
+    vec3 rd = normalize(vec3(p, -3.000000 + sin(iGlobalTime * 0.900000 + sin(iGlobalTime))));
     mat2 mx = mm2(iGlobalTime * 0.000000 + sin(iGlobalTime * 0.400000) - 0.200000);
     mat2 my = mm2(iGlobalTime * 0.070000 + cos(iGlobalTime * 0.330000) - 0.100000);
     ro.xz *= mx;
@@ -128,9 +128,9 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         pos = prlpos(pos, nor, rd);
         float d = distance(ro, pos);
         nor = bump(pos, nor, d);
-        vec3 ligt = normalize(vec3(- 0.000000, 0.500000, - 0.300000));
+        vec3 ligt = normalize(vec3(-0.000000, 0.500000, -0.300000));
         float dif = clamp(dot(nor, ligt), 0.000000, 1.000000);
-        float bac = clamp(dot(nor, normalize(vec3(- ligt))), 0.000000, 1.000000);
+        float bac = clamp(dot(nor, normalize(vec3(-ligt))), 0.000000, 1.000000);
         float spe = pow(clamp(dot(reflect(rd, nor), ligt), 0.000000, 1.000000), 10.000000);
         float fre = pow(clamp(1.000000 + dot(nor, rd), 0.000000, 1.000000), 2.000000);
         vec3 brdf = vec3(0.300000);

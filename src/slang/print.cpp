@@ -17,7 +17,7 @@ void Module::print(Printer& printer) const {
 
 void StorageQualifier::print(Printer& printer) const {
     switch (storage_) {
-#define SLANG_KEY_QUAL_STORAGE(key, str) case key: printer << str; break;
+#define SLANG_KEY_QUAL_STORAGE(key, str) case key: printer.print_keyword(str); break;
 #include "slang/keywordlist.h"
         default: assert(0 && "Unknown storage qualifier");
     }
@@ -25,7 +25,7 @@ void StorageQualifier::print(Printer& printer) const {
 
 void PrecisionQualifier::print(Printer& printer) const {
     switch (prec_) {
-#define SLANG_KEY_QUAL_PREC(key, str) case key: printer << str; break;
+#define SLANG_KEY_QUAL_PREC(key, str) case key: printer.print_keyword(str); break;
 #include "slang/keywordlist.h"
         default: assert(0 && "Unknown precision qualifier");
     }
@@ -33,14 +33,14 @@ void PrecisionQualifier::print(Printer& printer) const {
 
 void InterpQualifier::print(Printer& printer) const {
     switch (interp_) {
-#define SLANG_KEY_QUAL_INTERP(key, str) case key: printer << str; break;
+#define SLANG_KEY_QUAL_INTERP(key, str) case key: printer.print_keyword(str); break;
 #include "slang/keywordlist.h"
         default: assert(0 && "Unknown interpolation qualifier");
     }
 }
 
 void SubroutineQualifier::print(Printer& printer) const {
-    printer << "subroutine(";
+    printer.print_keyword("subroutine") << "(";
     for (size_t i = 0; i < names_.size(); i++) {
         printer << names_[i];
 
@@ -51,7 +51,7 @@ void SubroutineQualifier::print(Printer& printer) const {
 }
 
 void LayoutQualifier::print(Printer& printer) const {
-    printer << "layout(";
+    printer.print_keyword("layout") << "(";
     for (auto it = layouts_.begin(); it != layouts_.end();) {
         printer << it->first;
 
@@ -68,15 +68,15 @@ void LayoutQualifier::print(Printer& printer) const {
 }
 
 void InvariantQualifier::print(Printer& printer) const {
-    printer << "invariant";
+    printer.print_keyword("invariant");
 }
 
 void AttributeQualifier::print(Printer& printer) const {
-    printer << "attribute";
+    printer.print_keyword("attribute");
 }
 
 void VaryingQualifier::print(Printer& printer) const {
-    printer << "varying";
+    printer.print_keyword("varying");
 }
 
 void ArraySpecifier::print(Printer& printer) const {
@@ -98,7 +98,7 @@ void PrimType::print(Printer& printer) const {
     }
 
     switch (prim_) {
-#define SLANG_KEY_DATA(key, str, type, rows, cols) case key: printer << str; break;
+#define SLANG_KEY_DATA(key, str, type, rows, cols) case key: printer.print_keyword(str); break;
 #include "slang/keywordlist.h"
         default: assert(0 && "Unknown primitive type");
     }
@@ -113,7 +113,7 @@ void NamedType::print(Printer& printer) const {
         printer << " ";
     }
 
-    printer << name_;
+    printer.print_name(name_);
 
     if (array_spec_)
         array_spec_->print(printer);
@@ -125,7 +125,9 @@ void StructType::print(Printer& printer) const {
         printer << " ";
     }
 
-    printer << "struct " << name_ << " {";
+    printer.print_keyword("struct") << " ";
+    if (name_.length()) printer.print_name(name_) << " ";
+    printer << "{";
     printer.indent();
     for (size_t i = 0; i < fields_.size(); i++) {
         printer.new_line();
@@ -145,7 +147,7 @@ void InterfaceType::print(Printer& printer) const {
         printer << " ";
     }
 
-    printer << name_ << " {";
+    printer.print_name(name_) << " {";
     printer.indent();
     for (size_t i = 0; i < fields_.size(); i++) {
         printer.new_line();
@@ -160,7 +162,7 @@ void InterfaceType::print(Printer& printer) const {
 }
 
 void PrecisionDecl::print(Printer& printer) const {
-    printer << "precision ";
+    printer.print_keyword("precision") << " ";
 
     if (prec_)
         prec_->print(printer);
@@ -188,9 +190,9 @@ void VariableDecl::print(Printer& printer) const {
 
 void FunctionDecl::print(Printer& printer) const {
     type_->print(printer);
-    printer << " " << name_;
+    printer << " ";
+    printer.print_name(name_) << "(";
 
-    printer << "(";
     for (size_t i = 0; i < args_.size(); i++) {
         args_[i]->print(printer);
         if (i < args_.size() - 1)
@@ -269,11 +271,15 @@ void CallExpr::print(Printer& printer) const {
 }
 
 void LiteralExpr::print(Printer& printer) const {
-    printer << lit_;
+    printer.print_literal(lit_);
 }
 
 void IdentExpr::print(Printer& printer) const {
-    printer << ident_;
+    if (assigned_type() && assigned_type()->isa<slang::CallableType>()) {
+        printer.print_name(ident_);
+    } else {
+        printer << ident_;
+    }
 }
 
 std::string UnOpExpr::op_string() const {
@@ -298,8 +304,21 @@ void UnOpExpr::print(Printer& printer) const {
         op_->print(printer);
         printer << "--";
     } else {
-        printer << op_string() << " ";
+        printer << op_string();
+
+        if (op_->isa<UnOpExpr>()) {
+            // A space is required for unary operands,
+            // so that "- - x" is not transformed into "--x"
+            printer << " ";
+        }
+
+        const bool need_parens =
+            !op_->isa<CallExpr>() &&
+            !op_->isa<IdentExpr>() &&
+            !op_->isa<LiteralExpr>();
+        if (need_parens) printer << "(";
         op_->print(printer);
+        if (need_parens) printer << ")";
     }
 }
 
@@ -428,19 +447,20 @@ void ExprStmt::print(Printer& printer) const {
 }
 
 void IfStmt::print(Printer& printer) const {
-    printer << "if (";
+    printer.print_keyword("if") << " (";
     cond_->print(printer);
     printer << ") ";
     if_true_->print(printer);
 
     if (if_false_) {
-        printer << " else ";
+        printer << " ";
+        printer.print_keyword("else") << " ";
         if_false_->print(printer);
     }
 }
 
 void SwitchStmt::print(Printer& printer) const {
-    printer << "switch (";
+    printer.print_keyword("switch") << " (";
     expr_->print(printer);
     printer << ") ";
     list_->print(printer);
@@ -448,16 +468,16 @@ void SwitchStmt::print(Printer& printer) const {
 
 void CaseLabelStmt::print(Printer& printer) const {
     if (is_default()) {
-        printer << "default:";
+        printer.print_keyword("default") << ":";
     } else {
-        printer << "case ";
+        printer.print_keyword("case") << " ";
         expr_->print(printer);
         printer << " :";
     }
 }
 
 void ForLoopStmt::print(Printer& printer) const {
-    printer << "for (";
+    printer.print_keyword("for") << " (";
 
     if (init_)
         init_->print(printer);
@@ -476,34 +496,35 @@ void ForLoopStmt::print(Printer& printer) const {
 }
 
 void WhileLoopStmt::print(Printer& printer) const {
-    printer << "while (";
+    printer.print_keyword("while") << " (";
     cond_->print(printer);
     printer << ") ";
     body_->print(printer);
 }
 
 void DoWhileLoopStmt::print(Printer& printer) const {
-    printer << "do ";
+    printer.print_keyword("do") << " ";
     body_->print(printer);
-    printer << " while (";
+    printer << " ";
+    printer.print_keyword("while") << " (";
     cond_->print(printer);
     printer << ");";
 }
 
 void BreakStmt::print(Printer& printer) const {
-    printer << "break;";
+    printer.print_keyword("break") << ";";
 }
 
 void ContinueStmt::print(Printer& printer) const {
-    printer << "continue;";
+    printer.print_keyword("continue") << ";";
 }
 
 void DiscardStmt::print(Printer& printer) const {
-    printer << "discard;";
+    printer.print_keyword("discard") << ";";
 }
 
 void ReturnStmt::print(Printer& printer) const {
-    printer << "return";
+    printer.print_keyword("return");
     if (has_value()) {
         printer << " ";
         value_->print(printer);

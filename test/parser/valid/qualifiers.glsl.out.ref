@@ -16,7 +16,7 @@ centroid vec3 o;
 patch vec3 p;
 sample vec3 q;
 uniform vec3 r;
-buffer struct  {
+buffer struct {
     float x, y, z;
 } s;
 shared float t;

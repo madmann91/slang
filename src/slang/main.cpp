@@ -100,7 +100,7 @@ bool syntax_analysis(const std::string& filename, const Keywords& keys) {
     Ptr<ast::Module> module = parser.parse();
     sema.pop_env();
 
-    Printer printer(std::cout);
+    Printer printer(std::cout, "    ", 0, false, is_terminal());
     module->print(printer);
 
     return lexer.error_count() == 0 &&

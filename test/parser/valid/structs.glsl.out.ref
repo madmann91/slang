@@ -1,4 +1,4 @@
-struct  {
+struct {
     int a;
 };
 struct s1 {
@@ -17,7 +17,7 @@ lowp struct s3 {
 struct s4 {
     struct s5 {
         struct s6 {
-            struct  {
+            struct {
                 int d;
             } c;
         } b;

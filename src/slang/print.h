@@ -2,6 +2,7 @@
 #define SLANG_PRINT_H
 
 #include <ostream>
+#include "slang/token.h"
 
 namespace slang {
 
@@ -10,8 +11,10 @@ class Printer {
 public:
     Printer(std::ostream& out,
             const std::string& sep = "    ",
-            int indent = 0, bool force_pars = false)
-        : out_(out), sep_(sep), indent_(indent), force_pars_(force_pars)
+            int indent = 0,
+            bool force_pars = false,
+            bool terminal = true)
+        : out_(out), sep_(sep), indent_(indent), force_pars_(force_pars), term_(terminal)
     {}
 
     void indent() { indent_++; }
@@ -32,11 +35,34 @@ public:
         return out_;
     }
 
+    /// Prints a literal
+    std::ostream& print_literal(const Literal& lit) {
+        if (term_) out_ << "\033[1;37m";
+        out_ << lit;
+        if (term_) out_ << "\033[0m";
+        return out_;
+    }
+
+    /// Prints a keyword
+    std::ostream& print_keyword(const std::string& str) {
+        if (term_) out_ << "\033[1;36m" << str << "\033[0m";
+        else out_ << str;
+        return out_;
+    }
+
+    /// Prints a function or structure name
+    std::ostream& print_name(const std::string& str) {
+        if (term_) out_ << "\033[1;32m" << str << "\033[0m";
+        else out_ << str;
+        return out_;
+    }
+
 private:
     std::ostream& out_;
     std::string sep_;
     int indent_;
     bool force_pars_;
+    bool term_;
 };
 
 } // namespace slang
