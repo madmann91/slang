@@ -306,12 +306,6 @@ void UnOpExpr::print(Printer& printer) const {
     } else {
         printer << op_string();
 
-        if (op_->isa<UnOpExpr>()) {
-            // A space is required for unary operands,
-            // so that "- - x" is not transformed into "--x"
-            printer << " ";
-        }
-
         const bool need_parens =
             !op_->isa<CallExpr>() &&
             !op_->isa<IdentExpr>() &&
