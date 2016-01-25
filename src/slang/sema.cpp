@@ -809,7 +809,6 @@ slang::QualifiedType NamedType::check(Sema& sema) const {
 
 static bool compound_members(Sema& sema, const CompoundType* compound, slang::CompoundType::MemberList& members) {
     // Creates the member list of a compound type from the AST node
-    sema.push_env(compound);
     for (auto field : compound->fields()) {
         sema.check(field);
         for (auto var : field->vars()) {
@@ -824,7 +823,6 @@ static bool compound_members(Sema& sema, const CompoundType* compound, slang::Co
             members.push_back({var->name(), var->assigned_type()});
         }
     }
-    sema.pop_env();
 
     return true;
 }
@@ -836,11 +834,14 @@ slang::QualifiedType StructType::check(Sema& sema) const {
         sema.error(this) << "Structures must have at least one field\n";
 
     const slang::Type* type;
+
+    sema.push_env(this);
     if (compound_members(sema, this, members)) {
         type = sema.struct_type(name(), members);
     } else {
         type = sema.error_type();
     }
+    sema.pop_env();
 
     // Register the structure in the environment if it has a name
     if (name().length() > 0) {
@@ -869,9 +870,20 @@ slang::QualifiedType PrecisionDecl::check(Sema& sema) const {
 }
 
 slang::QualifiedType VariableDecl::check(Sema& sema) const {
+    // Special case for interface blocks
+    bool is_named_interface = false;
+    if (type()->isa<InterfaceType>()) {
+        if (num_vars() > 1) sema.error(this) << "Too many instances for interface block\n";
+        is_named_interface = num_vars() != 0;
+    }
+
+    if (is_named_interface) sema.push_env(type());
     slang::QualifiedType var_type = sema.check(type());
+    if (is_named_interface) sema.pop_env();
+
     for (auto var : vars())
         sema.check(var, var_type);
+
     return var_type;
 }
 
