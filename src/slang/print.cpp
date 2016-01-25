@@ -88,7 +88,7 @@ void ArraySpecifier::print(Printer& printer) const {
 }
 
 void ErrorType::print(Printer& printer) const {
-    printer << "<error>";
+    printer.print_error();
 }
 
 void PrimType::print(Printer& printer) const {
@@ -167,7 +167,7 @@ void PrecisionDecl::print(Printer& printer) const {
     if (prec_)
         prec_->print(printer);
     else
-        printer << "<error>";
+        printer.print_error();
     printer << " ";
 
     type_->print(printer);
@@ -240,7 +240,7 @@ void ExprList::print(Printer& printer) const {
 }
 
 void ErrorExpr::print(Printer& printer) const {
-    printer << "<error>";
+    printer.print_error();
 }
 
 void FieldExpr::print(Printer& printer) const {

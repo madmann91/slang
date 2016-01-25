@@ -57,6 +57,13 @@ public:
         return out_;
     }
 
+    /// Prints an error symbol for incorrectly parsed elements
+    std::ostream& print_error() {
+        if (term_) out_ << "\033[1;31m<error>\033[0m";
+        else out_ << "<error>";
+        return out_;
+    }
+
 private:
     std::ostream& out_;
     std::string sep_;
