@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstring>
+#include <sstream>
 #include <cstdio>
 
 #include "slang/lexer.h"
@@ -47,13 +48,14 @@ bool lexical_analysis(const std::string& filename, const Keywords& keys) {
     Logger logger(filename, is_terminal());
     Lexer lexer(is, keys, logger);
 
+    std::ostringstream tokens;
     Token tok;
     do {
         tok = lexer.lex();
-        std::cout << tok << tok.loc() << " ";
+        tokens << tok << tok.loc() << " ";
     } while (tok.type() != Token::END);
+    std::cout << tokens.str() << std::endl;
 
-    std::cout << std::endl;
     return lexer.error_count() == 0;
 }
 
@@ -70,13 +72,14 @@ bool preprocess(const std::string& filename, const Keywords& keys) {
     });
     pp.register_builtin_macros();
 
+    std::ostringstream tokens;
     Token tok;
     do {
         tok = pp.preprocess();
-        std::cout << tok << " ";
+        tokens << tok << " ";
     } while (tok.type() != Token::END);
+    std::cout << tokens.str() << std::endl;
 
-    std::cout << std::endl;
     return lexer.error_count() == 0 && pp.error_count() == 0;
 }
 
