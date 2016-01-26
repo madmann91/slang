@@ -14,5 +14,5 @@ int foobar(void) {
 }
 float baz(float a, vec3 b);
 float baz(float, float) {
-    return baz(baz(42.000000, 42.000000), baz(42.000000, 42.000000));
+    return baz(baz(42.0, 42.0), baz(42.0, 42.0));
 }

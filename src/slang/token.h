@@ -3,6 +3,7 @@
 
 #include <string>
 #include <cassert>
+#include <iomanip>
 
 #include "slang/location.h"
 #include "slang/keyword.h"
@@ -124,15 +125,27 @@ private:
     bool new_line_;
 };
 
+template <typename T>
+std::string to_string_nz(T t) {
+    auto str = std::to_string(t);
+    auto pos = str.find('.');
+    if (pos != std::string::npos) {
+        int i = str.length() - 1, j = pos + 1;
+        while (i > j && str[i] == '0') i--;
+        str.resize(i + 1);
+    }
+    return str;
+}
+
 inline std::ostream& operator << (std::ostream& out, const Literal& lit) {
     switch (lit.type()) {
         case Literal::FLOAT:
-            out << std::to_string(lit.as_float());
+            out << to_string_nz(lit.as_float());
             if (lit.has_suffix()) out << "f";
             break;
         case Literal::DOUBLE:
             assert(lit.has_suffix());
-            out << std::to_string(lit.as_double()) << "lf";
+            out << to_string_nz(lit.as_double()) << "lf";
             break;
         case Literal::INT:
             out << lit.as_int();
