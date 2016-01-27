@@ -48,10 +48,17 @@ bool parse_glsl(const std::string& filename) {
 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-## Status
-Every part of the front-end has been implemented, along with a complete test suite. The whole GLSL 4.0 specification
-is supported. Some extensions are also implemented, to allow parsing of older GLSL versions (attribute or varying
-qualifiers, for instance).
+## Features
+
+* Configurable, standard-compliant lexer, preprocessor, parser and type checker
+* Provided as stand-alone executable and core library
+* Can parse different versions of GLSL
+* Only depends on the standard library
+* Builds on Windows, Mac and Linux with CMake
+* Documentation through doxygen
+* Precise error messages
+* Colored output and syntax highlighting
+* Test suite to check correctness
 
 ## Documentation
 The documentation can be generated using doxygen.
