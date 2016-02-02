@@ -284,7 +284,7 @@ static const slang::Type* check_function_call(Sema& sema, const CallExpr* call) 
         candidates = "\'" + sign->to_string() + "\'";
     }
 
-    sema.error(call) << "No matching function was found for this call (candidates are : " << candidates << ")\n";
+    sema.error(call) << "No matching function was found for this call (candidates are: " << candidates << ")\n";
     return sema.error_type();
 }
 
