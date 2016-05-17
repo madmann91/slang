@@ -25,7 +25,7 @@ Ptr<ast::Module> parse_builtins(Sema&, const Keywords&);
 
 void usage() {
     std::cout << "slangc [options] files...\n"
-              << "Available options :\n"
+              << "Available options:\n"
               << "    -h   --help : Displays this message\n"
               << "    -tok --tokenize : Generates a stream of tokens from the input and print it\n"
               << "    -pp  --preprocess : Preprocesses the input stream and prints the result\n"
@@ -67,7 +67,7 @@ bool preprocess(const std::string& filename, const Keywords& keys) {
     Logger logger(filename, is_terminal());
     Lexer lexer(is, keys, logger);
     Preprocessor pp(lexer, logger, [] (int ver, Profile p) {
-        std::cout << "Version : " << ver << " " << p << std::endl;
+        std::cout << "GLSL version: " << ver << " " << p << std::endl;
         return true;
     });
     pp.register_builtin_macros();
@@ -140,7 +140,7 @@ int main(int argc, char** argv) {
             } else if (!std::strcmp(argv[i], "--syntax") || !std::strcmp(argv[i], "-ast")) {
                 action = ACTION_SYNTAX;
             } else {
-                std::cerr << "Unknown option : " << argv[i] << std::endl;
+                std::cerr << "Unknown option: " << argv[i] << std::endl;
             }
         } else {
             if (!std::ifstream(argv[i])) {

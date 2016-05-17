@@ -404,7 +404,7 @@ private:
         auto it = types_.find(&t);
         if (it != types_.end()) {
             assert(t.equals(*it));
-            return (*it)->as<T>();
+            return (*it)->template as<T>();
         }
 
         const T* pt = new T(t);
