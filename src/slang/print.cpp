@@ -330,7 +330,7 @@ void CondExpr::print(Printer& printer) const {
 
 std::string AssignOpExpr::op_string() const {
     switch (type_) {
-        case ASSIGN:  return "=";
+        case ASSIGN:        return "=";
         case ASSIGN_ADD:    return "+=";
         case ASSIGN_SUB:    return "-=";
         case ASSIGN_MUL:    return "*=";
