@@ -26,10 +26,10 @@ Ptr<ast::Module> parse_builtins(Sema&, const Keywords&);
 void usage() {
     std::cout << "slangc [options] files...\n"
               << "Available options:\n"
-              << "    -h   --help : Displays this message\n"
-              << "    -tok --tokenize : Generates a stream of tokens from the input and print it\n"
-              << "    -pp  --preprocess : Preprocesses the input stream and prints the result\n"
-              << "    -ast --syntax : Generates an AST from the input and print it (default)\n";
+              << "    -h    --help        Displays this message\n"
+              << "    -tok  --tokenize    Generates a stream of tokens from the input and print it\n"
+              << "    -pp   --preprocess  Preprocesses the input stream and prints the result\n"
+              << "    -ast  --syntax      Generates an AST from the input and prints it (default)\n";
 }
 
 bool is_terminal() {
