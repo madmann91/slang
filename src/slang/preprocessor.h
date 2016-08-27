@@ -12,7 +12,8 @@
 
 namespace slang {
 
-/// A preprocessor macro (without the name). Can be a builtin macro or a user defined macro.
+/// A preprocessor macro described by its token production rule.
+/// Can be a builtin macro or a user defined macro.
 class Macro {
 public:
     typedef std::vector<Token> Arg;
@@ -24,18 +25,18 @@ public:
         : rule_(rule)
     {}
 
-    /// Builds a macro that has no argument and the given builtin function.
+    /// Builds a macro with no argument and a builtin function.
     Macro(std::function<std::vector<Token>(const std::vector<Arg>&)> builtin)
         : builtin_(builtin)
     {}
 
-    /// Builds a macro with the given map from argument name to argument index and the given rule.
+    /// Builds a macro with a map from argument name to argument index and a substitution rule.
     Macro(const std::unordered_map<std::string, size_t>& args,
           const std::vector<Token>& rule)
         : args_(args), rule_(rule)
     {}
 
-    /// Builds a macro with the given map from argument name to argument index and the builtin function.
+    /// Builds a macro with a map from argument name to argument index and a builtin function.
     Macro(const std::unordered_map<std::string, size_t>& args,
           std::function<std::vector<Token>(const std::vector<Arg>&)> builtin)
         : args_(args), builtin_(builtin)

@@ -212,14 +212,14 @@ public:
 class UnOpExpr : public OpExpr {
 public:
     enum Type {
-        INC,       //< Pre-increment operator
-        DEC,       //< Pre-decrement operator
-        NOT,       //< Logical negation
-        BIT_NOT,   //< Bitwise negation
-        MINUS,     //< Minus sign
-        PLUS,      //< Plus sign
-        POST_INC,  //< Post-increment
-        POST_DEC,  //< Post-decrement
+        INC,       ///< Pre-increment operator
+        DEC,       ///< Pre-decrement operator
+        NOT,       ///< Logical negation
+        BIT_NOT,   ///< Bitwise negation
+        MINUS,     ///< Minus sign
+        PLUS,      ///< Plus sign
+        POST_INC,  ///< Post-increment
+        POST_DEC,  ///< Post-decrement
         UNKNOWN
     };
 
@@ -267,17 +267,17 @@ private:
 class AssignOpExpr : public OpExpr {
 public:
     enum Type {
-        ASSIGN,         //< Assignment operator (=)
-        ASSIGN_ADD,     //< Addition (+=)
-        ASSIGN_SUB,     //< Subtraction (-=)
-        ASSIGN_MUL,     //< Multiplication (*=)
-        ASSIGN_DIV,     //< Division (/=)
-        ASSIGN_MOD,     //< Modulus (%=)
-        ASSIGN_LSHIFT,  //< Left shift (<<=)
-        ASSIGN_RSHIFT,  //< Right shift (>>=)
-        ASSIGN_AND,     //< Bitwise and (&=)
-        ASSIGN_XOR,     //< Bitwise xor (^=)
-        ASSIGN_OR,      //< Bitwise or (|=)
+        ASSIGN,         ///< Assignment operator (=)
+        ASSIGN_ADD,     ///< Addition (+=)
+        ASSIGN_SUB,     ///< Subtraction (-=)
+        ASSIGN_MUL,     ///< Multiplication (*=)
+        ASSIGN_DIV,     ///< Division (/=)
+        ASSIGN_MOD,     ///< Modulus (%=)
+        ASSIGN_LSHIFT,  ///< Left shift (<<=)
+        ASSIGN_RSHIFT,  ///< Right shift (>>=)
+        ASSIGN_AND,     ///< Bitwise and (&=)
+        ASSIGN_XOR,     ///< Bitwise xor (^=)
+        ASSIGN_OR,      ///< Bitwise or (|=)
         UNKNOWN
     };
 
@@ -307,25 +307,25 @@ private:
 class BinOpExpr : public OpExpr {
 public:
     enum Type {
-        MUL,        //< Multiplication (*)
-        DIV,        //< Division (/)
-        MOD,        //< Modulus (%)
-        ADD,        //< Addition (+)
-        SUB,        //< Subtraction (-)
-        LSHIFT,     //< Left shift (<<)
-        RSHIFT,     //< Right shift (>>)
-        LT,         //< Less than (<)
-        GT,         //< Greater than (>)
-        LEQ,        //< Less or equal (<=)
-        GEQ,        //< Greater or equal (>=)
-        EQ,         //< Equal (==)
-        NEQ,        //< Not equal (!=)
-        AND,        //< And (&)
-        XOR,        //< Xor (^)
-        OR,         //< Or (|)
-        ANDAND,     //< Logical and (&&)
-        XORXOR,     //< Logical Xor (^^)
-        OROR,       //< Logical or (||)
+        MUL,        ///< Multiplication (*)
+        DIV,        ///< Division (/)
+        MOD,        ///< Modulus (%)
+        ADD,        ///< Addition (+)
+        SUB,        ///< Subtraction (-)
+        LSHIFT,     ///< Left shift (<<)
+        RSHIFT,     ///< Right shift (>>)
+        LT,         ///< Less than (<)
+        GT,         ///< Greater than (>)
+        LEQ,        ///< Less or equal (<=)
+        GEQ,        ///< Greater or equal (>=)
+        EQ,         ///< Equal (==)
+        NEQ,        ///< Not equal (!=)
+        AND,        ///< And (&)
+        XOR,        ///< Xor (^)
+        OR,         ///< Or (|)
+        ANDAND,     ///< Logical and (&&)
+        XORXOR,     ///< Logical Xor (^^)
+        OROR,       ///< Logical or (||)
         UNKNOWN
     };
 

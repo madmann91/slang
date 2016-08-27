@@ -23,12 +23,12 @@ enum class ParameterQualifier : char {
 enum class StorageQualifier : char {
     NONE,
     CONST,
-    IN,         //< Input qualifier (not for function arguments)
-    OUT,        //< Output qualifier (not for function arguments)
-    INOUT,      //< Input/output qualifier (not for function arguments)
-    ATTRIBUTE,  //< Attribute qualifier (deprecated)
+    IN,         ///< Input qualifier (not for function arguments)
+    OUT,        ///< Output qualifier (not for function arguments)
+    INOUT,      ///< Input/output qualifier (not for function arguments)
+    ATTRIBUTE,  ///< Attribute qualifier (deprecated)
     UNIFORM,
-    VARYING,    //< Varying qualifier (deprecated)
+    VARYING,    ///< Varying qualifier (deprecated)
     BUFFER,
     SHARED
 };
