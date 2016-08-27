@@ -18,7 +18,7 @@ namespace ast {
 
 /// Holds a declaration (function, variable or datatype). Structures,
 /// interfaces, or non-array variables have only one definition in one environment.
-/// Functions can have multiple definitions : prototypes and overloads. Arrays
+/// Functions can have multiple definitions: prototypes and overloads. Arrays
 /// can be redefined to specify their size, if they were declared unsized.
 class Symbol {
 private:
@@ -62,7 +62,7 @@ private:
     DefMap defs_;
 };
 
-/// An environment : holds variable, structure and function names.
+/// An environment: holds variable/structure/function names.
 class Environment {
 public:
     Environment(const ast::Node* scope = nullptr)

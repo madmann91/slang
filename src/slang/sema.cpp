@@ -272,7 +272,7 @@ static const slang::Type* check_function_call(Sema& sema, const CallExpr* call) 
                 return sign->ret().type();
         }
 
-        // TODO : Add implicit conversion rules
+        // TODO: Add implicit conversion rules
 
         for (size_t i = 0; i < overloaded->num_signatures(); i++) {
             candidates += "\'" + overloaded->signatures()[i]->to_string() + "\'";
@@ -284,7 +284,7 @@ static const slang::Type* check_function_call(Sema& sema, const CallExpr* call) 
         candidates = "\'" + sign->to_string() + "\'";
     }
 
-    sema.error(call) << "No matching function was found for this call (candidates are : " << candidates << ")\n";
+    sema.error(call) << "No matching function was found for this call (candidates are: " << candidates << ")\n";
     return sema.error_type();
 }
 
@@ -704,7 +704,7 @@ inline bool integer_value(Sema& sema, const Expr* expr, int& result) {
     if (auto prim = type->isa<slang::PrimType>()) {
         if (prim->prim() == slang::PrimType::INT ||
             prim->prim() == slang::PrimType::UINT) {
-            // TODO : Reduce expressions using codegen
+            // TODO: Reduce expressions using codegen
             auto lit = expr->as<LiteralExpr>();
             result = lit->lit().as_int();
             return true;

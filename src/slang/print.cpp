@@ -284,8 +284,12 @@ void IdentExpr::print(Printer& printer) const {
 
 std::string UnOpExpr::op_string() const {
     switch (type_) {
-        case INC:     return "++";
-        case DEC:     return "--";
+        case POST_INC:
+        case INC:
+            return "++";
+        case POST_DEC:
+        case DEC:
+            return "--";
         case NOT:     return "!";
         case BIT_NOT: return "~";
         case PLUS:    return "+";
@@ -326,7 +330,7 @@ void CondExpr::print(Printer& printer) const {
 
 std::string AssignOpExpr::op_string() const {
     switch (type_) {
-        case ASSIGN:  return "=";
+        case ASSIGN:        return "=";
         case ASSIGN_ADD:    return "+=";
         case ASSIGN_SUB:    return "-=";
         case ASSIGN_MUL:    return "*=";
