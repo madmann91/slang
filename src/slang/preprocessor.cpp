@@ -765,15 +765,20 @@ Preprocessor::ExprValue Preprocessor::BinOp::apply(Preprocessor::ExprValue left,
     }
 }
 
+bool Preprocessor::BinOp::is_lazy(Preprocessor::ExprValue left) const {
+    return (type == BINOP_ANDAND && left.value == 0) ||
+           (type == BINOP_OROR   && left.value != 0);
+}
+
 const int Preprocessor::BinOp::max_pred = 12;
 
 bool Preprocessor::evaluate_condition() {
-    ExprValue left = evaluate_primary();
-    ExprValue value = evaluate_binary(left, BinOp::max_pred);
+    ExprValue left = evaluate_primary(false);
+    ExprValue value = evaluate_binary(left, BinOp::max_pred, false);
     return (value.error) ? false : value.value != 0;
 }
 
-Preprocessor::ExprValue Preprocessor::evaluate_primary() {
+Preprocessor::ExprValue Preprocessor::evaluate_primary(bool lazy) {
     if (lookup_.new_line()) {
         error() << "Incomplete preprocessor condition\n";
         return ExprValue();
@@ -826,7 +831,7 @@ Preprocessor::ExprValue Preprocessor::evaluate_primary() {
         while (lookup_.isa(Token::ADD)) {
             eat(Token::ADD);
         }
-        return evaluate_primary();
+        return evaluate_primary(lazy);
     } else if (lookup_.isa(Token::SUB)) {
         // Unary minus
         int sign = 1;
@@ -834,7 +839,7 @@ Preprocessor::ExprValue Preprocessor::evaluate_primary() {
             eat(Token::SUB);
             sign = -sign;
         }
-        return evaluate_primary().apply([sign] (int i) { return i * sign; });
+        return evaluate_primary(lazy).apply([sign] (int i) { return i * sign; });
     } else if (lookup_.isa(Token::NEG)) {
         // Unary bitwise not
         int mask = 0;
@@ -842,7 +847,7 @@ Preprocessor::ExprValue Preprocessor::evaluate_primary() {
             eat(Token::NEG);
             mask = ~mask;
         }
-        return evaluate_primary().apply([mask] (int i) { return i ^ mask; });
+        return evaluate_primary(lazy).apply([mask] (int i) { return i ^ mask; });
     } else if (lookup_.isa(Token::NOT)) {
         // Unary logical not
         int times = 0;
@@ -850,12 +855,12 @@ Preprocessor::ExprValue Preprocessor::evaluate_primary() {
             eat(Token::NOT);
             times = (times + 1) % 2;
         }
-        return evaluate_primary().apply([times] (int i) { int j[2] = {!!i, !i }; return j[times]; });
+        return evaluate_primary(lazy).apply([times] (int i) { int j[2] = {!!i, !i }; return j[times]; });
     } else if (lookup_.isa(Token::LPAREN)) {
         // Parenthetical grouping
         eat(Token::LPAREN);
-        ExprValue left = evaluate_primary();
-        ExprValue value = evaluate_binary(left, BinOp::max_pred);
+        ExprValue left = evaluate_primary(lazy);
+        ExprValue value = evaluate_binary(left, BinOp::max_pred, lazy);
         expect(Token::RPAREN);
         return value;
     }
@@ -865,7 +870,7 @@ Preprocessor::ExprValue Preprocessor::evaluate_primary() {
     return ExprValue();
 }
 
-Preprocessor::ExprValue Preprocessor::evaluate_binary(ExprValue left, int precedence) {
+Preprocessor::ExprValue Preprocessor::evaluate_binary(ExprValue left, int precedence, bool lazy) {
     while (true) {
         if (lookup_.new_line())
             return left;
@@ -874,15 +879,20 @@ Preprocessor::ExprValue Preprocessor::evaluate_binary(ExprValue left, int preced
         if (binop.type == BinOp::BINOP_UNKNOWN || binop.pred > precedence)
             return left;
 
+        const bool next_lazy = lazy || binop.is_lazy(left);
+
         next();
-        ExprValue right = evaluate_primary();
+        ExprValue right = evaluate_primary(next_lazy);
 
         BinOp next_binop(lookup_);
         while (!lookup_.new_line() && next_binop.type != BinOp::BINOP_UNKNOWN &&
                (next_binop.pred < binop.pred || (next_binop.pred == binop.pred && binop.rassoc))) {
-            right = evaluate_binary(right, next_binop.pred);
+            right = evaluate_binary(right, next_binop.pred, next_lazy);
             next_binop = BinOp(lookup_);
         }
+
+        // If the result is not needed, do not evaluate and just do the parsing
+        if (lazy) continue;
 
         // Catch division by zero here
         if ((binop.type == BinOp::BINOP_DIV ||

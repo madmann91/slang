@@ -204,6 +204,7 @@ private:
         BinOp(Token);
 
         ExprValue apply(ExprValue, ExprValue) const;
+        bool is_lazy(ExprValue) const;
 
         static const int max_pred;
 
@@ -239,8 +240,8 @@ private:
     bool expand(bool);
 
     bool evaluate_condition();
-    ExprValue evaluate_primary();
-    ExprValue evaluate_binary(ExprValue, int);
+    ExprValue evaluate_primary(bool);
+    ExprValue evaluate_binary(ExprValue, int, bool);
 
     std::ostream& error();
     std::ostream& warn();
