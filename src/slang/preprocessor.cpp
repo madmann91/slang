@@ -26,6 +26,7 @@ Token Preprocessor::preprocess() {
                 if (lookup_.new_line()) {
                     // This is a preprocessor directive
                     parse_directive();
+                    first_ = false;
                 } else {
                     error() << "\'#\' symbol in the middle of a line\n";
                     break;
@@ -153,9 +154,7 @@ void Preprocessor::parse_directive() {
     eat(Token::SHARP);
 
     if (lookup_.isa(Token::IDENT)) {
-        if (lookup_.ident() == "pragma") {
-            parse_pragma();
-        } else if (lookup_.ident() == "if") {
+        if (lookup_.ident() == "if") {
             parse_if();
         } else if (lookup_.ident() == "endif") {
             parse_endif();
@@ -167,31 +166,37 @@ void Preprocessor::parse_directive() {
             parse_ifdef_ifndef(true);
         } else if (lookup_.ident() == "ifdef") {
             parse_ifdef_ifndef(false);
-        } else if (lookup_.ident() == "define") {
-            parse_define();
-        } else if (lookup_.ident() == "undef") {
-            parse_undef();
-        } else if (lookup_.ident() == "version") {
-            if (first_) {
-                parse_version();
-            } else {
-                error() << "Version directive must occur before anything else\n";
-                eat_line(false);
-            }
-        } else if (lookup_.ident() == "extension") {
-            parse_extension();
-        } else if (lookup_.ident() == "line") {
-            parse_line();
-        } else if (lookup_.ident() == "error") {
-            parse_error();
         } else {
-            error() << "Unknown preprocessor directive \'" << lookup_.ident() << "\'\n";
+            // The following directives should be ignored if they are in a disabled branch
+            if (state_stack_.size() > 0 && !state_stack_.back().enabled)
+                return;
+
+            if (lookup_.ident() == "pragma") {
+                parse_pragma();
+            } else if (lookup_.ident() == "define") {
+                parse_define();
+            } else if (lookup_.ident() == "undef") {
+                parse_undef();
+            } else if (lookup_.ident() == "version") {
+                if (first_) {
+                    parse_version();
+                } else {
+                    error() << "Version directive must occur before anything else\n";
+                    eat_line(false);
+                }
+            } else if (lookup_.ident() == "extension") {
+                parse_extension();
+            } else if (lookup_.ident() == "line") {
+                parse_line();
+            } else if (lookup_.ident() == "error") {
+                parse_error();
+            } else {
+                error() << "Unknown preprocessor directive \'" << lookup_.ident() << "\'\n";
+            }
         }
     } else {
         error() << "Preprocessor directive name expected\n";
     }
-
-    first_ = false;
 }
 
 void Preprocessor::parse_pragma() {
@@ -740,6 +745,16 @@ Preprocessor::BinOp::BinOp(Token tok) {
 
 Preprocessor::ExprValue Preprocessor::BinOp::apply(Preprocessor::ExprValue left,
                                                    Preprocessor::ExprValue right) const {
+    if (type == BINOP_ANDAND) {
+        if (!left.value) return ExprValue(0);
+        return right.error ? ExprValue() : (right.value ? 1 : 0);
+    }
+
+    if (type == BINOP_OROR) {
+        if (left.value) return ExprValue(1);
+        return right.error ? ExprValue() : (right.value ? 1 : 0);
+    }
+
     if (right.error || left.error) return ExprValue();
 
     switch (type) {
@@ -759,8 +774,6 @@ Preprocessor::ExprValue Preprocessor::BinOp::apply(Preprocessor::ExprValue left,
         case BINOP_AND:    return ExprValue(left.value & right.value);
         case BINOP_XOR:    return ExprValue(left.value ^ right.value);
         case BINOP_OR:     return ExprValue(left.value | right.value);
-        case BINOP_ANDAND: return ExprValue(left.value && right.value);
-        case BINOP_OROR:   return ExprValue(left.value || right.value);
         default:           return ExprValue();
     }
 }
