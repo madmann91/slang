@@ -213,7 +213,7 @@ std::string PrimType::type_name() const {
         } else {
             assert(0 && "Invalid matrix type");
         }
-        return prefix + "mat" + std::to_string(rows()) + "x" + std::to_string(cols());
+        return prefix + std::to_string(rows()) + "x" + std::to_string(cols());
     }
 
     assert(0 && "Unknown primitive type");
