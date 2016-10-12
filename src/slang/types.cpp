@@ -200,7 +200,7 @@ std::string PrimType::type_name() const {
             case BOOL:    return "bvec" + std::to_string(rows());
             case FLOAT:   return "vec"  + std::to_string(rows());
             case DOUBLE:  return "dvec" + std::to_string(rows());
-            default:          assert(0 && "Invalid vector type");
+            default:      assert(0 && "Invalid vector type");
         }
     }
 
@@ -213,7 +213,7 @@ std::string PrimType::type_name() const {
         } else {
             assert(0 && "Invalid matrix type");
         }
-        return prefix + std::to_string(rows()) + "x" + std::to_string(cols());
+        return prefix + std::to_string(rows()) + (rows() == cols() ? std::string("") : "x" + std::to_string(cols()));
     }
 
     assert(0 && "Unknown primitive type");
