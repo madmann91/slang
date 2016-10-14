@@ -354,16 +354,16 @@ void AssignOpExpr::print(Printer& printer) const {
 }
 
 inline void print_expr(const Expr* expr, Printer& printer, int prec) {
-    if (auto bin_expr = expr->isa<BinOpExpr>()) {
-        if (printer.force_pars() || precedence(bin_expr->type()) > prec) {
-            printer << "(";
-            expr->print(printer);
-            printer << ")";
-            return;
-        }
-    }
+    bool pars = printer.force_pars();
 
+    if (auto bin_expr = expr->isa<BinOpExpr>()) {
+        if (precedence(bin_expr->type()) > prec) pars = true;
+    } else if (expr->isa<AssignOpExpr>() || expr->isa<CondExpr>())
+        pars = true;
+
+    if (pars) printer << "(";
     expr->print(printer);
+    if (pars) printer << ")";
 }
 
 std::string BinOpExpr::op_string() const {
