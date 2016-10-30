@@ -2,7 +2,7 @@
 A small, flexible and extensible front-end for GLSL.
 
 ## Project goal
-This project aims to provide a simple GLSL (OpenGL shading language) front-end, that is : a lexer, a parser, and a semantic analyser.
+This project aims to provide a simple GLSL (OpenGL shading language) front-end, that is: a lexer, a preprocessor, a parser, and a semantic analyser.
 The system is designed to be simple and lightweight, and well documented. A thorough test suite is included.
 
 ## Example
@@ -31,7 +31,7 @@ bool parse_glsl(const std::string& filename) {
     pp.register_builtin_macros();
     // Create a semantic object, that will be used during type checking
     Sema sema(logger);
-    // Create a parser object that reads tokens from the preprocessor (you can choose to read directly from the lexer)
+    // Create a parser object that reads tokens from the preprocessor (can read directly from the lexer)
     Parser parser([&pp]() { return pp.preprocess(); }, sema, logger);
 
     // Parse the stream (errors will be reported in the logger)
@@ -41,10 +41,10 @@ bool parse_glsl(const std::string& filename) {
     Printer printer(std::cout);
     module->print(printer);
     
-    return lexer.error_count() == 0 &&
-           pp.error_count() == 0 &&
+    return lexer.error_count()  == 0 &&
+           pp.error_count()     == 0 &&
            parser.error_count() == 0 &&
-           sema.error_count() == 0;
+           sema.error_count()   == 0;
 }
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
