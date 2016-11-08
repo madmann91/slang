@@ -60,16 +60,13 @@ bool parse_glsl(const std::string& filename) {
 * Colored output and syntax highlighting
 * Test suite to check correctness
 
-## Documentation
-The documentation can be generated using doxygen.
-
 ## Examples
 
 ### User defined macros
 
 This [example](examples/user_macros.cpp) describes how to register custom macros into the preprocessor.
-Two new macro are introduced: One with a traditional production rule (i.e. identical to a macro
-defined with `#define MACRO(x) ...`), and a second macro which executes custom code.
+Two new macros are introduced: One with a traditional production rule (i.e. identical to a macro
+declared with `#define MACRO(x) ...`), and a second macro which executes custom code.
 
 ### Pattern matching on the AST
 
@@ -79,7 +76,8 @@ The program looks for expressions of the form `A * B + C` and replaces them by c
 ### Code obfuscation by renaming
 
 This [example](examples/obfuscate.cpp) describes how to perform a simple renaming pass on the AST.
-The code is read from a string and it is then printed on the screen.
+The code is obfuscated by finding new variable names on the fly. This can be used as a starting point
+for a complete obfuscation tool.
 
 ## License
 The code is distributed under the LGPL license.
