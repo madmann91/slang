@@ -39,9 +39,11 @@ private:
 /// A module, which contains the list of top-level declarations.
 class Module : public Node {
 public:
-    const PtrVector<Decl>& decls() const { return decls_; }
-    void push_decl(Decl* d) { decls_.push_back(d); }
+    PtrVector<Decl>& decls() { return decls_; }
+    PtrVectorView<Decl> decls() const { return make_view(decls_); }
+    void push_decl(Decl* d) { decls_.emplace_back(d); }
     size_t num_decls() const { return decls_.size(); }
+    const Decl* decl(int i) const { return decls_[i].get(); }
 
     void print(Printer&) const override;
 
@@ -90,9 +92,11 @@ public:
 /// List of expressions separated by a comma.
 class ExprList : public Expr {
 public:
-    const PtrVector<Expr>& exprs() const { return exprs_; }
-    void push_expr(Expr* expr) { exprs_.push_back(expr); }
+    PtrVector<Expr>& exprs() { return exprs_; }
+    PtrVectorView<Expr> exprs() const { return make_view(exprs_); }
+    void push_expr(Expr* expr) { exprs_.emplace_back(expr); }
     size_t num_exprs() const { return exprs_.size(); }
+    const Expr* expr(int i) const { return exprs_[i].get(); }
 
     void print(Printer&) const override;
     const slang::Type* check(Sema&, const slang::Type*) const override;
@@ -139,9 +143,8 @@ private:
 /// A field selection expression.
 class FieldExpr : public Expr {
 public:
-    Expr* left() { return left_.get(); }
+    Ptr<Expr>& left() { return left_; }
     const Expr* left() const { return left_.get(); }
-    void set_left(Expr* left) { left_.reset(left); }
 
     const std::string& field_name() const { return field_name_; }
     void set_field_name(const std::string& field_name) { field_name_ = field_name; }
@@ -159,13 +162,11 @@ private:
 /// A array index expression.
 class IndexExpr : public Expr {
 public:
-    Expr* left() { return left_.get(); }
+    Ptr<Expr>& left() { return left_; }
     const Expr* left() const { return left_.get(); }
-    void set_left(Expr* left) { left_.reset(left); }
 
-    Expr* index() { return index_.get(); }
+    Ptr<Expr>& index() { return index_; }
     const Expr* index() const { return index_.get(); }
-    void set_index(Expr* index) { index_.reset(index); }
 
     void print(Printer&) const override;
     const slang::Type* check(Sema&, const slang::Type*) const override;
@@ -182,15 +183,17 @@ public:
     bool is_constructor() const { return static_cast<bool>(type_); }
     bool is_function() const { return static_cast<bool>(expr_); }
 
+    Ptr<Expr>& function() { return expr_; }
     const Expr* function() const { return expr_.get(); }
-    void set_function(Expr* expr) { expr_.reset(expr); }
 
+    Ptr<Type>& constructor() { return type_; }
     const Type* constructor() const { return type_.get(); }
-    void set_constructor(Type* type) { type_.reset(type); }
 
-    const PtrVector<Expr>& args() const { return args_; }
-    void push_arg(Expr* arg) { args_.push_back(arg); }
+    PtrVector<Expr>& args() { return args_; }
+    PtrVectorView<Expr> args() const { return make_view(args_); }
+    void push_arg(Expr* arg) { args_.emplace_back(arg); }
     size_t num_args() const { return args_.size(); }
+    const Expr* arg(int i) const { return args_[i].get(); }
 
     void print(Printer&) const override;
     const slang::Type* check(Sema&, const slang::Type*) const override;
@@ -225,9 +228,8 @@ public:
 
     UnOpExpr() : type_(UNKNOWN) {}
 
+    Ptr<Expr>& operand() { return op_; }
     const Expr* operand() const { return op_.get(); }
-    Expr* operand() { return op_.get(); }
-    void set_operand(Expr* op) { op_.reset(op); }
     
     Type type() const { return type_; }
     void set_type(Type type) { type_ = type; }
@@ -244,17 +246,14 @@ private:
 /// A conditional expression (a ? b : c).
 class CondExpr : public Expr {
 public:
-    Expr* cond() { return cond_.get(); }
+    Ptr<Expr>& cond() { return cond_; }
     const Expr* cond() const { return cond_.get(); }
-    void set_cond(Expr* cond) { cond_.reset(cond); }
 
-    Expr* if_true() { return if_true_.get(); }
+    Ptr<Expr>& if_true() { return if_true_; }
     const Expr* if_true() const { return if_true_.get(); }
-    void set_if_true(Expr* if_true) { if_true_.reset(if_true); }
 
-    Expr* if_false() { return if_false_.get(); }
+    Ptr<Expr>& if_false() { return if_false_; }
     const Expr* if_false() const { return if_false_.get(); }
-    void set_if_false(Expr* if_false) { if_false_.reset(if_false); }
 
     void print(Printer&) const override;
     const slang::Type* check(Sema&, const slang::Type*) const override;
@@ -286,13 +285,11 @@ public:
     Type type() const { return type_; }
     void set_type(Type type) { type_ = type; }
 
-    Expr* left() { return left_.get(); }
+    Ptr<Expr>& left() { return left_; }
     const Expr* left() const { return left_.get(); }
-    void set_left(Expr* left) { left_.reset(left); }
 
-    Expr* right() { return right_.get(); }
+    Ptr<Expr>& right() { return right_; }
     const Expr* right() const { return right_.get(); }
-    void set_right(Expr* right) { right_.reset(right); }
 
     std::string op_string() const override;
     void print(Printer&) const override;
@@ -331,16 +328,14 @@ public:
 
     BinOpExpr() : type_(UNKNOWN) {}
 
-    Expr* left() { return left_.get(); }
-    const Expr* left() const { return left_.get(); }
-    void set_left(Expr* left) { left_.reset(left); }
-
-    Expr* right() { return right_.get(); }
-    const Expr* right() const { return right_.get(); }
-    void set_right(Expr* right) { right_.reset(right); }
-
     Type type() const { return type_; }
     void set_type(Type type) { type_ = type; }
+
+    Ptr<Expr>& left() { return left_; }
+    const Expr* left() const { return left_.get(); }
+
+    Ptr<Expr>& right() { return right_; }
+    const Expr* right() const { return right_.get(); }
 
     std::string op_string() const override;
     void print(Printer&) const override;
@@ -354,9 +349,11 @@ private:
 /// Structure initializer expression.
 class InitExpr : public Expr {
 public:
-    const PtrVector<Expr>& exprs() const { return exprs_; }
-    void push_expr(Expr* expr) { exprs_.push_back(expr); }
+    PtrVector<Expr>& exprs() { return exprs_; }
+    PtrVectorView<Expr> exprs() const { return make_view(exprs_); }
+    void push_expr(Expr* expr) { exprs_.emplace_back(expr); }
     size_t num_exprs() const { return exprs_.size(); }
+    const Expr* expr(int i) const { return exprs_[i].get(); }
 
     void print(Printer&) const override;
     const slang::Type* check(Sema&, const slang::Type*) const override;
@@ -438,10 +435,11 @@ protected:
 /// Layout qualifier (contains a map from identifiers to values).
 class LayoutQualifier : public TypeQualifier {
 public:
-    const PtrMap<std::string, Expr>& layouts() const { return layouts_; }
+    PtrMap<std::string, Expr>& layouts() { return layouts_; }
+    PtrMapView<std::string, Expr> layouts() const { return make_view(layouts_); }
     void push_layout(const std::string& name, Expr* expr) {
         assert(layouts_.find(name) == layouts_.end());
-        layouts_.emplace(name, expr);
+        layouts_.emplace(name, Ptr<Expr>(expr));
     }
     size_t num_layouts() const { return layouts_.size(); }
 
@@ -472,9 +470,11 @@ public:
 /// Array specifier, can have several dimensions.
 class ArraySpecifier : public Node {
 public:
-    const PtrVector<Expr>& dims() const { return dims_; }
-    void push_dim(Expr* dim) { dims_.push_back(dim); }
+    PtrVector<Expr>& dims() { return dims_; }
+    PtrVectorView<Expr> dims() const { return make_view(dims_); }
+    void push_dim(Expr* dim) { dims_.emplace_back(dim); }
     size_t num_dims() const { return dims_.size(); }
+    const Expr* dim(int i) const { return dims_[i].get(); }
 
     void print(Printer&) const override;
 
@@ -487,9 +487,8 @@ class HasArraySpecifier {
 public:
     virtual ~HasArraySpecifier() {}
 
+    Ptr<ArraySpecifier>& array_specifier() { return array_spec_; }
     const ArraySpecifier* array_specifier() const { return array_spec_.get(); }
-    ArraySpecifier* array_specifier() { return array_spec_.get(); }
-    void set_array_specifier(ArraySpecifier* array_spec) { array_spec_.reset(array_spec); }
 
 protected:
     Ptr<ArraySpecifier> array_spec_;
@@ -504,9 +503,11 @@ public:
 
     bool has_qualifier() const { return quals_.size() != 0; }
 
-    const PtrVector<TypeQualifier>& qualifiers() const { return quals_; }
-    void push_qualifier(TypeQualifier* qual) { quals_.push_back(qual); }
+    PtrVector<TypeQualifier>& qualifiers() { return quals_; }
+    PtrVectorView<TypeQualifier> qualifiers() const { return make_view(quals_); }
+    void push_qualifier(TypeQualifier* qual) { quals_.emplace_back(qual); }
     size_t num_qualifers() const { return quals_.size(); }
+    const TypeQualifier* qualifier(int i) const { return quals_[i].get(); }
 
     virtual slang::QualifiedType check(Sema&) const = 0;
 
@@ -519,8 +520,7 @@ class HasType {
 public:
     virtual ~HasType() {}
 
-    void set_type(Type* type) { type_.reset(type); }
-    Type* type() { return type_.get(); }
+    Ptr<Type>& type() { return type_; }
     const Type* type() const { return type_.get(); }
 
 protected:
@@ -576,9 +576,11 @@ public:
 /// A list of statements.
 class StmtList : public Stmt {
 public:
-    const PtrVector<Stmt>& stmts() const { return stmts_; }
-    void push_stmt(Stmt* s) { stmts_.push_back(s); }
+    PtrVector<Stmt>& stmts() { return stmts_; }
+    PtrVectorView<Stmt> stmts() const { return make_view(stmts_); }
+    void push_stmt(Stmt* s) { stmts_.emplace_back(s); }
     size_t num_stmts() const { return stmts_.size(); }
+    const Stmt* stmt(int i) const { return stmts_[i].get(); }
 
     void print(Printer&) const override;
     void check(Sema&) const override;
@@ -588,21 +590,15 @@ private:
 };
 
 /// A default precision declaration.
-class PrecisionDecl : public Decl {
+class PrecisionDecl : public Decl, public HasType {
 public:
-    Type* type() { return type_.get(); }
-    const Type* type() const { return type_.get(); }
-    void set_type(Type* type) { type_.reset(type); }
-
-    PrecisionQualifier* precision() { return prec_.get(); }
+    Ptr<PrecisionQualifier>& precision() { return prec_; }
     const PrecisionQualifier* precision() const { return prec_.get(); }
-    void set_precision(PrecisionQualifier* prec) { prec_.reset(prec); }
 
     void print(Printer&) const override;
     slang::QualifiedType check(Sema&) const override;
 
 private:
-    Ptr<Type> type_;
     Ptr<PrecisionQualifier> prec_;
 };
 
@@ -611,9 +607,8 @@ class Variable : public Node,
                  public Typeable<slang::QualifiedType>,
                  public HasName, public HasArraySpecifier {
 public:
-    Expr* init() { return init_.get(); }
+    Ptr<Expr>& init() { return init_; }
     const Expr* init() const { return init_.get(); }
-    void set_init(Expr* init) { init_.reset(init); }
 
     void print(Printer&) const override;
     slang::QualifiedType check(Sema&, slang::QualifiedType) const;
@@ -625,9 +620,11 @@ private:
 /// A list of variable declarations.
 class VariableDecl : public Decl, public HasType {
 public:
-    const PtrVector<Variable>& vars() const { return vars_; }
-    void push_var(Variable* var) { vars_.push_back(var); }
+    PtrVector<Variable>& vars() { return vars_; }
+    PtrVectorView<Variable> vars() const { return make_view(vars_); }
+    void push_var(Variable* var) { vars_.emplace_back(var); }
     size_t num_vars() const { return vars_.size(); }
+    const Variable* var(int i) const { return vars_[i].get(); }
 
     void print(Printer&) const override;
     slang::QualifiedType check(Sema&) const override;
@@ -639,9 +636,11 @@ private:
 /// Compound type : structure or interface block.
 class CompoundType : public Type, public HasName {
 public:
-    const PtrVector<VariableDecl>& fields() const { return fields_; }
-    void push_field(VariableDecl* field) { fields_.push_back(field); }
+    PtrVector<VariableDecl>& fields() { return fields_; }
+    PtrVectorView<VariableDecl> fields() const { return make_view(fields_); }
+    void push_field(VariableDecl* field) { fields_.emplace_back(field); }
     size_t num_fields() const { return fields_.size(); }
+    const VariableDecl* field(int i) const { return fields_[i].get(); }
 
 protected:
     PtrVector<VariableDecl> fields_;
@@ -676,13 +675,14 @@ class FunctionDecl : public Decl, public HasType, public HasName {
 public:
     bool is_prototype() const { return !static_cast<bool>(body_); }
 
-    StmtList* body() { return body_.get(); }
+    Ptr<StmtList>& body() { return body_; }
     const StmtList* body() const { return body_.get(); }
-    void set_body(StmtList* body) { body_.reset(body); }
 
-    const PtrVector<Arg>& args() const { return args_; }
-    void push_arg(Arg* arg) { args_.push_back(arg); }
+    PtrVector<Arg>& args() { return args_; }
+    PtrVectorView<Arg> args() const { return make_view(args_); }
+    void push_arg(Arg* arg) { args_.emplace_back(arg); }
     size_t num_args() const { return args_.size(); }
+    const Arg* arg(int i) const { return args_[i].get(); }
 
     void print(Printer&) const override;
     slang::QualifiedType check(Sema&) const override;
@@ -698,17 +698,14 @@ public:
     bool is_expr() const { return static_cast<bool>(expr_); }
     bool is_var() const { return static_cast<bool>(var_); }
 
-    Expr* expr() { return expr_.get(); }
+    Ptr<Expr>& expr() { return expr_; }
     const Expr* expr() const { return expr_.get(); }
-    void set_expr(Expr* expr) { expr_.reset(expr); }
 
-    Type* var_type() { return var_type_.get(); }
+    Ptr<Type>& var_type() { return var_type_; }
     const Type* var_type() const { return var_type_.get(); }
-    void set_var_type(Type* type) { var_type_.reset(type); }
 
-    Variable* var() { return var_.get(); }
+    Ptr<Variable>& var() { return var_; }
     const Variable* var() const { return var_.get(); }
-    void set_var(Variable* var) { var_.reset(var); }
 
     void print(Printer&) const override;
     void check(Sema& sema) const;
@@ -722,9 +719,8 @@ private:
 /// A declaration statement.
 class DeclStmt : public Stmt {
 public:
-    Decl* decl() { return decl_.get(); }
+    Ptr<Decl>& decl() { return decl_; }
     const Decl* decl() const { return decl_.get(); }
-    void set_decl(Decl* decl) { decl_.reset(decl); }
 
     void print(Printer&) const override;
     void check(Sema&) const override;
@@ -736,9 +732,8 @@ private:
 /// A declaration statement.
 class ExprStmt : public Stmt {
 public:
-    Expr* expr() { return expr_.get(); }
+    Ptr<Expr>& expr() { return expr_; }
     const Expr* expr() const { return expr_.get(); }
-    void set_expr(Expr* expr) { expr_.reset(expr); }
 
     void print(Printer&) const override;
     void check(Sema&) const override;
@@ -750,17 +745,14 @@ private:
 /// If-else statement.
 class IfStmt : public Stmt {
 public:
-    Expr* cond() { return cond_.get(); }
+    Ptr<Expr>& cond() { return cond_; }
     const Expr* cond() const { return cond_.get(); }
-    void set_cond(Expr* cond) { cond_.reset(cond); }
 
-    Stmt* if_true() { return if_true_.get(); }
+    Ptr<Stmt>& if_true() { return if_true_; }
     const Stmt* if_true() const { return if_true_.get(); }
-    void set_if_true(Stmt* if_true) { if_true_.reset(if_true); }
 
-    Stmt* if_false() { return if_false_.get(); }
+    Ptr<Stmt>& if_false() { return if_false_; }
     const Stmt* if_false() const { return if_false_.get(); }
-    void set_if_false(Stmt* if_false) { if_false_.reset(if_false); }
 
     void print(Printer&) const override;
     void check(Sema&) const override;
@@ -773,13 +765,11 @@ private:
 /// Switch statement
 class SwitchStmt : public Stmt {
 public:
-    Expr* expr() { return expr_.get(); }
+    Ptr<Expr>& expr() { return expr_; }
     const Expr* expr() const { return expr_.get(); }
-    void set_expr(Expr* expr) { expr_.reset(expr); }
 
-    StmtList* list() { return list_.get(); }
+    Ptr<StmtList>& list() { return list_; }
     const StmtList* list() const { return list_.get(); }
-    void set_list(StmtList* list) { list_.reset(list); }
 
     void print(Printer&) const override;
     void check(Sema&) const override;
@@ -792,9 +782,8 @@ private:
 /// Case label statement.
 class CaseLabelStmt : public Stmt {
 public:
-    Expr* expr() { return expr_.get(); }
+    Ptr<Expr>& expr() { return expr_; }
     const Expr* expr() const { return expr_.get(); }
-    void set_expr(Expr* expr) { expr_.reset(expr); }
 
     bool is_default() const { return !static_cast<bool>(expr_); }
 
@@ -810,13 +799,11 @@ class LoopStmt : public Stmt {
 public:
     virtual ~LoopStmt() {}
 
-    LoopCond* cond() { return cond_.get(); }
+    Ptr<LoopCond>& cond() { return cond_; }
     const LoopCond* cond() const { return cond_.get(); }
-    void set_cond(LoopCond* cond) { cond_.reset(cond); }
 
-    Stmt* body() { return body_.get(); }
+    Ptr<Stmt>& body() { return body_; }
     const Stmt* body() const { return body_.get(); }
-    void set_body(Stmt* body) { body_.reset(body); }
 
 protected:
     Ptr<LoopCond> cond_;
@@ -826,13 +813,11 @@ protected:
 /// For loop statement.
 class ForLoopStmt : public LoopStmt {
 public:
-    Stmt* init() { return init_.get(); }
+    Ptr<Stmt>& init() { return init_; }
     const Stmt* init() const { return init_.get(); }
-    void set_init(Stmt* init) { init_.reset(init); }
 
-    Expr* iter() { return iter_.get(); }
+    Ptr<Expr>& iter() { return iter_; }
     const Expr* iter() const { return iter_.get(); }
-    void set_iter(Expr* iter) { iter_.reset(iter); }
 
     void print(Printer&) const override;
     void check(Sema&) const override;
@@ -880,9 +865,8 @@ public:
 /// Return statement.
 class ReturnStmt : public Stmt {
 public:
-    Expr* value() { return value_.get(); }
+    Ptr<Expr>& value() { return value_; }
     const Expr* value() const { return value_.get(); }
-    void set_value(Expr* value) { value_.reset(value); }
 
     bool has_value() const { return static_cast<bool>(value_);}
 

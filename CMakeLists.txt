@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.1 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.1.3 FATAL_ERROR)
 
 project(SLANG)
 
@@ -20,6 +20,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJ_LIBRARY_DIR})
 
 set(CMAKE_MODULE_PATH ${PROJ_ROOT_DIR} ${CMAKE_MODULE_PATH})
 
+set(CMAKE_CXX_STANDARD 11)
+
 include_directories(${PROJ_SOURCE_DIR})
 
 set(COLOR_TTY_AVAILABLE TRUE)
@@ -34,3 +36,5 @@ if(COLORIZE_OUTPUT)
 endif()
 
 add_subdirectory(${PROJ_SOURCE_DIR})
+enable_testing()
+add_subdirectory(examples)

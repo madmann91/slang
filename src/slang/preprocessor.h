@@ -78,7 +78,7 @@ enum class ExtBehavior {
     BEHAVIOR_DISABLE
 };
 
-/// The preprocessor : expands macros and handles preprocessor directives.
+/// The preprocessor: expands macros and handles preprocessor directives.
 class Preprocessor {
 public:
     typedef std::function<void(int, Profile)>                    VersionHandler;

@@ -246,7 +246,7 @@ bool IndexExpr::is_lvalue(Sema& sema) const {
 inline bool match_signature(const CallExpr* call, const slang::FunctionType* fn_type) {
     if (fn_type->num_args() == call->num_args()) {
         for (size_t i = 0; i < call->num_args(); i++) {
-            if (call->args()[i]->assigned_type() != fn_type->args()[i].type())
+            if (call->arg(i)->assigned_type() != fn_type->arg(i).type())
                 return false;
         }
         return true;
@@ -263,7 +263,7 @@ static const slang::Type* check_function_call(Sema& sema, const CallExpr* call) 
 
     // Check arguments
     for (size_t i = 0; i < call->num_args(); i++)
-        sema.check(call->args()[i]);
+        sema.check(call->arg(i));
 
     std::string candidates;
     if (auto overloaded = call_type->isa<slang::OverloadedFunctionType>()) {
@@ -275,7 +275,7 @@ static const slang::Type* check_function_call(Sema& sema, const CallExpr* call) 
         // TODO: Add implicit conversion rules
 
         for (size_t i = 0; i < overloaded->num_signatures(); i++) {
-            candidates += "\'" + overloaded->signatures()[i]->to_string() + "\'";
+            candidates += "\'" + overloaded->signature(i)->to_string() + "\'";
             if (i < overloaded->num_signatures() - 1) candidates += ", ";
         }
     } else if (auto sign = call_type->isa<slang::FunctionType>()) {
@@ -314,14 +314,14 @@ static const slang::Type* check_constructor_call(Sema& sema, const CallExpr* cal
         bool from_scalar = false;
         size_t num_components = 0, prev_components = 0;
         for (size_t i = 0; i < call->num_args(); i++) {
-            const slang::Type* arg_type = sema.check(call->args()[i]);
+            const slang::Type* arg_type = sema.check(call->arg(i));
             if (auto arg_prim = arg_type->isa<slang::PrimType>()) {
                 from_matrix |= arg_prim->is_matrix();
                 from_scalar |= arg_prim->is_scalar();
                 prev_components = num_components;
                 num_components += arg_prim->size();
             } else {
-                sema.error(call->args()[i]) << "Primitive type expected in constructor arguments\n";
+                sema.error(call->arg(i)) << "Primitive type expected in constructor arguments\n";
                 return sema.error_type();
             }
         }
@@ -344,7 +344,7 @@ static const slang::Type* check_constructor_call(Sema& sema, const CallExpr* cal
         if (!check_constructor_args(sema, call, struct_type->num_members()))
             return sema.error_type();
         for (size_t i = 0; i < struct_type->num_members(); i++)
-            sema.check(call->args()[i], struct_type->members()[i].second.type());
+            sema.check(call->arg(i), struct_type->member(i).second.type());
     } else if (auto indef_array = type->isa<slang::IndefiniteArrayType>()) {
         for (auto arg : call->args())
             sema.check(arg, indef_array->elem());
@@ -652,9 +652,9 @@ const slang::Type* InitExpr::check(Sema& sema, const slang::Type* expected) cons
             return sema.array_type(array_type->elem(), 0);
 
         // Find the minimum element type (according to the subtype relation)
-        auto elem = sema.check(exprs()[0], array_type->elem());
+        auto elem = sema.check(expr(0), array_type->elem());
         for (size_t i = 1; i < num_exprs(); i++) {
-            auto cur_elem = sema.check(exprs()[i], array_type->elem());
+            auto cur_elem = sema.check(expr(i), array_type->elem());
             if (cur_elem->subtype(elem)){
                 elem = cur_elem;
             } else if (!elem->subtype(cur_elem)) {
@@ -675,7 +675,7 @@ const slang::Type* InitExpr::check(Sema& sema, const slang::Type* expected) cons
         }
 
         for (size_t i = 0; i < exprs().size(); i++)
-            sema.check(exprs()[i], struct_type->members()[i].second.type());
+            sema.check(expr(i), struct_type->member(i).second.type());
         return expected;
     } else if (auto prim_type = expected->isa<slang::PrimType>()) {
         if (prim_type->size() > 1) {
@@ -718,7 +718,7 @@ static const slang::Type* check_array_specifier(Sema& sema, const ArraySpecifier
 
     const slang::Type* cur_type = type;
     for (size_t i = 0; i < spec->num_dims(); i++) {
-        const Expr* dim = spec->dims()[spec->num_dims() - 1 - i];
+        const Expr* dim = spec->dim(spec->num_dims() - 1 - i);
         if (dim) {
             int size;
             if (integer_value(sema, dim, size) && size >= 0) {
@@ -894,7 +894,7 @@ static bool arguments_differ(const slang::FunctionType* fn_a,
         return true;
 
     for (size_t i = 0; i < fn_a->args().size(); i++) {
-        if (fn_a->args()[i] != fn_b->args()[i])
+        if (fn_a->arg(i) != fn_b->arg(i))
             return true;
     }
 
@@ -958,7 +958,7 @@ static slang::FunctionType::ArgList normalize_args(Sema& sema, const ast::Functi
             }
         }
         if (void_count == 1 && i != 0)
-            sema.error(fn_decl->args()[i]) << "\'void\' must be the only parameter\n";
+            sema.error(fn_decl->arg(i)) << "\'void\' must be the only parameter\n";
     }
 
     // Remove the void parameter
@@ -1000,8 +1000,8 @@ slang::QualifiedType FunctionDecl::check(Sema& sema) const {
 
         // Push the arguments and their types into the environment
         for (size_t i = 0; i < num_args(); i++) {
-            if (!args()[i]->name().empty())
-                sema.new_symbol(args()[i]->name(), arg_types[i], args()[i]);
+            if (!arg(i)->name().empty())
+                sema.new_symbol(arg(i)->name(), arg_types[i], arg(i));
         }
 
         sema.push_env(this);

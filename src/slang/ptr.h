@@ -13,44 +13,63 @@ using Ptr = std::unique_ptr<T>;
 
 /// An owning pointer vector.
 template <typename T>
-class PtrVector : private std::vector<T*> {
-public:
-    typedef std::vector<T*> Vector;
-
-    ~PtrVector() {
-        for (auto p : *this) delete p;
-    }
-
-    using Vector::empty;
-    using Vector::begin;
-    using Vector::end;
-    using Vector::front;
-    using Vector::back;
-    using Vector::push_back;
-    using Vector::size;
-    using Vector::clear;
-    using Vector::operator [];
-};
+using PtrVector = std::vector<Ptr<T> >;
 
 /// An owning pointer map.
 template <typename U, typename V>
-class PtrMap : private std::unordered_map<U, V*> {
-public:
-    typedef std::unordered_map<U, V*> Map;
+using PtrMap = std::unordered_map<U, Ptr<V> >;
 
-    ~PtrMap() {
-        for (auto p : *this) delete p.second;
-    }
+template <typename It, typename T>
+struct PtrIterator {
+    typedef const T*    value_type;
+    typedef size_t      difference_type;
+    typedef const T*&   reference;
 
-    using Map::empty;
-    using Map::begin;
-    using Map::end;
-    using Map::emplace;
-    using Map::size;
-    using Map::clear;
-    using Map::operator [];
-    using Map::find;
+    It it;
+
+    PtrIterator(const It& it) : it(it) {}
+
+    PtrIterator& operator ++ (int) { return PtrIterator(it++); }
+    PtrIterator& operator ++ ()    { ++it; return *this; }
+
+    bool operator == (const PtrIterator& other) const { return other.it == it; }
+    bool operator != (const PtrIterator& other) const { return other.it != it; }
+
+    const T* operator * () const { return it->get(); }
 };
+
+template <typename Container, typename T>
+struct PtrView {
+    typedef typename Container::const_iterator It;
+
+    const Container& c;
+
+    PtrIterator<It, T> begin() const { return c.begin(); }
+    PtrIterator<It, T> end()   const { return c.end();   }
+
+    size_t size() const { return c.size();  }
+    bool empty()  const { return c.empty(); }
+    const T* front() const { return c.front().get(); }
+    const T* back()  const { return c.back().get();  }
+
+    PtrView(const Container& c) : c(c) {}
+};
+
+template <typename T>
+using PtrVectorView = PtrView<PtrVector<T>, T>;
+
+template <typename U, typename V>
+using PtrMapView = PtrView<PtrMap<U, V>, V>;
+
+template <typename T>
+PtrVectorView<T> make_view(const PtrVector<T>& v) {
+    return PtrVectorView<T>(v);
+}
+
+template <typename U, typename V>
+PtrMapView<U, V> make_view(const PtrMap<U, V>& m) {
+    return PtrMapView<U, V>(m);
+}
 
 } // namespace slang
 

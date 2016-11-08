@@ -32,7 +32,7 @@ public:
     void push_env(const ast::Node* scope = nullptr) {
         Environment* env = new Environment(scope);
         env->set_parent(env_);
-        env_list_.push_back(env);
+        env_list_.emplace_back(env);
         env_ = env;
     }
 

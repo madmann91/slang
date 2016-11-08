@@ -9,7 +9,7 @@ int precedence(ast::BinOpExpr::Type type);
 namespace ast {
 
 void Module::print(Printer& printer) const {
-    for (auto d : decls_) {
+    for (auto& d : decls_) {
         d->print(printer);
         printer << "\n";
     }
@@ -80,7 +80,7 @@ void VaryingQualifier::print(Printer& printer) const {
 }
 
 void ArraySpecifier::print(Printer& printer) const {
-    for (auto d : dims_) {
+    for (auto& d : dims_) {
         printer << "[";
         if (d) d->print(printer);
         printer << "]";
@@ -92,7 +92,7 @@ void ErrorType::print(Printer& printer) const {
 }
 
 void PrimType::print(Printer& printer) const {
-    for (auto q : quals_) {
+    for (auto& q : quals_) {
         q->print(printer);
         printer << " ";
     }
@@ -108,7 +108,7 @@ void PrimType::print(Printer& printer) const {
 }
 
 void NamedType::print(Printer& printer) const {
-    for (auto q : quals_) {
+    for (auto& q : quals_) {
         q->print(printer);
         printer << " ";
     }
@@ -120,7 +120,7 @@ void NamedType::print(Printer& printer) const {
 }
 
 void StructType::print(Printer& printer) const {
-    for (auto q : quals_) {
+    for (auto& q : quals_) {
         q->print(printer);
         printer << " ";
     }
@@ -142,7 +142,7 @@ void StructType::print(Printer& printer) const {
 }
 
 void InterfaceType::print(Printer& printer) const {
-    for (auto q : quals_) {
+    for (auto& q : quals_) {
         q->print(printer);
         printer << " ";
     }
@@ -425,7 +425,7 @@ void LoopCond::print(Printer& printer) const {
 void StmtList::print(Printer& printer) const {
     printer << "{";
     printer.indent();
-    for (auto s : stmts_) {
+    for (auto& s : stmts_) {
         printer.new_line();
         s->print(printer);
     }
@@ -451,7 +451,8 @@ void IfStmt::print(Printer& printer) const {
     if_true_->print(printer);
 
     if (if_false_) {
-        printer << " ";
+        if (!if_true_->isa<StmtList>()) printer.new_line();
+        else printer << " ";
         printer.print_keyword("else") << " ";
         if_false_->print(printer);
     }

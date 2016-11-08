@@ -99,7 +99,7 @@ ast::PrecisionDecl* Parser::parse_precision_decl() {
     if (lookup_[0].key().isa(Key::LOWP) ||
         lookup_[0].key().isa(Key::HIGHP) ||
         lookup_[0].key().isa(Key::MEDIUMP))
-        decl->set_precision(parse_precision_qualifier());
+        decl->precision().reset(parse_precision_qualifier());
     else
         error() << "Precision qualifier expected\n";
 
@@ -107,7 +107,7 @@ ast::PrecisionDecl* Parser::parse_precision_decl() {
         eat(Token::IDENT);
         error() << "No qualifiers allowed inside precision declaration\n";
     }
-    decl->set_type(parse_type());
+    decl->type().reset(parse_type());
 
     expect(Token::SEMICOLON);
 
@@ -119,7 +119,7 @@ ast::Type* Parser::parse_type() {
     PtrVector<ast::TypeQualifier> quals;
 
     while (lookup_[0].key().is_qualifier()) {
-        quals.push_back(parse_type_qualifier());
+        quals.emplace_back(parse_type_qualifier());
     }
 
     ast::Type* type = nullptr;
@@ -150,12 +150,12 @@ ast::Type* Parser::parse_type() {
 
     // Parse optional array specification
     if (lookup_[0].isa(Token::LBRACKET)) {
-        type->set_array_specifier(parse_array_specifier());
+        type->array_specifier().reset(parse_array_specifier());
     }
 
     // Register qualifiers
     for (auto& q : quals)
-        type->push_qualifier(q);
+        type->push_qualifier(q.release());
     quals.clear();
     
     return type;
@@ -241,7 +241,7 @@ ast::VariableDecl* Parser::parse_variable_decl(ast::Type* type) {
     // VariableDecl ::= (Variable (,Variable)*)? ;
     auto decl = new_node<ast::VariableDecl>();
 
-    decl->set_type(type);
+    decl->type().reset(type);
 
     if (lookup_[0].isa(Token::SEMICOLON)) {
         eat(Token::SEMICOLON);
@@ -270,7 +270,7 @@ ast::FunctionDecl* Parser::parse_function_decl(ast::Type* type) {
         error() << "Function name expected\n";
     }
 
-    decl->set_type(type);
+    decl->type().reset(type);
 
     expect(Token::LPAREN);
 
@@ -288,7 +288,7 @@ ast::FunctionDecl* Parser::parse_function_decl(ast::Type* type) {
 
     // Optional body
     if (lookup_[0].isa(Token::LBRACE)) {
-        decl->set_body(parse_compound_stmt());
+        decl->body().reset(parse_compound_stmt());
     } else {
         expect(Token::SEMICOLON);
     }
@@ -309,13 +309,13 @@ ast::Variable* Parser::parse_variable() {
 
     // Optional array specification
     if (lookup_[0].isa(Token::LBRACKET)) {
-        var->set_array_specifier(parse_array_specifier());
+        var->array_specifier().reset(parse_array_specifier());
     }
 
     // Optional initializer
     if (lookup_[0].isa(Token::ASSIGN)) {
         eat(Token::ASSIGN);
-        var->set_init(parse_init_expr());
+        var->init().reset(parse_init_expr());
     }
 
     return var.node();
@@ -325,7 +325,7 @@ ast::Arg* Parser::parse_arg() {
     // Arg ::= Type (Name(ArraySpecifier)?)?
     auto arg = new_node<ast::Arg>();
 
-    arg->set_type(parse_type());
+    arg->type().reset(parse_type());
 
     if (lookup_[0].is_ident()) {
         arg->set_name(lookup_[0].ident());
@@ -333,7 +333,7 @@ ast::Arg* Parser::parse_arg() {
 
         // Optional array specification
         if (lookup_[0].isa(Token::LBRACKET)) {
-            arg->set_array_specifier(parse_array_specifier());
+            arg->array_specifier().reset(parse_array_specifier());
         }
     }
 
@@ -669,7 +669,7 @@ ast::FieldExpr* Parser::parse_field_expr(ast::Expr* left) {
     // FieldExpr ::= UnOpExpr . ident
     auto field = new_node<ast::FieldExpr>();
     eat(Token::DOT);
-    field->set_left(left);
+    field->left().reset(left);
     if (lookup_[0].is_ident()) {
         field->set_field_name(lookup_[0].ident());
         eat(Token::IDENT);
@@ -683,8 +683,8 @@ ast::IndexExpr* Parser::parse_index_expr(ast::Expr* left) {
     // IndexExpr ::= UnOpExpr [Expr]
     auto index = new_node<ast::IndexExpr>();
     eat(Token::LBRACKET);
-    index->set_left(left);
-    index->set_index(parse_expr());
+    index->left().reset(left);
+    index->index().reset(parse_expr());
     expect(Token::RBRACKET);
     return index.node();
 }
@@ -703,9 +703,9 @@ ast::CallExpr* Parser::parse_call_expr(ast::Expr* callee = nullptr) {
     auto call = new_node<ast::CallExpr>();
 
     if (callee)
-        call->set_function(callee);
+        call->function().reset(callee);
     else
-        call->set_constructor(parse_type());
+        call->constructor().reset(parse_type());
 
     expect(Token::LPAREN);
 
@@ -757,7 +757,7 @@ ast::Expr* Parser::parse_unary_expr() {
         unop->set_type(pre_type);
         next();
         
-        unop->set_operand(parse_unary_expr());
+        unop->operand().reset(parse_unary_expr());
         return unop.node();
     }
 
@@ -774,7 +774,7 @@ ast::Expr* Parser::parse_unary_expr() {
             unop->set_type(post_type);
             next();
             
-            unop->set_operand(expr);
+            unop->operand().reset(expr);
 
             expr = unop.node();
             post_type = token_to_post_unop(lookup_[0]);
@@ -824,8 +824,8 @@ ast::Expr* Parser::parse_binary_expr(ast::Expr* left, int pred) {
         }
 
         // a + (a * b * d) + e
-        current->set_left(left);
-        current->set_right(right);
+        current->left().reset(left);
+        current->right().reset(right);
         current->set_type(type);
 
         left = current.node();
@@ -840,10 +840,10 @@ ast::Expr* Parser::parse_cond_expr(ast::Expr* left) {
         auto cond = new_node<ast::CondExpr>();
         eat(Token::QMARK);
 
-        cond->set_cond(binop);
-        cond->set_if_true(parse_expr());
+        cond->cond().reset(binop);
+        cond->if_true().reset(parse_expr());
         expect(Token::COLON);
-        cond->set_if_false(parse_assign_expr());
+        cond->if_false().reset(parse_assign_expr());
 
         return cond.node();
     }
@@ -860,8 +860,8 @@ ast::Expr* Parser::parse_assign_expr() {
         auto assign = new_node<ast::AssignOpExpr>();
         next();
         assign->set_type(type);
-        assign->set_left(left);
-        assign->set_right(parse_assign_expr());
+        assign->left().reset(left);
+        assign->right().reset(parse_assign_expr());
         return assign.node();
     }
 
@@ -901,16 +901,16 @@ ast::LoopCond* Parser::parse_loop_cond() {
 #define SLANG_KEY_QUAL(key, str) case Key::key:
 #include "slang/keywordlist.h"
             case Key::STRUCT:
-                cond->set_var_type(parse_type());
-                cond->set_var(parse_variable());
+                cond->var_type().reset(parse_type());
+                cond->var().reset(parse_variable());
                 break;
             default: break;
         }
     } else if (lookup_[0].is_ident() && lookup_[1].is_ident()) {
-        cond->set_var_type(parse_type());
-        cond->set_var(parse_variable());
+        cond->var_type().reset(parse_type());
+        cond->var().reset(parse_variable());
     } else {
-        cond->set_expr(parse_expr());
+        cond->expr().reset(parse_expr());
     }
 
     return cond.node();
@@ -987,14 +987,14 @@ ast::IfStmt* Parser::parse_if_stmt() {
 
     eat(Key::IF);
     expect(Token::LPAREN);
-    stmt->set_cond(parse_expr());
+    stmt->cond().reset(parse_expr());
     expect(Token::RPAREN);
 
-    stmt->set_if_true(parse_stmt());
+    stmt->if_true().reset(parse_stmt());
 
     if (lookup_[0].key().type() == Key::ELSE) {
         eat(Key::ELSE);
-        stmt->set_if_false(parse_stmt());
+        stmt->if_false().reset(parse_stmt());
     }
 
     return stmt.node();
@@ -1006,10 +1006,10 @@ ast::SwitchStmt* Parser::parse_switch_stmt() {
     
     eat(Key::SWITCH);
     expect(Token::LPAREN);
-    stmt->set_expr(parse_expr());
+    stmt->expr().reset(parse_expr());
     expect(Token::RPAREN);
 
-    stmt->set_list(parse_compound_stmt());
+    stmt->list().reset(parse_compound_stmt());
 
     return stmt.node();
 }
@@ -1019,9 +1019,9 @@ ast::WhileLoopStmt* Parser::parse_while_stmt() {
     auto stmt = new_node<ast::WhileLoopStmt>();
     eat(Key::WHILE);
     expect(Token::LPAREN);
-    stmt->set_cond(parse_loop_cond());
+    stmt->cond().reset(parse_loop_cond());
     expect(Token::RPAREN);
-    stmt->set_body(parse_stmt());
+    stmt->body().reset(parse_stmt());
     return stmt.node();
 }
 
@@ -1034,24 +1034,24 @@ ast::ForLoopStmt* Parser::parse_for_stmt() {
     if (lookup_[0].isa(Token::SEMICOLON)) {
         eat(Token::SEMICOLON);
     } else { 
-        stmt->set_init(parse_stmt());
+        stmt->init().reset(parse_stmt());
     }
 
     if (lookup_[0].isa(Token::SEMICOLON)) {
         eat(Token::SEMICOLON);
     } else {
-        stmt->set_cond(parse_loop_cond());
+        stmt->cond().reset(parse_loop_cond());
         expect(Token::SEMICOLON);
     }
 
     if (lookup_[0].isa(Token::RPAREN)) {
         eat(Token::RPAREN);
     } else { 
-        stmt->set_iter(parse_expr());
+        stmt->iter().reset(parse_expr());
         expect(Token::RPAREN);
     }
 
-    stmt->set_body(parse_stmt());
+    stmt->body().reset(parse_stmt());
     return stmt.node();
 }
 
@@ -1059,12 +1059,12 @@ ast::DoWhileLoopStmt* Parser::parse_do_while_stmt() {
     // DoWhileLoopStmt ::= do Stmt while ( LoopCond ) ;
     auto stmt = new_node<ast::DoWhileLoopStmt>();
     eat(Key::DO);
-    stmt->set_body(parse_stmt());
+    stmt->body().reset(parse_stmt());
 
     expect(Key::WHILE);
     expect(Token::LPAREN);
 
-    stmt->set_cond(parse_loop_cond());
+    stmt->cond().reset(parse_loop_cond());
     if (stmt->cond()->is_var())
         error() << "Variable declarations are not allowed in do-while loop conditions\n";
 
@@ -1078,7 +1078,7 @@ ast::CaseLabelStmt* Parser::parse_case_stmt(bool def) {
     auto stmt = new_node<ast::CaseLabelStmt>();
     if (!def) {
         eat(Key::CASE);
-        stmt->set_expr(parse_expr());
+        stmt->expr().reset(parse_expr());
     } else {
         eat(Key::DEFAULT);
     }
@@ -1089,7 +1089,7 @@ ast::CaseLabelStmt* Parser::parse_case_stmt(bool def) {
 ast::DeclStmt* Parser::parse_decl_stmt() {
     // DeclStmt ::= Decl
     auto stmt = new_node<ast::DeclStmt>();
-    stmt->set_decl(parse_decl());
+    stmt->decl().reset(parse_decl());
     return stmt.node();
 }
 
@@ -1099,7 +1099,7 @@ ast::ExprStmt* Parser::parse_expr_stmt() {
     if (lookup_[0].isa(Token::SEMICOLON)) {
         eat(Token::SEMICOLON);
     } else {
-        stmt->set_expr(parse_expr());
+        stmt->expr().reset(parse_expr());
         expect(Token::SEMICOLON);
     }
     return stmt.node();
@@ -1112,7 +1112,7 @@ ast::ReturnStmt* Parser::parse_return_stmt() {
     if (lookup_[0].isa(Token::SEMICOLON)) {
         eat(Token::SEMICOLON);
     } else {
-        stmt->set_value(parse_expr());
+        stmt->value().reset(parse_expr());
         expect(Token::SEMICOLON);
     }
     return stmt.node();

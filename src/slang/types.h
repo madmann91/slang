@@ -152,6 +152,7 @@ public:
 
     QualifiedType ret() const { return ret_; }
     const ArgList& args() const { return args_; }
+    QualifiedType arg(int i) const { return args_[i]; }
     size_t num_args() const { return args_.size(); }
 
 private:
@@ -173,6 +174,7 @@ public:
     std::string type_name() const override;
 
     const SignatureList& signatures() const { return signs_; }
+    const FunctionType* signature(int i) const { return signs_[i]; }
     size_t num_signatures() const { return signs_.size(); }
 
 private:
@@ -194,6 +196,7 @@ public:
     std::string type_name() const override;
 
     const MemberList& members() const { return members_; }
+    const Member& member(int i) const { return members_[i]; }
     size_t num_members() const { return members_.size(); }
 
     const std::string& name() const { return name_; }

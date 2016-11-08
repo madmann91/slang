@@ -94,6 +94,7 @@ bool syntax_analysis(const std::string& filename, const Keywords& keys) {
         std::cout << "#version " << ver << " " << p << std::endl;
         return true;
     });
+
     pp.register_builtin_macros();
     Sema sema(logger);
     Ptr<ast::Module> builtins = parse_builtins(sema, keys);
