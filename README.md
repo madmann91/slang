@@ -9,7 +9,7 @@ The system is designed to be simple and lightweight, and well documented. A thor
 
 Here is a simple example describing how to parse a GLSL file :
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.cpp}
+```cpp
 using namespace slang;
 
 bool parse_glsl(const std::string& filename) {
@@ -46,7 +46,7 @@ bool parse_glsl(const std::string& filename) {
            parser.error_count() == 0 &&
            sema.error_count()   == 0;
 }
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+```
 
 ## Features
 
