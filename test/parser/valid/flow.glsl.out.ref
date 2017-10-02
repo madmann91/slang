@@ -4,7 +4,8 @@ void control_flow() {
     if (a) {
     } else {
     }
-    if (b) i++; else j++;
+    if (b) i++;
+    else j++;
     if (c) i++;
     if (d) {
     }
