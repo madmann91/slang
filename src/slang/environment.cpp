@@ -53,7 +53,7 @@ void Environment::push_symbol(const std::string& name, Symbol&& symbol) {
 
 template <typename T>
 inline const ast::Node* closest_node(const Environment* env) {
-    while (env && !env->scope()->isa<T>()) {
+    while (env && (!env->scope() || !env->scope()->isa<T>())) {
         env = env->parent();
     }
     return env ? env->scope() : nullptr;

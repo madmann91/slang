@@ -1032,7 +1032,7 @@ slang::QualifiedType Variable::check(Sema& sema, QualifiedType var_type) const {
         return type;
 
     if (var_type.qualifiers().storage() == slang::StorageQualifier::CONST) {
-        if (sema.env()->scope()->isa<StructType>()) {
+        if (sema.env()->scope() && sema.env()->scope()->isa<StructType>()) {
             sema.error(this) << "\'const\' qualifier is not allowed inside structures\n";
         } else if (!init())
             sema.error(this) << "Variable \'" << name() << "\' is declared \'const\' but is not initialized\n";

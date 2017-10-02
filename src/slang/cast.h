@@ -12,6 +12,7 @@ inline B as(A a) {
     static_assert(std::is_base_of<typename std::remove_pointer<A>::type,
                                   typename std::remove_pointer<B>::type>::value,
                   "B is not a derived class of A");
+    assert(a && "Trying to convert a null pointer");
     assert(dynamic_cast<B>(a) != nullptr && "Invalid conversion at runtime");
     return static_cast<B>(a);
 }
@@ -22,6 +23,7 @@ inline B isa(A a) {
     static_assert(std::is_base_of<typename std::remove_pointer<A>::type,
                                   typename std::remove_pointer<B>::type>::value,
                   "B is not a derived class of A");
+    assert(a && "Trying to convert a null pointer");
     return dynamic_cast<B>(a);
 }
 
