@@ -102,7 +102,7 @@ struct Obfuscator {
     }
 
     void obfuscate(Ptr<ast::Variable>& var) {
-        obfuscate(var->init());
+        if (var->init()) obfuscate(var->init());
         var->set_name(new_name(var->name()));
     }
 

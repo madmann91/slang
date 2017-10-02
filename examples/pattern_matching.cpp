@@ -41,7 +41,7 @@ void pattern_match(Ptr<ast::Decl>& decl) {
 }
 
 void pattern_match(Ptr<ast::Variable>& var) {
-    pattern_match(var->init());
+    if (var->init()) pattern_match(var->init());
 }
 
 void pattern_match(Ptr<ast::StmtList>& list) {
