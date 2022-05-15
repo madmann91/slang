@@ -343,6 +343,7 @@ Literal Lexer::parse_float(bool dot) {
 
     // Parse exponent (if any)
     if (c_ == 'e' || c_ == 'E') {
+        dot = true; // Must be a floating-point number
         next();
 
         int exp_sign = 1;
@@ -351,7 +352,6 @@ Literal Lexer::parse_float(bool dot) {
         } else if (c_ == '-') {
             next();
             exp_sign = -1;
-            dot = true; // ensure we build a float literal for 1e-3
         }
 
         if (!std::isdigit(c_)) {
