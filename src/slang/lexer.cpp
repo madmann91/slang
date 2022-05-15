@@ -324,13 +324,15 @@ Literal Lexer::parse_float(bool dot) {
             num = num * 10.0 + read_decimal<double>(c_);
             next();
         }
+
+        if (c_ == '.') {
+            dot = true;
+            next();
+        }
     }
 
     // Fractional part
-    if (dot || c_ == '.') {
-        dot = true;
-
-        next();
+    if (dot) {
         double pow = 0.1;
         while (std::isdigit(c_)) {
             num += read_decimal<double>(c_) * pow;

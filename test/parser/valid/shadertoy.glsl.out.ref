@@ -18,7 +18,7 @@ float length4(in vec3 p) {
 float map(vec3 p) {
     float d = mix(length(p) - 1.1, length4(p) - 1.0, sdfsw - 0.3);
     d = min(d, -(length4(p) - 4.0));
-    return d * 0.5;
+    return d * 0.95;
 }
 float march(in vec3 ro, in vec3 rd) {
     float precis = 0.001;
@@ -45,7 +45,7 @@ vec4 heartMapping(in vec2 p) {
     p.y -= 0.25;
     vec3 bcol = vec3(0, 0, 0);
     float tt = mod(iGlobalTime, 1.5) / 1.5;
-    float ss = pow(tt, 0.0) * 0.5 + 0.5;
+    float ss = pow(tt, 0.2) * 0.5 + 0.5;
     ss = 1.0 + ss * 0.5 * sin(tt * 6.2831 * 3.0 + p.y * 0.5) * exp(-tt * 4.0);
     p *= vec2(0.5, 1.5) + ss * vec2(0.5, -0.5);
     float a = atan(p.x, p.y) / 3.141593;
@@ -85,7 +85,7 @@ float tex(vec3 p) {
 vec3 prlpos(in vec3 p, in vec3 n, in vec3 rd) {
     vec3 tgt = n * dot(rd, n) - rd;
     tgt /= abs(dot(tgt, rd)) + 4.0;
-    p += tgt * tex(p) * 0.0;
+    p += tgt * tex(p) * 0.2;
     return p;
 }
 float btex(in vec3 p) {
@@ -98,15 +98,15 @@ vec3 bump(in vec3 p, in vec3 n, in float ds) {
     float n0 = btex(p);
     vec3 d = vec3(btex(p + e.xyy) - n0, btex(p + e.yxy) - n0, btex(p + e.yyx) - n0) / e.x;
     vec3 tgd = d - n * dot(n, d);
-    n = normalize(n - tgd * 0.1 * 2.0 / ds);
+    n = normalize(n - tgd * 0.21 * 2.0 / ds);
     return n;
 }
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec2 bp = fragCoord.xy / iResolution.xy * 2.0 - 1.0;
     vec2 p = bp;
     p.x *= iResolution.x / iResolution.y;
-    vec2 mo = iMouse.xy / iResolution.xy - 0.0;
-    mo = mo == vec2(-0.0) ? mo = vec2(0.4, -0.25) : mo;
+    vec2 mo = iMouse.xy / iResolution.xy - 0.5;
+    mo = mo == vec2(-0.5) ? mo = vec2(0.4, -0.25) : mo;
     mo.x *= iResolution.x / iResolution.y;
     mo.y = 0.425;
     mo.y += 0.5 * abs(sin(iGlobalTime)) - 0.15;
@@ -114,7 +114,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     sdfsw = mo.y * 4.0;
     vec3 ro = vec3(0.0, 0.0, 4.0);
     vec3 rd = normalize(vec3(p, -3.0 + sin(iGlobalTime * 0.9 + sin(iGlobalTime))));
-    mat2 mx = mm2(iGlobalTime * 0.0 + sin(iGlobalTime * 0.4) - 0.2);
+    mat2 mx = mm2(iGlobalTime * 0.1 + sin(iGlobalTime * 0.4) - 0.2);
     mat2 my = mm2(iGlobalTime * 0.07 + cos(iGlobalTime * 0.33) - 0.1);
     ro.xz *= mx;
     rd.xz *= mx;
@@ -128,7 +128,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         pos = prlpos(pos, nor, rd);
         float d = distance(ro, pos);
         nor = bump(pos, nor, d);
-        vec3 ligt = normalize(vec3(-0.0, 0.5, -0.3));
+        vec3 ligt = normalize(vec3(-0.5, 0.5, -0.3));
         float dif = clamp(dot(nor, ligt), 0.0, 1.0);
         float bac = clamp(dot(nor, normalize(vec3(-ligt))), 0.0, 1.0);
         float spe = pow(clamp(dot(reflect(rd, nor), ligt), 0.0, 1.0), 10.0);
@@ -138,14 +138,14 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         brdf += dif * 0.5;
         float tx = tex(pos);
         col = sin(vec3(1.5 + mo.x * 0.4, 2.2 + mo.x * 0.25, 2.7) + tx * 1.2 + 4.2) * 0.6 + 0.55;
-        col = col * brdf + spe * 0.0 / sqrt(rz) + 0.5 * fre;
+        col = col * brdf + spe * 0.5 / sqrt(rz) + 0.25 * fre;
         col = mix(col, vec3(0.0), clamp(exp(rz * 0.43 - 4.0), 0.0, 1.0));
     }
     col.x *= col.z;
     col.xyz = col.zxy;
     col = clamp(col * 1.05, 0.0, 1.0);
-    col *= pow(smoothstep(0.0, 0.0, (bp.x + 1.0) * (bp.y + 1.0) * (bp.x - 1.0) * (bp.y - 1.0)), 0.0);
-    col *= smoothstep(3.9, 0.0, sin(p.y * 0.0 * iResolution.y + iGlobalTime * 10.0)) + 0.1;
-    col -= hash(col.xy + p.xy) * 0.25;
+    col *= pow(smoothstep(0.0, 0.2, (bp.x + 1.0) * (bp.y + 1.0) * (bp.x - 1.0) * (bp.y - 1.0)), 0.3);
+    col *= smoothstep(3.9, 0.5, sin(p.y * 0.5 * iResolution.y + iGlobalTime * 10.0)) + 0.1;
+    col -= hash(col.xy + p.xy) * 0.025;
     fragColor = vec4(col, 1.0);
 }
