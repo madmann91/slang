@@ -15,6 +15,7 @@ void foo() {
     };
 
     float f = e.a[0] / (e.b[0][0] + e.x.x) + e.y[0].x;
+    float l = (e.x + e.y[0]).y;
     bool g = !true || !false;
 
     int h = -1 - (-1) + ~2 + (+2);
