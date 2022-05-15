@@ -244,7 +244,15 @@ void ErrorExpr::print(Printer& printer) const {
 }
 
 void FieldExpr::print(Printer& printer) const {
+    const bool need_parens =
+            !left_->isa<CallExpr>() &&
+            !left_->isa<IdentExpr>() &&
+            !left_->isa<FieldExpr>() &&
+            !left_->isa<IndexExpr>();
+
+    if (need_parens) printer << "(";
     left_->print(printer);
+    if (need_parens) printer << ")";
     printer << "." << field_name_;
 }
 

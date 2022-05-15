@@ -317,6 +317,8 @@ void Preprocessor::parse_define() {
 
     // Parse macro arguments
     std::unordered_map<std::string, size_t> args;
+    Token* missing_lparen = nullptr;
+
     if (lookup_.isa(Token::LPAREN) && !lookup_.new_line()) {
         eat(Token::LPAREN);
 
@@ -334,11 +336,18 @@ void Preprocessor::parse_define() {
 
         if (!check_newline()) return;
 
-        expect(Token::RPAREN);
+        if (args.empty() && !lookup_.isa(Token::RPAREN))
+            missing_lparen = &prev_;
+        else
+            expect(Token::RPAREN);
     }
 
     // Read macro body
     std::vector<Token> body;
+
+    // Workaround in case '#define MACRO (parenthesized_expression)'
+    if (missing_lparen) body.push_back(*missing_lparen);
+
     while (!lookup_.new_line() &&
            !lookup_.isa(Token::END)) {
         body.push_back(lookup_);
