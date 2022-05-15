@@ -243,16 +243,19 @@ void ErrorExpr::print(Printer& printer) const {
     printer.print_error();
 }
 
-void FieldExpr::print(Printer& printer) const {
-    const bool need_parens =
-            !left_->isa<CallExpr>() &&
-            !left_->isa<IdentExpr>() &&
-            !left_->isa<FieldExpr>() &&
-            !left_->isa<IndexExpr>();
+inline void print_with_parens(const Expr* expr, Printer& printer, int prec = 0) {
+    bool needs_parens =
+        printer.force_pars() ||
+        expr->isa<AssignOpExpr>() || expr->isa<CondExpr>() ||
+        (expr->isa<BinOpExpr>() && precedence(expr->as<BinOpExpr>()->type()) > prec);
 
-    if (need_parens) printer << "(";
-    left_->print(printer);
-    if (need_parens) printer << ")";
+    if (needs_parens) printer << "(";
+    expr->print(printer);
+    if (needs_parens) printer << ")";
+}
+
+void FieldExpr::print(Printer& printer) const {
+    print_with_parens(left_.get(), printer);
     printer << "." << field_name_;
 }
 
@@ -317,14 +320,7 @@ void UnOpExpr::print(Printer& printer) const {
         printer << "--";
     } else {
         printer << op_string();
-
-        const bool need_parens =
-            !op_->isa<CallExpr>() &&
-            !op_->isa<IdentExpr>() &&
-            !op_->isa<LiteralExpr>();
-        if (need_parens) printer << "(";
-        op_->print(printer);
-        if (need_parens) printer << ")";
+        print_with_parens(op_.get(), printer);
     }
 }
 
@@ -361,19 +357,6 @@ void AssignOpExpr::print(Printer& printer) const {
     right_->print(printer);
 }
 
-inline void print_expr(const Expr* expr, Printer& printer, int prec) {
-    bool pars = printer.force_pars();
-
-    if (auto bin_expr = expr->isa<BinOpExpr>()) {
-        if (precedence(bin_expr->type()) > prec) pars = true;
-    } else if (expr->isa<AssignOpExpr>() || expr->isa<CondExpr>())
-        pars = true;
-
-    if (pars) printer << "(";
-    expr->print(printer);
-    if (pars) printer << ")";
-}
-
 std::string BinOpExpr::op_string() const {
     switch (type_) {
         case MUL:    return "*";
@@ -403,9 +386,9 @@ std::string BinOpExpr::op_string() const {
 
 void BinOpExpr::print(Printer& printer) const {
     int prec = precedence(type_);
-    print_expr(left_.get(), printer, prec);
+    print_with_parens(left_.get(), printer, prec);
     printer << " " << op_string() << " ";
-    print_expr(right_.get(), printer, prec);
+    print_with_parens(right_.get(), printer, prec);
 }
 
 void InitExpr::print(Printer& printer) const {
