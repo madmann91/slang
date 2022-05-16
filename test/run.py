@@ -1,17 +1,36 @@
 #!/usr/bin/env python3
 import os
+import sys
 import subprocess
 import filecmp
 import shutil
+import glob
 
+slangc_exe = ""
+script_path = os.path.dirname(os.path.realpath(__file__))
 passed = []
 failed = []
 instable = set()
+
+def find_slangc():
+    global slangc_exe
+
+    if os.path.isfile("slangc"):
+        slangc_exe = "slangc"
+    else:
+        files = glob.glob(script_path + "/../**/slangc", recursive = True)
+        if not files:
+            sys.exit("Cannot find slangc executable in the path or in '{}'".format(script_path))
+        slangc_exe = files[0]
+
+    print("Found slangc executable: '{}'".format(slangc_exe))
 
 # Launches a test on the given directory
 def do_test(dir, opts):
     global passed
     global failed
+    global slangc_exe
+
     for f in os.listdir(dir):
         if f.endswith(".glsl"):
             full_file = dir + "/" + f
@@ -19,9 +38,9 @@ def do_test(dir, opts):
             err_file = full_file + ".err"
             out = open(out_file, "w")
             err = open(err_file, "w")
-            cmd = "slangc " + opts + " " + full_file
-            print(cmd)
-            subprocess.call(["slangc", opts, full_file], stdout = out, stderr = err)
+            args = [slangc_exe, opts, full_file]
+            print(" ".join(args))
+            subprocess.call(args, stdout = out, stderr = err, cwd = script_path)
             out.close()
             err.close()
 
@@ -39,14 +58,16 @@ def do_test(dir, opts):
 def check_stability(dir):
     global passed
     global instable
+    global slangc_exe
+
     for f in passed:
         if f.startswith(dir):
             first  = open(f + "1", "w")
-            subprocess.call(["slangc", f], stdout = first)
+            subprocess.call([slangc_exe, f], stdout = first)
             first.close()
 
             second = open(f + "2", "w")
-            subprocess.call(["slangc", f + "1"], stdout = second)
+            subprocess.call([slangc_exe, f + "1"], stdout = second)
             second.close()
 
             if not filecmp.cmp(f + "1", f + "2"):
@@ -55,21 +76,32 @@ def check_stability(dir):
                 os.remove(f + "1")
                 os.remove(f + "2")
 
-do_test("lexer/valid",          "--tokenize")
-do_test("lexer/invalid",        "--tokenize")
-do_test("preprocessor/invalid", "--preprocess")
-do_test("preprocessor/valid",   "--preprocess")
-do_test("parser/invalid",       "--syntax")
-do_test("parser/valid",         "--syntax")
+def main():
+    global passed
+    global instable
 
-check_stability("parser/valid")
+    find_slangc()
 
-print("\nPassed :\n")
-for f in passed:
-    print("  " + f + (" [INSTABLE]" if f in instable else ""))
+    print("\nRunning tests :\n")
 
-print("\nFailed :\n")
-for f in failed:
-    print("  " + f)
+    do_test("lexer/valid",          "--tokenize")
+    do_test("lexer/invalid",        "--tokenize")
+    do_test("preprocessor/invalid", "--preprocess")
+    do_test("preprocessor/valid",   "--preprocess")
+    do_test("parser/invalid",       "--syntax")
+    do_test("parser/valid",         "--syntax")
 
-print("\nResults : ", len(passed), "/", len(passed) + len(failed))
+    check_stability("parser/valid")
+
+    print("\nPassed :\n")
+    for f in passed:
+        print("  " + f + (" [INSTABLE]" if f in instable else ""))
+
+    print("\nFailed :\n")
+    for f in failed:
+        print("  " + f)
+
+    print("\nResults : ", len(passed), "/", len(passed) + len(failed))
+
+if __name__ == "__main__":
+    main()
