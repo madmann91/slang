@@ -36,17 +36,20 @@ public:
     const Keywords& keywords() const { return keys_; }
 
 private:
+    void eat_spaces();
+    void eat_single_line_comment();
+    void eat_multi_line_comment();
+    bool eat_suffix(bool = false);
+
+    bool accept(int);
+    bool accept(const std::string&);
     void next();
 
-    Literal parse_int(bool);
-    Literal parse_float(bool);
+    Literal parse_hex_or_octal_int(bool);
+    Literal parse_int_or_float(bool);
     Literal parse_literal();
     std::string parse_ident();
 
-    bool try_parse(const std::string&);
-
-    bool eat_suffix();
-    
     Token make_literal(const Literal&);
     Token make_ident(const std::string&);
     Token make_token(Token::Type);
