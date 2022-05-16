@@ -39,7 +39,6 @@ private:
     void eat_spaces();
     void eat_single_line_comment();
     void eat_multi_line_comment();
-    bool eat_suffix(bool = false);
 
     bool accept(int);
     bool accept(const std::string&);
@@ -48,6 +47,7 @@ private:
     Literal parse_hex_or_octal_int(bool);
     Literal parse_int_or_float(bool);
     Literal parse_literal();
+    Literal::Type parse_suffix();
     std::string parse_ident();
 
     Token make_literal(const Literal&);

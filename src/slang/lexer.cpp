@@ -213,11 +213,6 @@ void Lexer::eat_multi_line_comment() {
     }
 }
 
-bool Lexer::eat_suffix(bool ate_char) {
-    for (; std::isalpha(c_); ate_char = true, next()) ;
-    return ate_char;
-}
-
 bool Lexer::accept(int c) {
     if (c_ == c) {
         next();
@@ -265,13 +260,8 @@ Literal Lexer::parse_hex_or_octal_int(bool is_octal) {
         while (std::isxdigit(c_)) next();
     }
 
-    auto type = Literal::UNKNOWN;
-    if (accept('u') || accept('U'))
-        type = Literal::UINT;
-    else if (accept('i') || accept('I'))
-        type = Literal::INT;
-
-    if (eat_suffix()) {
+    auto type = parse_suffix();
+    if (type != Literal::UINT && type != Literal::INT && type != Literal::UNKNOWN) {
         error() << "Invalid suffix on integer constant\n";
         type = Literal::UNKNOWN;
     }
@@ -309,37 +299,13 @@ Literal Lexer::parse_int_or_float(bool has_dot) {
         }
     }
 
-    bool ate_char = false;
-    auto type = Literal::UNKNOWN;
-    if (accept('f') || accept('F')) {
-        type = Literal::FLOAT;
-    } else if (accept('u') || accept('U')) {
-        type = Literal::UINT;
-    } else if (accept('i') || accept('I')) {
-        type = Literal::INT;
-    } else {
-        if (accept('l')) {
-            if (accept('f'))
-                type = Literal::DOUBLE;
-            else
-                ate_char = true;
-        }
-        if (accept('L')) {
-            if (accept('F'))
-                type = Literal::DOUBLE;
-            else
-                ate_char = true;
-        }
-    }
+    const bool is_float = has_dot || has_exp;
 
-    if (eat_suffix(ate_char)) {
-        error() << "Invalid literal suffix\n";
+    auto type = parse_suffix();
+    if (is_float && (type == Literal::INT || type == Literal::UINT)) {
+        error() << "Invalid suffix on floating-point constant\n";
         type = Literal::UNKNOWN;
     }
-
-    const bool is_float = has_dot || has_exp;
-    if (is_float && (type == Literal::INT || type == Literal::UINT))
-        error() << "Invalid suffix on floating-point constant\n";
 
     switch (type) {
         case Literal::FLOAT:
@@ -368,6 +334,40 @@ Literal Lexer::parse_literal() {
 
     // Parse floating point and decimal integers
     return parse_int_or_float(false);
+}
+
+Literal::Type Lexer::parse_suffix() {
+    bool ate_char = false;
+    auto type = Literal::UNKNOWN;
+    if (accept('f') || accept('F')) {
+        type = Literal::FLOAT;
+    } else if (accept('u') || accept('U')) {
+        type = Literal::UINT;
+    } else if (accept('i') || accept('I')) {
+        type = Literal::INT;
+    } else {
+        if (accept('l')) {
+            if (accept('f'))
+                type = Literal::DOUBLE;
+            else
+                ate_char = true;
+        }
+        if (accept('L')) {
+            if (accept('F'))
+                type = Literal::DOUBLE;
+            else
+                ate_char = true;
+        }
+    }
+
+    // Check for trailing characters
+    for (; std::isalpha(c_); ate_char = true, next()) ;
+
+    if (ate_char) {
+        error() << "Invalid literal suffix\n";
+        type = Literal::UNKNOWN;
+    }
+    return type;
 }
 
 std::string Lexer::parse_ident() {
