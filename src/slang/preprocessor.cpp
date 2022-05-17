@@ -856,14 +856,12 @@ Preprocessor::ExprValue Preprocessor::evaluate_primary(bool lazy) {
         return evaluate_primary(lazy).apply([sign] (int i) { return i * sign; });
     } else if (lookup_.isa(Token::NEG)) {
         // Unary bitwise not
-        unsigned mask = 0;
+        int mask = 0;
         while (lookup_.isa(Token::NEG)) {
             eat(Token::NEG);
             mask = ~mask;
         }
-        return evaluate_primary(lazy).apply([mask] (int i) {
-            return static_cast<int>(static_cast<unsigned>(i) ^ mask);
-        });
+        return evaluate_primary(lazy).apply([mask] (int i) { return i ^ mask; });
     } else if (lookup_.isa(Token::NOT)) {
         // Unary logical not
         int times = 0;
