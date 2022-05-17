@@ -102,6 +102,7 @@ def main():
         print("  " + f)
 
     print("\nResults : ", len(passed), "/", len(passed) + len(failed))
+    return 1 if failed else 0
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
