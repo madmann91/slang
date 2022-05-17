@@ -5,6 +5,7 @@ import subprocess
 import filecmp
 import shutil
 import glob
+import getopt
 
 slangc_exe = ""
 script_path = os.path.dirname(os.path.realpath(__file__))
@@ -12,16 +13,24 @@ passed = []
 failed = []
 instable = set()
 
+def usage():
+    print(
+        "run.py -- Run the slang tests\n"
+        "   -h         --help              Shows this message\n"
+        "   -s <exe>   --slangc-exe=<exe>  Sets the path to the slangc executable")
+
+
 def find_slangc():
     global slangc_exe
 
-    if os.path.isfile("slangc"):
-        slangc_exe = "slangc"
-    else:
+    if not slangc_exe:
+        # Try to autodetect the location of the slangc executable
         files = glob.glob(script_path + "/../**/slangc", recursive = True)
-        if not files:
-            sys.exit("Cannot find slangc executable in the path or in '{}'".format(script_path))
-        slangc_exe = files[0]
+        if files:
+            slangc_exe = files[0]
+
+    if not os.path.isfile(slangc_exe):
+        sys.exit("Cannot find slangc executable")
 
     print("Found slangc executable: '{}'".format(slangc_exe))
 
@@ -79,10 +88,30 @@ def check_stability(dir):
 def main():
     global passed
     global instable
+    global slangc_exe
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hs:", ["help", "slangc-exe="])
+    except getopt.GetoptError as err:
+        print(err)
+        usage()
+        sys.exit(1)
+
+    for o, a in opts:
+        if o in ("-h", "--help"):
+            usage()
+            sys.exit(1)
+        elif o in ("-s", "--slangc-exe"):
+            slangc_exe = a
+        else:
+            assert False
+
+    if args:
+        print("Ignoring arguments: {}".format(", ".join(args)))
 
     find_slangc()
 
-    print("\nRunning tests :\n")
+    print("\nRunning tests:\n")
 
     do_test("lexer/valid",          "--tokenize")
     do_test("lexer/invalid",        "--tokenize")
@@ -93,15 +122,15 @@ def main():
 
     check_stability("parser/valid")
 
-    print("\nPassed :\n")
+    print("\nPassed:\n")
     for f in passed:
         print("  " + f + (" [INSTABLE]" if f in instable else ""))
 
-    print("\nFailed :\n")
+    print("\nFailed:\n")
     for f in failed:
         print("  " + f)
 
-    print("\nResults : ", len(passed), "/", len(passed) + len(failed))
+    print("\nResults: ", len(passed), "/", len(passed) + len(failed))
     return 1 if failed else 0
 
 if __name__ == "__main__":
