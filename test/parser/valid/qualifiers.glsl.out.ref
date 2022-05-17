@@ -7,7 +7,7 @@ flat float f;
 noperspective float g;
 smooth float h;
 invariant float i;
-layout(component = 2, location = 3) float k;
+layout(location = 3, component = 2) float k;
 subroutine(routine1, routine2) int fn();
 inout int l;
 in int m;

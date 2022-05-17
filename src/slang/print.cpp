@@ -52,7 +52,7 @@ void SubroutineQualifier::print(Printer& printer) const {
 
 void LayoutQualifier::print(Printer& printer) const {
     printer.print_keyword("layout") << "(";
-    for (auto it = layouts_.begin(); it != layouts_.end();) {
+    for (auto it = layouts_.begin(); it != layouts_.end(); ++it) {
         printer << it->first;
 
         if (it->second) {
@@ -60,8 +60,7 @@ void LayoutQualifier::print(Printer& printer) const {
             it->second->print(printer);
         }
 
-        it++;
-        if (it != layouts_.end())
+        if (std::next(it) != layouts_.end())
             printer << ", ";
     }
     printer << ")";

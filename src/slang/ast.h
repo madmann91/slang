@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include <algorithm>
 
 #include "slang/location.h"
 #include "slang/token.h"
@@ -435,18 +436,25 @@ protected:
 /// Layout qualifier (contains a map from identifiers to values).
 class LayoutQualifier : public TypeQualifier {
 public:
-    PtrMap<std::string, Expr>& layouts() { return layouts_; }
-    PtrMapView<std::string, Expr> layouts() const { return make_view(layouts_); }
+    using Layout = std::pair<std::string, Ptr<Expr>>;
+
+    std::vector<Layout>& layouts() { return layouts_; }
     void push_layout(const std::string& name, Expr* expr) {
-        assert(layouts_.find(name) == layouts_.end());
-        layouts_.emplace(name, Ptr<Expr>(expr));
+        assert(!find_layout(name));
+        layouts_.emplace_back(name, Ptr<Expr>(expr));
+    }
+    const Expr* find_layout(const std::string& name) const {
+        auto it = std::find_if(layouts_.begin(), layouts_.end(), [&] (const Layout& layout) {
+            return layout.first == name;
+        });
+        return it != layouts_.end() ? it->second.get() : NULL;
     }
     size_t num_layouts() const { return layouts_.size(); }
 
     void print(Printer&) const override;
 
 private:
-    PtrMap<std::string, Expr> layouts_;
+    std::vector<Layout> layouts_;
 };
 
 /// Invariance qualifier.
