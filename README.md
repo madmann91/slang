@@ -1,4 +1,4 @@
-# Slang
+# Slang ![build-and-test](https://github.com/madmann91/slang/actions/workflows/build_and_test.yml/badge.svg)
 A small, flexible and extensible front-end for GLSL.
 
 ## Project goal
