@@ -60,6 +60,16 @@ bool parse_glsl(const std::string& filename) {
 * Colored output and syntax highlighting
 * Test suite to check correctness
 
+## Building
+
+This project requires CMake to build properly. In order to configure, and then build it, use the
+following commands:
+
+    mkdir build
+    cd build
+    cmake .. -DCMAKE_BUILD_TYPE=<Debug|Release>
+    make
+
 ## Examples
 
 ### User defined macros
