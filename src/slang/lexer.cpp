@@ -30,30 +30,24 @@ T read_hexadecimal(int c) {
 }
 
 Lexer::Lexer(std::istream& stream, const Keywords& keys, Logger& logger, int line, int source)
-    : err_count_(0), new_line_(true), source_(source), stream_(stream), keys_(keys), logger_(logger)
+    : err_count_(0), new_line_(true), spaces_(false), source_(source), stream_(stream), keys_(keys), logger_(logger)
 {
-    prev_ = Position(line, 1);
-    cur_  = Position(line, 0);
+    reset_pos(line);
     c_ = 0;
     next();
 
     // Parse UTF-8 byte order mark, if present
-    if (c_ == 0xEF) {
-        next();
-        if (c_ == 0xBB) {
-            next();
-            if (c_ == 0xBF) {
-                prev_ = Position(line, 1);
-                cur_  = Position(line, 0);
-                next();
-                return;
-            }
-        }
-        error() << "Unknown Byte Order Mark, only UTF-8 is supported\n";
-    }
+    if (parse_bom())
+        reset_pos(line);
 }
 
 Token Lexer::lex() {
+    struct ResetFlags {
+        Lexer& lexer;
+
+        ResetFlags(Lexer& lexer) : lexer(lexer) {}
+        ~ResetFlags() { lexer.reset_flags(); }
+    } reset_on_exit(*this);
     while (true) {
         eat_spaces();
 
@@ -192,7 +186,10 @@ int Lexer::source_index() const {
 }
 
 void Lexer::eat_spaces() {
-    while (std::isspace(c_)) next();
+    while (std::isspace(c_)) {
+        spaces_ = true;
+        next();
+    }
 }
 
 void Lexer::eat_single_line_comment() {
@@ -375,22 +372,35 @@ std::string Lexer::parse_ident() {
     return str_;
 }
 
-inline bool reset_bool(bool& value) {
-    bool old = value;
-    value = false;
-    return old;
+bool Lexer::parse_bom() {
+    if (accept(0xEF)) {
+        if (accept(0xBB) && accept(0xBF))
+            return true;
+        error() << "Unknown Byte Order Mark, only UTF-8 is supported\n";
+    }
+    return false;
 }
 
 Token Lexer::make_literal(const Literal& l) {
-    return Token(Location(prev_, cur_), str_, l, reset_bool(new_line_));
+    return Token(Location(prev_, cur_), str_, l, new_line_, spaces_);
 }
 
 Token Lexer::make_ident(const std::string& ident) {
-    return Token(Location(prev_, cur_), ident, keys_, reset_bool(new_line_));
+    return Token(Location(prev_, cur_), ident, keys_, new_line_, spaces_);
 }
 
 Token Lexer::make_token(Token::Type type) {
-    return Token(Location(prev_, cur_), type, reset_bool(new_line_));
+    return Token(Location(prev_, cur_), type, new_line_, spaces_);
+}
+
+void Lexer::reset_pos(int line) {
+    prev_ = Position(line, 1);
+    cur_  = Position(line, 0);
+}
+
+void Lexer::reset_flags() {
+    new_line_ = false;
+    spaces_ = false;
 }
 
 std::ostream& Lexer::error() {

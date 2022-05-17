@@ -30,3 +30,6 @@
 # Tests results
 *.err
 *.out
+
+# Vim files
+*.swp

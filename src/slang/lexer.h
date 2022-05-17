@@ -49,17 +49,21 @@ private:
     Literal parse_literal();
     Literal::Type parse_suffix();
     std::string parse_ident();
+    bool parse_bom();
 
     Token make_literal(const Literal&);
     Token make_ident(const std::string&);
     Token make_token(Token::Type);
 
+    void reset_pos(int);
+    void reset_flags();
     std::ostream& error();
 
     size_t err_count_;
 
     int c_;
     bool new_line_;
+    bool spaces_;
     int source_;
     std::string str_;
 

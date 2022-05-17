@@ -77,16 +77,16 @@ public:
 
     Token() : type_(UNKNOWN) {}
     /// Creates a token which is not an identifier nor a literal.
-    Token(const Location& loc, Type type, bool new_line)
-        : loc_(loc), type_(type), str_(type_string(type)), new_line_(new_line)
+    Token(const Location& loc, Type type, bool new_line, bool spaces)
+        : loc_(loc), type_(type), str_(type_string(type)), new_line_(new_line), spaces_(spaces)
     {}
     /// Creates an identifier or keyword.
-    Token(const Location& loc, const std::string& str, const Keywords& keys, bool new_line)
-        : loc_(loc), type_(IDENT), str_(str), key_(keys.keyword(str)), new_line_(new_line)
+    Token(const Location& loc, const std::string& str, const Keywords& keys, bool new_line, bool spaces)
+        : loc_(loc), type_(IDENT), str_(str), key_(keys.keyword(str)), new_line_(new_line), spaces_(spaces)
     {}
     /// Creates a literal.
-    Token(const Location& loc, const std::string& str, Literal lit, bool new_line)
-        : loc_(loc), type_(LIT), str_(str), lit_(lit), new_line_(new_line)
+    Token(const Location& loc, const std::string& str, Literal lit, bool new_line, bool spaces)
+        : loc_(loc), type_(LIT), str_(str), lit_(lit), new_line_(new_line), spaces_(spaces)
     {}
 
     bool isa(Type type) const { return type_ == type; }
@@ -102,7 +102,11 @@ public:
     const std::string& ident() const { assert(type_ == IDENT); return str_; }
 
     const std::string& str() const { return str_; }
+
+    /// Returns true if a new line was encountered before parsing the token.
     bool new_line() const { return new_line_; }
+    /// Returns true if one or more spaces were encountered before parsing the token.
+    bool spaces() const { return spaces_; }
 
     static std::string type_string(Type type) {
         static auto hash_type = [] (Type type) { return (size_t)type; };
@@ -122,7 +126,8 @@ private:
     std::string str_;
     Literal lit_;
     Key key_;
-    bool new_line_;
+    bool new_line_ : 1;
+    bool spaces_ : 1;
 };
 
 template <typename T>

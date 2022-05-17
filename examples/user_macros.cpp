@@ -34,9 +34,9 @@ int main(int argc, char** argv) {
     // Register a custom rule-driven macro (equivalent to "#define MY_MACRO(i, j) i + j")
     pp.register_macro("MY_MACRO", Macro({{"i", 0}, {"j", 1}},
         std::vector<Token>({
-            Token(Location(), "i", keys, false),
-            Token(Location(), Token::ADD, false),
-            Token(Location(), "j", keys, false),
+            Token(Location(), "i", keys, false, false),
+            Token(Location(), Token::ADD, false, false),
+            Token(Location(), "j", keys, false, false),
         })
     ));
 
@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
                 std::cout << "\b] ";
             }
             std::cout << "\b" << std::endl;
-            auto _4_2 = Token(Location(), "4.2", Literal(4.2f, false), false);
+            auto _4_2 = Token(Location(), "4.2", Literal(4.2f, false), false, false);
             return std::vector<Token>({_4_2});
         }));
 

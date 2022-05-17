@@ -66,7 +66,7 @@ void Preprocessor::register_file_macro() {
         Literal lit(lexer_.source_index(), false);
         std::ostringstream os;
         os << lit;
-        return std::vector<Token>(1, Token(Location::zero(), os.str(), lit, false));
+        return std::vector<Token>(1, Token(Location::zero(), os.str(), lit, false, false));
     });
 }
 
@@ -75,7 +75,7 @@ void Preprocessor::register_line_macro() {
         Literal lit(lexer_.line_index(), false);
         std::ostringstream os;
         os << lit;
-        return std::vector<Token>(1, Token(Location::zero(), os.str(), lit, false));
+        return std::vector<Token>(1, Token(Location::zero(), os.str(), lit, false, false));
     });
 }
 
@@ -84,23 +84,23 @@ void Preprocessor::register_version_macro(int ver) {
         Literal lit(ver, false);
         std::ostringstream os;
         os << lit;
-        return std::vector<Token>(1, Token(Location::zero(), os.str(), lit, false));
+        return std::vector<Token>(1, Token(Location::zero(), os.str(), lit, false, false));
     });
 }
 
 void Preprocessor::register_core_macro() {
     macros_["GL_core_profile"] = Macro(std::vector<Token>(1,
-        Token(Location::zero(), "1", Literal(1, false), false)));
+        Token(Location::zero(), "1", Literal(1, false), false, false)));
 }
 
 void Preprocessor::register_compatibility_macro() {
     macros_["GL_compatibility_profile"] = Macro(std::vector<Token>(1,
-        Token(Location::zero(), "1", Literal(1, false), false)));
+        Token(Location::zero(), "1", Literal(1, false), false, false)));
 }
 
 void Preprocessor::register_es_macro() {
     macros_["GL_es_profile"] = Macro(std::vector<Token>(1,
-        Token(Location::zero(), "1", Literal(1, false), false)));
+        Token(Location::zero(), "1", Literal(1, false), false, false)));
 }
 
 void Preprocessor::next() {
@@ -317,9 +317,7 @@ void Preprocessor::parse_define() {
 
     // Parse macro arguments
     std::unordered_map<std::string, size_t> args;
-    Token* missing_lparen = nullptr;
-
-    if (lookup_.isa(Token::LPAREN) && !lookup_.new_line()) {
+    if (lookup_.isa(Token::LPAREN) && !lookup_.new_line() && !lookup_.spaces()) {
         eat(Token::LPAREN);
 
         while (lookup_.isa(Token::IDENT) && !lookup_.new_line()) {
@@ -335,21 +333,12 @@ void Preprocessor::parse_define() {
         }
 
         if (!check_newline()) return;
-
-        if (args.empty() && !lookup_.isa(Token::RPAREN))
-            missing_lparen = &prev_;
-        else
-            expect(Token::RPAREN);
+        expect(Token::RPAREN);
     }
 
     // Read macro body
     std::vector<Token> body;
-
-    // Workaround in case '#define MACRO (parenthesized_expression)'
-    if (missing_lparen) body.push_back(*missing_lparen);
-
-    while (!lookup_.new_line() &&
-           !lookup_.isa(Token::END)) {
+    while (!lookup_.new_line() && !lookup_.isa(Token::END)) {
         body.push_back(lookup_);
         next();
     }
@@ -618,15 +607,18 @@ bool Preprocessor::concat(const Token& a, const Token& b, Token& c) {
         return false;
     }
 
+    auto new_line = a.new_line() | b.new_line();
+    auto spaces   = a.spaces()   | b.spaces();
+
     switch (tok.type()) {
         case Token::IDENT:
-            c = Token(concat_loc(a, b), tok.ident(), lexer_.keywords(), a.new_line() | b.new_line());
+            c = Token(concat_loc(a, b), tok.ident(), lexer_.keywords(), new_line, spaces);
             break;
         case Token::LIT:
-            c = Token(concat_loc(a, b), tok.str(), tok.lit(), a.new_line() | b.new_line());
+            c = Token(concat_loc(a, b), tok.str(), tok.lit(), new_line, spaces);
             break;
         default:
-            c = Token(concat_loc(a, b), tok.type(), a.new_line() | b.new_line());
+            c = Token(concat_loc(a, b), tok.type(), new_line, spaces);
             break;
     }
 
