@@ -2,10 +2,11 @@
 import os
 import sys
 import subprocess
-import filecmp
 import shutil
 import glob
 import getopt
+import filecmp
+import difflib
 
 slangc_exe = ""
 script_path = os.path.dirname(os.path.realpath(__file__))
@@ -34,6 +35,17 @@ def find_slangc():
 
     print("Found slangc executable: '{}'".format(slangc_exe))
 
+def read_lines(file):
+    with open(file, "r") as f:
+        lines = f.readlines()
+    return lines
+
+def diff_files(file, ref_file):
+    return difflib.unified_diff(
+        read_lines(file),
+        read_lines(ref_file),
+        fromfile=ref_file, tofile=file)
+
 # Launches a test on the given directory
 def do_test(dir, opts):
     global passed
@@ -54,10 +66,17 @@ def do_test(dir, opts):
             err.close()
 
             if os.path.isfile(out_file + ".ref") and os.path.isfile(err_file + ".ref"):
+                same_out = filecmp.cmp(out_file, out_file + ".ref")
+                same_err = filecmp.cmp(err_file, err_file + ".ref")
+
                 # Compare with the reference output files if they exist
-                if filecmp.cmp(out_file, out_file + ".ref") and filecmp.cmp(err_file, err_file + ".ref"):
+                if same_out and same_err:
                     passed += [full_file]
                 else:
+                    if not same_out:
+                        sys.stdout.writelines(diff_files(out_file, out_file + ".ref"))
+                    if not same_err:
+                        sys.stdout.writelines(diff_files(err_file, err_file + ".ref"))
                     failed += [full_file]
             else:
                 # If they do not exist, then create them with the result of the test
