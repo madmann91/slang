@@ -271,8 +271,7 @@ Literal Lexer::parse_hex_or_octal_int(bool is_octal) {
 Literal Lexer::parse_int_or_float(bool has_dot) {
     if (!has_dot) {
         while (std::isdigit(c_)) next();
-        if (accept('.'))
-            has_dot = true;
+        has_dot = accept('.');
     }
 
     // Fractional part
@@ -281,10 +280,8 @@ Literal Lexer::parse_int_or_float(bool has_dot) {
     }
 
     // Parse exponent (if any)
-    bool has_exp = false;
-    if (accept('e') || accept('E')) {
-        has_exp = true;
-
+    bool has_exp = accept('e') || accept('E');
+    if (has_exp) {
         accept('+') || accept('-');
         if (!std::isdigit(c_)) {
             // In this case, ignore the exponent
