@@ -130,7 +130,7 @@ const slang::Type* ErrorExpr::check(Sema& sema, const slang::Type*) const {
     return sema.error_type();
 }
 
-const slang::Type* LiteralExpr::check(Sema& sema, const slang::Type* expected) const {
+const slang::Type* LiteralExpr::check(Sema& sema, const slang::Type*) const {
     switch (lit_.type()) {
         case Literal::DOUBLE: return sema.prim_type(slang::PrimType::DOUBLE);
         case Literal::FLOAT:  return sema.prim_type(slang::PrimType::FLOAT);
@@ -527,6 +527,7 @@ const slang::Type* UnOpExpr::check(Sema& sema, const slang::Type*) const {
         case DEC:
         case POST_DEC:
             sema.expect_lvalue(operand());
+            // fallthrough
         case MINUS:
         case PLUS:
             sema.expect_numeric(this, prim);
@@ -1146,7 +1147,7 @@ void ContinueStmt::check(Sema& sema) const {
         sema.error(this) << "\'continue\' statements are only allowed inside a loop\n";
 }
 
-void DiscardStmt::check(Sema& sema) const {}
+void DiscardStmt::check(Sema&) const {}
 
 void ReturnStmt::check(Sema& sema) const {
     const FunctionDecl* fn_decl = sema.env()->closest_function()->as<FunctionDecl>();

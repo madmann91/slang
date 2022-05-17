@@ -141,7 +141,7 @@ ast::Type* Parser::parse_type() {
                     type = parse_named_type();
                 break;
             }
-            // Generate an error type otherwise
+            // fallthrough
 
         default:
             error() << "Identifier or data type expected\n";
