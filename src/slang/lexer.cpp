@@ -264,8 +264,8 @@ Literal Lexer::parse_hex_or_octal_int(bool is_octal) {
     }
 
     if (type == Literal::UINT)
-        return Literal(static_cast<unsigned>(std::strtoul(str_.c_str(), nullptr, base)), true);
-    return Literal(static_cast<int>(std::strtol(str_.c_str(), nullptr, base)), type != Literal::UNKNOWN);
+        return Literal(static_cast<unsigned>(std::strtoull(str_.c_str(), nullptr, base)), true);
+    return Literal(static_cast<int>(std::strtoll(str_.c_str(), nullptr, base)), type != Literal::UNKNOWN);
 }
 
 Literal Lexer::parse_int_or_float(bool has_dot) {
@@ -306,15 +306,15 @@ Literal Lexer::parse_int_or_float(bool has_dot) {
         case Literal::FLOAT:
             return Literal(std::strtof(str_.c_str(), nullptr), true);
         case Literal::UINT:
-            return Literal(static_cast<unsigned>(std::strtoul(str_.c_str(), nullptr, 10)), true);
+            return Literal(static_cast<unsigned>(std::strtoull(str_.c_str(), nullptr, 10)), true);
         case Literal::INT:
-            return Literal(static_cast<int>(std::strtol(str_.c_str(), nullptr, 10)), true);
+            return Literal(static_cast<int>(std::strtoll(str_.c_str(), nullptr, 10)), true);
         case Literal::DOUBLE:
             return Literal(std::strtod(str_.c_str(), nullptr), true);
         default:
             return is_float
                 ? Literal(std::strtof(str_.c_str(), nullptr), false)
-                : Literal(static_cast<int>(std::strtol(str_.c_str(), nullptr, 10)), false);
+                : Literal(static_cast<int>(std::strtoll(str_.c_str(), nullptr, 10)), false);
     }
 }
 
