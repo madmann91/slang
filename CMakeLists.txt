@@ -39,7 +39,7 @@ add_subdirectory(${PROJ_SOURCE_DIR})
 
 include(CTest)
 if(BUILD_TESTING)
-    find_package(Python 3 REQUIRED)
+    find_package(Python 3.5 REQUIRED)
     add_subdirectory(examples)
     add_test(NAME test_suite COMMAND python run.py WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test)
 endif()
