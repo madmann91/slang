@@ -18,7 +18,7 @@ Preprocessor::Preprocessor(Lexer& lexer, Logger& logger,
     next();
 }
 
-Token Preprocessor::preprocess() {
+Token Preprocessor::next_token() {
     while (!lookup_.isa(Token::END)) {
         // Parse preprocessor directives
         if (ctx_stack_.empty()) {
@@ -113,7 +113,7 @@ void Preprocessor::next() {
     }
 
     if (ctx_stack_.empty()) {
-        lookup_ = lexer_.lex();
+        lookup_ = lexer_.next_token();
     } else {
         // Read token from stacked context
         lookup_ = ctx_buffer_[ctx_stack_.back().cur++];
@@ -601,8 +601,8 @@ bool Preprocessor::concat(const Token& a, const Token& b, Token& c) {
     Lexer lex(str, lexer_.keywords(), logger);
 
     // Get the concatenated token
-    Token tok = lex.lex();
-    if (tok.isa(Token::END) || !lex.lex().isa(Token::END) || lex.error_count() > 0) {
+    Token tok = lex.next_token();
+    if (tok.isa(Token::END) || !lex.next_token().isa(Token::END) || lex.error_count() > 0) {
         error() << "Invalid tokens for concatenation operator\n";
         return false;
     }

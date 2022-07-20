@@ -41,7 +41,7 @@ Lexer::Lexer(std::istream& stream, const Keywords& keys, Logger& logger, int lin
         reset_pos(line);
 }
 
-Token Lexer::lex() {
+Token Lexer::next_token() {
     struct ResetFlags {
         Lexer& lexer;
 

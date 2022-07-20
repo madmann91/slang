@@ -79,7 +79,7 @@ enum class ExtBehavior {
 };
 
 /// The preprocessor: expands macros and handles preprocessor directives.
-class Preprocessor {
+class Preprocessor : public TokenStream {
 public:
     typedef std::function<void(int, Profile)>                    VersionHandler;
     typedef std::function<void(const std::vector<Token>&)>       PragmaHandler;
@@ -93,7 +93,7 @@ public:
                  size_t max_depth = 1024);
 
     /// Extracts the next preprocessed token from the stream.
-    Token preprocess();
+    Token next_token() override;
 
     /// Registers the given macro in the preprocessor (replaces it if it already exists).
     void register_macro(const std::string& name, const Macro& macro) { macros_[name] = macro; }

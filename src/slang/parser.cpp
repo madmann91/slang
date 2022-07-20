@@ -5,12 +5,12 @@
 
 namespace slang {
 
-Parser::Parser(std::function<Token()> input, Sema& sema, Logger& logger)
-    : err_count_(0), input_(input), sema_(sema), logger_(logger)
+Parser::Parser(TokenStream& stream, Sema& sema, Logger& logger)
+    : err_count_(0), stream_(stream), sema_(sema), logger_(logger)
 {
-    lookup_[0] = input();
-    lookup_[1] = input();
-    lookup_[2] = input();
+    lookup_[0] = stream_.next_token();
+    lookup_[1] = stream_.next_token();
+    lookup_[2] = stream_.next_token();
     prev_ = lookup_[0].loc().start();
 }
 
@@ -22,7 +22,7 @@ void Parser::next() {
     prev_ = lookup_[0].loc().end();
     lookup_[0] = lookup_[1];
     lookup_[1] = lookup_[2];
-    lookup_[2] = input_();
+    lookup_[2] = stream_.next_token();
 }
 
 void Parser::eat(Token::Type type) {

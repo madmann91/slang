@@ -187,7 +187,7 @@ struct Obfuscator {
     }
 };
 
-int main(int argc, char** argv) {
+int main() {
     std::string glsl = 
 R"(
 struct Node {
@@ -220,7 +220,7 @@ float test() {
     // Create a semantic analyser (type checker) object
     Sema sema(log);
     // Create a parser object
-    Parser parser([&] { return lex.lex(); }, sema, log);
+    Parser parser(lex, sema, log);
 
     auto module = parser.parse();
 

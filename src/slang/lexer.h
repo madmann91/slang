@@ -10,14 +10,21 @@
 
 namespace slang {
 
+/// Base class for all classes that can produce tokens.
+class TokenStream {
+public:
+    virtual ~TokenStream() = default;
+    virtual Token next_token() = 0;
+};
+
 /// The lexer : produces a stream of tokens from a stream of characters.
-class Lexer {
+class Lexer : public TokenStream {
 public:
     /// Builds a lexer with the given stream and set of keywords, errors will be redirected to the logger object.
     Lexer(std::istream& stream, const Keywords& keywords, Logger& logger, int line = 1, int source = 0);
 
     /// Returns the next token in the stream and updates the current position.
-    Token lex();
+    Token next_token() override;
 
     /// Returns the number of errors generated during lexing.
     size_t error_count() const { return err_count_; }

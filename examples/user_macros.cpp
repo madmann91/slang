@@ -17,7 +17,7 @@
 
 using namespace slang;
 
-int main(int argc, char** argv) {
+int main() {
     std::string glsl = "MY_MACRO(41, 1)\nMY_BUILTIN_MACRO(0.666 - 0.)";
     std::istringstream is(glsl);
 
@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
     std::ostringstream out;
     Token tok;
     do {
-        tok = pp.preprocess();
+        tok = pp.next_token();
         out << tok << " ";
     } while (tok.type() != Token::END);
 

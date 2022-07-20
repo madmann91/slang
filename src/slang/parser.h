@@ -17,7 +17,7 @@ namespace slang {
 class Parser {
 public:
     /// Builds a parser with the given token source, errors will be redirected to the logger object.
-    Parser(std::function<Token()> input, Sema& sema, Logger& logger);
+    Parser(TokenStream& stream, Sema& sema, Logger& logger);
 
     /// Parses the stream and produces an AST.
     Ptr<ast::Module> parse();
@@ -115,8 +115,7 @@ private:
 
     size_t err_count_;
 
-    std::function<Token()> input_;
-
+    TokenStream& stream_;
     Sema& sema_;
     Logger& logger_;
     Token lookup_[3];

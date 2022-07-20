@@ -483,7 +483,7 @@ Ptr<ast::Module> parse_builtins(Sema& sema, const Keywords& keys) {
     Logger logger("", false, null_stream, null_stream);
     Lexer lexer(is, keys, logger);
     Preprocessor pp(lexer, logger);
-    Parser parser([&pp]() { return pp.preprocess(); }, sema, logger);
+    Parser parser(pp, sema, logger);
     auto mod = parser.parse();
     assert(lexer.error_count() + pp.error_count() + parser.error_count() + sema.error_count() == 0);
     return mod;

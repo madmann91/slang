@@ -31,8 +31,9 @@ bool parse_glsl(const std::string& filename) {
     pp.register_builtin_macros();
     // Create a semantic object, that will be used during type checking
     Sema sema(logger);
-    // Create a parser object that reads tokens from the preprocessor (can read directly from the lexer)
-    Parser parser([&pp]() { return pp.preprocess(); }, sema, logger);
+    // Create a parser object that reads tokens from the preprocessor
+    // (can alternatively read directly from the lexer if the source is already preprocessed)
+    Parser parser(pp, sema, logger);
 
     // Parse the stream (errors will be reported in the logger)
     Ptr<ast::Module> module = parser.parse();

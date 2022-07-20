@@ -51,7 +51,7 @@ bool lexical_analysis(const std::string& filename, const Keywords& keys) {
     std::ostringstream tokens;
     Token tok;
     do {
-        tok = lexer.lex();
+        tok = lexer.next_token();
         tokens << tok << tok.loc() << " ";
     } while (tok.type() != Token::END);
     std::cout << tokens.str() << std::endl;
@@ -75,7 +75,7 @@ bool preprocess(const std::string& filename, const Keywords& keys) {
     std::ostringstream tokens;
     Token tok;
     do {
-        tok = pp.preprocess();
+        tok = pp.next_token();
         tokens << tok << " ";
     } while (tok.type() != Token::END);
     std::cout << tokens.str() << std::endl;
@@ -99,7 +99,7 @@ bool syntax_analysis(const std::string& filename, const Keywords& keys) {
     Sema sema(logger);
     Ptr<ast::Module> builtins = parse_builtins(sema, keys);
 
-    Parser parser([&pp]() { return pp.preprocess(); }, sema, logger);
+    Parser parser(pp, sema, logger);
     sema.push_env();
     Ptr<ast::Module> module = parser.parse();
     sema.pop_env();
